@@ -51,7 +51,7 @@ export const claudeCodeProvider: ToolProvider = {
     if (!which || !which.stdout.trim()) return { installed: false };
     const binPath = which.stdout.trim();
     const ver = await tryExec('claude', ['--version']);
-    const version = ver?.stdout.trim().split(/\s+/).pop();
+    const version = ver?.stdout.trim().split(/\s+/)[0];
     return { installed: true, path: binPath, version };
   },
 
