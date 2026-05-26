@@ -240,6 +240,28 @@ cli
     ok(t('restore.done', { id: latest.id }));
   });
 
+// ─── config ───────────────────────────────────────────────────────────
+cli
+  .command('config <action> [tool]', 'Show or edit config  (show)')
+  .action(async (action: string, toolId: string | undefined) => {
+    if (action !== 'show') {
+      err(`Unknown config action: ${action}. Valid: show`);
+      process.exit(1);
+    }
+    const targets = toolId ? [getProvider(toolId)].filter(Boolean) : listProviders();
+    for (const p of targets) {
+      if (!p) continue;
+      const det = await p.detect();
+      if (!det.installed) {
+        info(`${p.id}: not installed`);
+        continue;
+      }
+      const data = await p.settingsAdapter.read();
+      console.log(kleur.bold(`\n── ${p.name} (${p.settingsAdapter.configPath()}) ──`));
+      console.log(JSON.stringify(data, null, 2));
+    }
+  });
+
 // ─── self-update ──────────────────────────────────────────────────────
 cli
   .command('self-update', 'Update clihub to the latest version')

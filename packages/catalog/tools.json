@@ -7,5 +7,14 @@
     "installMethods": ["npm"],
     "npmPackage": "@anthropic-ai/claude-code",
     "supportedPlatforms": ["macos", "linux"]
+  },
+  {
+    "id": "codex",
+    "name": "Codex CLI",
+    "description": "OpenAI Codex CLI — AI coding agent in the terminal",
+    "homepage": "https://github.com/openai/codex",
+    "installMethods": ["npm", "bun"],
+    "npmPackage": "@openai/codex",
+    "supportedPlatforms": ["macos", "linux"]
   }
 ]

@@ -9,6 +9,7 @@ export {
   registerProvider,
 } from './tools/registry.js';
 export { claudeCodeProvider } from './tools/providers/claude-code.js';
+export { codexProvider } from './tools/providers/codex.js';
 export { JsonSettingsAdapter } from './settings/index.js';
 export {
   BackupManager,
