@@ -37,8 +37,8 @@ clihub solves all three:
 curl -fsSL https://raw.githubusercontent.com/wikieden/clihub/main/scripts/install.sh | sh
 
 # or directly
-npm install -g clihub
-bun add -g clihub
+npm install -g @wikieden/clihub
+bun add -g @wikieden/clihub
 ```
 
 Requirements: Node ≥ 18 (or Bun). On Linux/macOS/WSL.

@@ -15,7 +15,7 @@ ok()    { printf "${GRN}[✓]${RST} %s\n" "$1"; }
 warn()  { printf "${YLW}[!]${RST} %s\n" "$1"; }
 err()   { printf "${RED}[✗]${RST} %s\n" "$1" >&2; }
 
-PKG="clihub"
+PKG="@wikieden/clihub"
 REPO="https://github.com/wikieden/clihub.git"
 INSTALL_DIR="${CLIHUB_INSTALL_DIR:-$HOME/.local/share/clihub}"
 

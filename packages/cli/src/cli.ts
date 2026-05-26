@@ -327,9 +327,10 @@ cli
     const { promisify } = await import('node:util');
     const execFileP = promisify(execFile);
 
+    const PKG = '@wikieden/clihub';
     let method: 'npm' | 'bun' = 'npm';
     try {
-      const { stdout } = await execFileP('npm', ['ls', '-g', '--depth=0', 'clihub']);
+      const { stdout } = await execFileP('npm', ['ls', '-g', '--depth=0', PKG]);
       if (stdout.includes('clihub')) method = 'npm';
     } catch {
       method = 'bun';
@@ -338,9 +339,9 @@ cli
     info(`Updating clihub via ${method}...`);
     try {
       if (method === 'npm') {
-        await execFileP('npm', ['install', '-g', 'clihub@latest']);
+        await execFileP('npm', ['install', '-g', `${PKG}@latest`]);
       } else {
-        await execFileP('bun', ['add', '-g', 'clihub@latest']);
+        await execFileP('bun', ['add', '-g', `${PKG}@latest`]);
       }
       ok('clihub updated to latest');
     } catch (e) {
