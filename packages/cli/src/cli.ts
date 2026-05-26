@@ -5,6 +5,7 @@
  */
 import { cac } from 'cac';
 import kleur from 'kleur';
+import pkg from '../package.json' with { type: 'json' };
 
 import {
   BackupManager,
@@ -357,6 +358,6 @@ cli.command('', t('cli.title')).action(async () => {
 });
 
 cli.help();
-cli.version('0.1.0');
+cli.version(pkg.version);
 
 cli.parse();

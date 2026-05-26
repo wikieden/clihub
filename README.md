@@ -1,5 +1,10 @@
 # clihub
 
+[![npm version](https://img.shields.io/npm/v/@wikieden/clihub.svg?label=npm)](https://www.npmjs.com/package/@wikieden/clihub)
+[![npm downloads](https://img.shields.io/npm/dm/@wikieden/clihub.svg)](https://www.npmjs.com/package/@wikieden/clihub)
+[![license](https://img.shields.io/npm/l/@wikieden/clihub.svg)](LICENSE)
+[![node](https://img.shields.io/node/v/@wikieden/clihub.svg)](https://nodejs.org)
+
 **The one tool that installs Claude Code, Codex, Gemini CLI, and Kiro — keeps their skills in sync across every CLI — and ships one-command rollback when an update bites.**
 
 ```bash
@@ -137,7 +142,7 @@ bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't
 ## Roadmap
 
 - **v0.1** ✅ — Claude Code provider, 5 core skills, backup/restore.
-- **v0.2** ✅ (current) — Codex + Kiro + Gemini providers, 30 skills, 3 presets, cross-tool skill fan-out, i18n (en/zh/ja/ko/es), TUI with preset preview + back navigation.
+- **v0.2** ✅ (current, `@wikieden/clihub@0.2.2` on npm) — Codex + Kiro + Gemini providers, 30 skills, 3 presets, cross-tool skill fan-out, i18n (en/zh/ja/ko/es), TUI with preset preview + back navigation, single-binary 148KB tarball with zero install-time deps.
 - **v0.3** — Per-CLI guided install flows, `agentskills.io` SKILL.md catalog format, doctor with quota signals, MCP-server install/sync.
 - **v0.4+** — Remote catalog sync, Windows support, plugin SDK.
 

@@ -1,6 +1,6 @@
 {
   "name": "@wikieden/clihub",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Install Claude Code, Codex, Gemini & Kiro — keep their skills in sync, with one-command rollback.",
   "type": "module",
   "bin": {
