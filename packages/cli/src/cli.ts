@@ -10,8 +10,13 @@ import {
   BackupManager,
   CatalogLoader,
   ClaudeCodeSkillAdapter,
+  CodexSkillAdapter,
+  GeminiCliSkillAdapter,
+  KiroCliSkillAdapter,
   getProvider,
   listProviders,
+  type SkillSyncAdapter,
+  type SkillManifest,
   t,
 } from '@clihub/core';
 import os from 'node:os';
@@ -20,7 +25,26 @@ import path from 'node:path';
 const cli = cac('clihub');
 const catalog = new CatalogLoader();
 const backups = new BackupManager();
-const skillAdapter = new ClaudeCodeSkillAdapter();
+
+const ADAPTERS: Record<string, () => SkillSyncAdapter> = {
+  'claude-code': () => new ClaudeCodeSkillAdapter(),
+  'codex': () => new CodexSkillAdapter(),
+  'kiro-cli': () => new KiroCliSkillAdapter(),
+  'gemini-cli': () => new GeminiCliSkillAdapter(),
+};
+
+async function adaptersForSkill(skill: SkillManifest): Promise<Array<{ toolId: string; adapter: SkillSyncAdapter }>> {
+  const result: Array<{ toolId: string; adapter: SkillSyncAdapter }> = [];
+  for (const [toolId, factory] of Object.entries(ADAPTERS)) {
+    if (!skill.supports[toolId as keyof typeof skill.supports]) continue;
+    const provider = getProvider(toolId);
+    if (!provider) continue;
+    const det = await provider.detect();
+    if (!det.installed) continue;
+    result.push({ toolId, adapter: factory() });
+  }
+  return result;
+}
 
 const ok = (msg: string) => console.log(kleur.green('✓'), msg);
 const info = (msg: string) => console.log(kleur.cyan('ℹ'), msg);
@@ -111,36 +135,65 @@ cli
 // ─── skill <action> [id] ──────────────────────────────────────────────
 cli
   .command('skill <action> [id]', 'Manage skills  (list | install | uninstall)')
-  .action(async (action: string, id: string | undefined) => {
+  .option('--tool <tool>', 'Limit to a specific tool')
+  .action(async (action: string, id: string | undefined, opts: { tool?: string }) => {
     switch (action) {
       case 'list': {
-        const installed = await skillAdapter.list();
-        if (installed.length === 0) { info(t('skill.list.empty')); return; }
-        console.log(kleur.bold(t('skill.list.header')));
-        for (const s of installed) {
-          console.log(`  ${kleur.bold(s.id)}  ${s.name}  ${kleur.dim(s.version)}`);
+        const toolIds = opts.tool ? [opts.tool] : Object.keys(ADAPTERS);
+        let any = false;
+        for (const toolId of toolIds) {
+          const factory = ADAPTERS[toolId];
+          if (!factory) continue;
+          const provider = getProvider(toolId);
+          if (!provider) continue;
+          const det = await provider.detect();
+          if (!det.installed) continue;
+          const installed = await factory().list();
+          if (installed.length === 0) continue;
+          any = true;
+          console.log(kleur.bold(`[${toolId}] ${t('skill.list.header')}`));
+          for (const s of installed) {
+            console.log(`  ${kleur.bold(s.id)}  ${s.name}  ${kleur.dim(s.version)}`);
+          }
         }
+        if (!any) info(t('skill.list.empty'));
         return;
       }
       case 'install': {
         if (!id) { err('id required: clihub skill install <id>'); process.exit(1); }
         const skill = await catalog.findSkill(id);
         if (!skill) { err(t('skill.notFound', { skill: id })); process.exit(1); }
-        info(t('skill.install.start', { skill: id }));
-        try {
-          await skillAdapter.install(skill, skill.source);
-          ok(t('skill.install.done', { skill: id }));
-        } catch (e) {
-          err(t('skill.install.failed', { skill: id, reason: String(e) }));
-          process.exit(1);
+        const targets = opts.tool
+          ? (() => {
+              const factory = ADAPTERS[opts.tool!];
+              return factory ? [{ toolId: opts.tool!, adapter: factory() }] : [];
+            })()
+          : await adaptersForSkill(skill);
+        if (targets.length === 0) {
+          warn(`No installed tools support skill ${id}`);
+          return;
+        }
+        for (const { toolId, adapter } of targets) {
+          info(`[${toolId}] ${t('skill.install.start', { skill: id })}`);
+          try {
+            await adapter.install(skill, skill.source);
+            ok(`[${toolId}] ${t('skill.install.done', { skill: id })}`);
+          } catch (e) {
+            err(`[${toolId}] ${t('skill.install.failed', { skill: id, reason: String(e) })}`);
+          }
         }
         return;
       }
       case 'uninstall': {
         if (!id) { err('id required: clihub skill uninstall <id>'); process.exit(1); }
-        info(t('skill.uninstall.start', { skill: id }));
-        await skillAdapter.uninstall(id);
-        ok(t('skill.uninstall.done', { skill: id }));
+        const toolIds = opts.tool ? [opts.tool] : Object.keys(ADAPTERS);
+        for (const toolId of toolIds) {
+          const factory = ADAPTERS[toolId];
+          if (!factory) continue;
+          info(`[${toolId}] ${t('skill.uninstall.start', { skill: id })}`);
+          await factory().uninstall(id);
+          ok(`[${toolId}] ${t('skill.uninstall.done', { skill: id })}`);
+        }
         return;
       }
       default:
@@ -182,9 +235,13 @@ cli
         for (const skillId of preset.skills) {
           const skill = await catalog.findSkill(skillId);
           if (!skill) { warn(`skip unknown skill ${skillId}`); continue; }
-          info(t('skill.install.start', { skill: skillId }));
-          await skillAdapter.install(skill, skill.source);
-          ok(t('skill.install.done', { skill: skillId }));
+          const targets = await adaptersForSkill(skill);
+          if (targets.length === 0) { warn(`skip ${skillId}: no installed tools support it`); continue; }
+          for (const { toolId, adapter } of targets) {
+            info(`[${toolId}] ${t('skill.install.start', { skill: skillId })}`);
+            await adapter.install(skill, skill.source);
+            ok(`[${toolId}] ${t('skill.install.done', { skill: skillId })}`);
+          }
         }
         ok(t('preset.applied', { preset: id }));
         return;
