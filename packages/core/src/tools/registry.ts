@@ -1,10 +1,14 @@
 import type { ToolProvider } from './types.js';
 import { claudeCodeProvider } from './providers/claude-code.js';
 import { codexProvider } from './providers/codex.js';
+import { kiroProvider } from './providers/kiro.js';
+import { geminiProvider } from './providers/gemini.js';
 
 const providers: Record<string, ToolProvider> = {
   [claudeCodeProvider.id]: claudeCodeProvider,
   [codexProvider.id]: codexProvider,
+  [kiroProvider.id]: kiroProvider,
+  [geminiProvider.id]: geminiProvider,
 };
 
 export function getProvider(id: string): ToolProvider | undefined {

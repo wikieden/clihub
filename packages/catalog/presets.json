@@ -11,5 +11,42 @@
       "tavily-dynamic-search",
       "caveman"
     ]
+  },
+  {
+    "id": "fullstack",
+    "name": "Fullstack",
+    "description": "Claude Code + full-stack dev skills (frontend, backend, DB, review)",
+    "tools": ["claude-code"],
+    "skills": [
+      "superpowers",
+      "oh-my-claudecode",
+      "codegraph",
+      "tdd",
+      "review",
+      "frontend-design",
+      "api-design",
+      "database-migrations",
+      "typescript-reviewer",
+      "security-review",
+      "git-workflow",
+      "performance-optimizer",
+      "docs"
+    ]
+  },
+  {
+    "id": "lark-office",
+    "name": "Lark Office",
+    "description": "Claude Code + Lark / Feishu collaboration suite",
+    "tools": ["claude-code"],
+    "skills": [
+      "superpowers",
+      "oh-my-claudecode",
+      "lark-im",
+      "lark-doc",
+      "lark-wiki",
+      "tavily-dynamic-search",
+      "plan",
+      "review"
+    ]
   }
 ]

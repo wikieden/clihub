@@ -16,5 +16,22 @@
     "installMethods": ["npm", "bun"],
     "npmPackage": "@openai/codex",
     "supportedPlatforms": ["macos", "linux"]
+  },
+  {
+    "id": "kiro-cli",
+    "name": "Kiro CLI",
+    "description": "AWS Kiro — AI coding agent by Amazon",
+    "homepage": "https://kiro.dev",
+    "installMethods": ["curl", "brew"],
+    "supportedPlatforms": ["macos", "linux"]
+  },
+  {
+    "id": "gemini-cli",
+    "name": "Gemini CLI",
+    "description": "Google Gemini CLI — AI coding agent in the terminal",
+    "homepage": "https://github.com/google-gemini/gemini-cli",
+    "installMethods": ["npm", "bun"],
+    "npmPackage": "@google/gemini-cli",
+    "supportedPlatforms": ["macos", "linux"]
   }
 ]

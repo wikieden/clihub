@@ -43,5 +43,221 @@
     "supports": { "claude-code": true },
     "source": "oh-my-claudecode",
     "tags": ["style"]
+  },
+  {
+    "id": "tdd",
+    "name": "TDD",
+    "description": "Test-driven development workflow",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "oh-my-claudecode",
+    "tags": ["testing", "workflow"]
+  },
+  {
+    "id": "review",
+    "name": "Code Review",
+    "description": "Automated code review with severity ratings",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "oh-my-claudecode",
+    "tags": ["review", "quality"]
+  },
+  {
+    "id": "plan",
+    "name": "Plan",
+    "description": "Strategic planning consultant with interview workflow",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "oh-my-claudecode",
+    "tags": ["planning", "workflow"]
+  },
+  {
+    "id": "debug",
+    "name": "Debug",
+    "description": "Root-cause analysis and stack trace resolver",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "oh-my-claudecode",
+    "tags": ["debugging"]
+  },
+  {
+    "id": "ship",
+    "name": "Ship",
+    "description": "End-to-end feature shipping workflow",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "oh-my-claudecode",
+    "tags": ["workflow", "deployment"]
+  },
+  {
+    "id": "security-review",
+    "name": "Security Review",
+    "description": "OWASP Top 10, secrets, injection vulnerability scanner",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "everything-claude-code",
+    "tags": ["security", "review"]
+  },
+  {
+    "id": "frontend-design",
+    "name": "Frontend Design",
+    "description": "UI/UX design implementation skill",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "everything-claude-code",
+    "tags": ["frontend", "design"]
+  },
+  {
+    "id": "git-workflow",
+    "name": "Git Workflow",
+    "description": "Atomic commits, rebasing, and history management",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "everything-claude-code",
+    "tags": ["git", "workflow"]
+  },
+  {
+    "id": "deep-research",
+    "name": "Deep Research",
+    "description": "Multi-source research with synthesis",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "everything-claude-code",
+    "tags": ["research"]
+  },
+  {
+    "id": "api-design",
+    "name": "API Design",
+    "description": "RESTful and GraphQL API design patterns",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "everything-claude-code",
+    "tags": ["backend", "api"]
+  },
+  {
+    "id": "database-migrations",
+    "name": "Database Migrations",
+    "description": "Safe schema migration patterns",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "everything-claude-code",
+    "tags": ["database", "backend"]
+  },
+  {
+    "id": "python-review",
+    "name": "Python Review",
+    "description": "PEP 8, type hints, security, and idiomatic patterns",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "everything-claude-code",
+    "tags": ["python", "review"]
+  },
+  {
+    "id": "typescript-reviewer",
+    "name": "TypeScript Review",
+    "description": "Type safety, async correctness, Node security",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "everything-claude-code",
+    "tags": ["typescript", "review"]
+  },
+  {
+    "id": "go-review",
+    "name": "Go Review",
+    "description": "Idiomatic Go, concurrency, error handling",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "everything-claude-code",
+    "tags": ["go", "review"]
+  },
+  {
+    "id": "rust-review",
+    "name": "Rust Review",
+    "description": "Ownership, lifetimes, unsafe usage review",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "everything-claude-code",
+    "tags": ["rust", "review"]
+  },
+  {
+    "id": "mcp-builder",
+    "name": "MCP Builder",
+    "description": "Build MCP servers with best practices",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "everything-claude-code",
+    "tags": ["mcp", "tools"]
+  },
+  {
+    "id": "tavily-research",
+    "name": "Tavily Research",
+    "description": "Deep web research via Tavily API",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "oh-my-claudecode",
+    "tags": ["search", "research"]
+  },
+  {
+    "id": "browser-qa",
+    "name": "Browser QA",
+    "description": "Playwright-based browser testing and QA",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "everything-claude-code",
+    "tags": ["testing", "frontend"]
+  },
+  {
+    "id": "performance-optimizer",
+    "name": "Performance Optimizer",
+    "description": "Profiling, memory leaks, render optimization",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "everything-claude-code",
+    "tags": ["performance", "optimization"]
+  },
+  {
+    "id": "deploy",
+    "name": "Deploy",
+    "description": "CI/CD and deployment patterns",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "everything-claude-code",
+    "tags": ["deployment", "devops"]
+  },
+  {
+    "id": "docs",
+    "name": "Docs",
+    "description": "README, API docs, and inline comments generator",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "everything-claude-code",
+    "tags": ["documentation"]
+  },
+  {
+    "id": "lark-im",
+    "name": "Lark IM",
+    "description": "Lark / Feishu IM integration skill",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "oh-my-claudecode",
+    "tags": ["lark", "collaboration"]
+  },
+  {
+    "id": "lark-doc",
+    "name": "Lark Doc",
+    "description": "Lark / Feishu document operations",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "oh-my-claudecode",
+    "tags": ["lark", "collaboration"]
+  },
+  {
+    "id": "lark-wiki",
+    "name": "Lark Wiki",
+    "description": "Lark / Feishu wiki management",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "oh-my-claudecode",
+    "tags": ["lark", "collaboration"]
   }
 ]
