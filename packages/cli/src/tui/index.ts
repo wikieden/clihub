@@ -19,14 +19,38 @@ import {
   BackupManager,
   CatalogLoader,
   ClaudeCodeSkillAdapter,
+  CodexSkillAdapter,
+  GeminiCliSkillAdapter,
+  KiroCliSkillAdapter,
   getProvider,
   listProviders,
   t,
+  type SkillManifest,
+  type SkillSyncAdapter,
 } from '@clihub/core';
 
 const catalog = new CatalogLoader();
 const backups = new BackupManager();
-const skillAdapter = new ClaudeCodeSkillAdapter();
+
+const ADAPTERS: Record<string, () => SkillSyncAdapter> = {
+  'claude-code': () => new ClaudeCodeSkillAdapter(),
+  'codex': () => new CodexSkillAdapter(),
+  'kiro-cli': () => new KiroCliSkillAdapter(),
+  'gemini-cli': () => new GeminiCliSkillAdapter(),
+};
+
+async function adaptersForSkill(skill: SkillManifest): Promise<Array<{ toolId: string; adapter: SkillSyncAdapter }>> {
+  const result: Array<{ toolId: string; adapter: SkillSyncAdapter }> = [];
+  for (const [toolId, factory] of Object.entries(ADAPTERS)) {
+    if (!skill.supports[toolId as keyof typeof skill.supports]) continue;
+    const provider = getProvider(toolId);
+    if (!provider) continue;
+    const det = await provider.detect();
+    if (!det.installed) continue;
+    result.push({ toolId, adapter: factory() });
+  }
+  return result;
+}
 
 type Action =
   | 'tool.list'
@@ -103,12 +127,19 @@ async function handle(action: Action): Promise<void> {
     }
 
     case 'skill.list': {
-      const installed = await skillAdapter.list();
-      if (installed.length === 0) {
-        log.info(t('skill.list.empty'));
-        return;
+      let any = false;
+      for (const [toolId, factory] of Object.entries(ADAPTERS)) {
+        const provider = getProvider(toolId);
+        if (!provider) continue;
+        const det = await provider.detect();
+        if (!det.installed) continue;
+        const installed = await factory().list();
+        if (installed.length === 0) continue;
+        any = true;
+        log.info(`[${toolId}]`);
+        for (const sk of installed) log.message(`  ${sk.id}  ${sk.name}  ${sk.version}`);
       }
-      for (const sk of installed) log.info(`${sk.id}  ${sk.name}  ${sk.version}`);
+      if (!any) log.info(t('skill.list.empty'));
       return;
     }
 
@@ -124,9 +155,14 @@ async function handle(action: Action): Promise<void> {
       if (isCancel(choice)) return;
       const skill = await catalog.findSkill(choice as string);
       if (!skill) return;
+      const targets = await adaptersForSkill(skill);
+      if (targets.length === 0) { log.warn(`No installed tools support skill ${skill.id}`); return; }
       const s = spinner();
       s.start(t('skill.install.start', { skill: skill.id }));
-      await skillAdapter.install(skill, skill.source);
+      for (const { toolId, adapter } of targets) {
+        await adapter.install(skill, skill.source);
+        log.step(`[${toolId}] installed`);
+      }
       s.stop(t('skill.install.done', { skill: skill.id }));
       return;
     }
@@ -154,7 +190,8 @@ async function handle(action: Action): Promise<void> {
       for (const skillId of preset.skills) {
         const skill = await catalog.findSkill(skillId);
         if (!skill) continue;
-        await skillAdapter.install(skill, skill.source);
+        const targets = await adaptersForSkill(skill);
+        for (const { adapter } of targets) await adapter.install(skill, skill.source);
       }
       s.stop(t('preset.applied', { preset: preset.id }));
       return;
