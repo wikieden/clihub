@@ -1,0 +1,47 @@
+[
+  {
+    "id": "superpowers",
+    "name": "Superpowers",
+    "description": "Core skill workflows",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "oh-my-claudecode",
+    "tags": ["core", "workflow"]
+  },
+  {
+    "id": "oh-my-claudecode",
+    "name": "Oh My Claude Code",
+    "description": "Multi-agent orchestration",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "oh-my-claudecode",
+    "tags": ["core", "agents"]
+  },
+  {
+    "id": "codegraph",
+    "name": "CodeGraph",
+    "description": "Code intelligence graph",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "oh-my-claudecode",
+    "tags": ["analysis"]
+  },
+  {
+    "id": "tavily-dynamic-search",
+    "name": "Tavily Search",
+    "description": "Dynamic web search skill",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "oh-my-claudecode",
+    "tags": ["search"]
+  },
+  {
+    "id": "caveman",
+    "name": "Caveman",
+    "description": "Terse response mode",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "oh-my-claudecode",
+    "tags": ["style"]
+  }
+]

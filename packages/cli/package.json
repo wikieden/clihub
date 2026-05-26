@@ -1,0 +1,25 @@
+{
+  "name": "clihub",
+  "version": "0.1.0",
+  "description": "clihub — cross-platform AI CLI toolkit manager",
+  "type": "module",
+  "bin": {
+    "clihub": "./src/cli.ts"
+  },
+  "main": "./src/cli.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "start": "bun src/cli.ts"
+  },
+  "dependencies": {
+    "@clihub/core": "workspace:*",
+    "cac": "^6.7.14",
+    "@clack/prompts": "^0.8.2",
+    "kleur": "^4.1.5"
+  },
+  "files": [
+    "src",
+    "dist"
+  ]
+}

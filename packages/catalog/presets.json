@@ -1,0 +1,15 @@
+[
+  {
+    "id": "starter",
+    "name": "Starter",
+    "description": "Claude Code + 5 core skills",
+    "tools": ["claude-code"],
+    "skills": [
+      "superpowers",
+      "oh-my-claudecode",
+      "codegraph",
+      "tavily-dynamic-search",
+      "caveman"
+    ]
+  }
+]

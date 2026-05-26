@@ -1,0 +1,11 @@
+[
+  {
+    "id": "claude-code",
+    "name": "Claude Code",
+    "description": "Anthropic's official AI coding CLI",
+    "homepage": "https://claude.ai/code",
+    "installMethods": ["npm"],
+    "npmPackage": "@anthropic-ai/claude-code",
+    "supportedPlatforms": ["macos", "linux"]
+  }
+]
