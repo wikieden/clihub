@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun run --filter '@clihub/core' build
+      - run: bun run --filter '@clihub/core' typecheck
+      - run: bun run --filter 'clihub' typecheck
+
+  build:
+    name: Build dist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun run --filter 'clihub' build
+      - name: Smoke test dist binary
+        run: node packages/cli/dist/cli.js --version
+
+  install-test:
+    name: Isolated install test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, ubuntu-22.04, macos-14]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install jq
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt-get install -y jq
+          else
+            brew install jq
+          fi
+      - name: Run isolated statusline install test
+        run: |
+          TMPDIR=$(mktemp -d)
+          HOME="$TMPDIR" bash packages/statusline/install.sh
+          find "$TMPDIR" -type f
+          rm -rf "$TMPDIR"

@@ -4,13 +4,16 @@
   "description": "clihub — cross-platform AI CLI toolkit manager",
   "type": "module",
   "bin": {
-    "clihub": "./src/cli.ts"
+    "clihub": "./dist/cli.js"
   },
-  "main": "./src/cli.ts",
+  "main": "./dist/cli.js",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc",
-    "start": "bun src/cli.ts"
+    "build": "bun run build:bundle && bun run build:chmod",
+    "build:bundle": "bun build --target node --bundle --outfile dist/cli.js src/cli.ts",
+    "build:chmod": "chmod +x dist/cli.js",
+    "start": "bun src/cli.ts",
+    "prepublishOnly": "bun run build"
   },
   "dependencies": {
     "@clihub/core": "workspace:*",
@@ -19,7 +22,15 @@
     "kleur": "^4.1.5"
   },
   "files": [
-    "src",
     "dist"
-  ]
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["claude-code", "ai", "cli", "skill", "codex", "kiro"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wikieden/clihub.git"
+  }
 }

@@ -240,6 +240,36 @@ cli
     ok(t('restore.done', { id: latest.id }));
   });
 
+// ─── self-update ──────────────────────────────────────────────────────
+cli
+  .command('self-update', 'Update clihub to the latest version')
+  .action(async () => {
+    const { execFile } = await import('node:child_process');
+    const { promisify } = await import('node:util');
+    const execFileP = promisify(execFile);
+
+    let method: 'npm' | 'bun' = 'npm';
+    try {
+      const { stdout } = await execFileP('npm', ['ls', '-g', '--depth=0', 'clihub']);
+      if (stdout.includes('clihub')) method = 'npm';
+    } catch {
+      method = 'bun';
+    }
+
+    info(`Updating clihub via ${method}...`);
+    try {
+      if (method === 'npm') {
+        await execFileP('npm', ['install', '-g', 'clihub@latest']);
+      } else {
+        await execFileP('bun', ['add', '-g', 'clihub@latest']);
+      }
+      ok('clihub updated to latest');
+    } catch (e) {
+      err(`Update failed: ${String(e)}`);
+      process.exit(1);
+    }
+  });
+
 // ─── default → TUI ────────────────────────────────────────────────────
 cli.command('', t('cli.title')).action(async () => {
   const { runTui } = await import('./tui/index.js');
