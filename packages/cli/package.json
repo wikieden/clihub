@@ -1,7 +1,7 @@
 {
   "name": "clihub",
-  "version": "0.1.0",
-  "description": "clihub — cross-platform AI CLI toolkit manager",
+  "version": "0.2.0",
+  "description": "Install Claude Code, Codex, Gemini & Kiro — keep their skills in sync, with one-command rollback.",
   "type": "module",
   "bin": {
     "clihub": "./dist/cli.js"
@@ -13,24 +13,44 @@
     "build:bundle": "bun build --target node --bundle --outfile dist/cli.js src/cli.ts",
     "build:chmod": "chmod +x dist/cli.js",
     "start": "bun src/cli.ts",
+    "prepack": "cp -f ../../README.md ./README.md && cp -f ../../LICENSE ./LICENSE",
     "prepublishOnly": "bun run build"
   },
-  "dependencies": {
+  "devDependencies": {
     "@clihub/core": "workspace:*",
     "cac": "^6.7.14",
     "@clack/prompts": "^0.8.2",
     "kleur": "^4.1.5"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=18"
   },
-  "keywords": ["claude-code", "ai", "cli", "skill", "codex", "kiro"],
+  "keywords": [
+    "claude-code",
+    "claude",
+    "codex",
+    "openai-codex",
+    "gemini-cli",
+    "kiro",
+    "ai-cli",
+    "agent",
+    "skill",
+    "mcp",
+    "plugin-manager",
+    "toolkit"
+  ],
+  "homepage": "https://github.com/wikieden/clihub#readme",
+  "bugs": {
+    "url": "https://github.com/wikieden/clihub/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wikieden/clihub.git"
+    "url": "git+https://github.com/wikieden/clihub.git"
   }
 }

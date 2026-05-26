@@ -1,7 +1,8 @@
 {
   "name": "@clihub/core",
-  "version": "0.1.0",
-  "description": "clihub kernel: providers, settings, skills, backup, catalog, i18n",
+  "version": "0.2.0",
+  "private": true,
+  "description": "clihub kernel: providers, settings, skills, backup, catalog, i18n (workspace-only, not published)",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

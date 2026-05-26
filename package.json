@@ -1,8 +1,8 @@
 {
   "name": "clihub-monorepo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "clihub — cross-platform AI CLI toolkit manager",
+  "description": "clihub — install Claude Code, Codex, Gemini & Kiro and keep their skills in sync",
   "workspaces": [
     "packages/*"
   ],
