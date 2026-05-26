@@ -4,10 +4,11 @@
  */
 import {
   cancel,
+  confirm,
   intro,
   isCancel,
   log,
-  outro,
+  note,
   select,
   spinner,
 } from '@clack/prompts';
@@ -109,10 +110,13 @@ async function handle(action: Action): Promise<void> {
     case 'tool.install': {
       const tools = listProviders();
       const choice = await select({
-        message: 'Pick a tool',
-        options: tools.map((p) => ({ value: p.id, label: p.name })),
+        message: 'Pick a tool (ESC = back)',
+        options: [
+          ...tools.map((p) => ({ value: p.id, label: p.name })),
+          { value: '__back__', label: '← Back to main menu' },
+        ],
       });
-      if (isCancel(choice)) return;
+      if (isCancel(choice) || choice === '__back__') return;
       const provider = getProvider(choice as string);
       if (!provider) return;
       const s = spinner();
@@ -146,13 +150,16 @@ async function handle(action: Action): Promise<void> {
     case 'skill.install': {
       const { skills } = await catalog.load();
       const choice = await select({
-        message: 'Pick a skill',
-        options: skills.map((sk) => ({
-          value: sk.id,
-          label: `${sk.name} — ${sk.description}`,
-        })),
+        message: 'Pick a skill (ESC = back)',
+        options: [
+          ...skills.map((sk) => ({
+            value: sk.id,
+            label: `${sk.name} — ${sk.description}`,
+          })),
+          { value: '__back__', label: '← Back to main menu' },
+        ],
       });
-      if (isCancel(choice)) return;
+      if (isCancel(choice) || choice === '__back__') return;
       const skill = await catalog.findSkill(choice as string);
       if (!skill) return;
       const targets = await adaptersForSkill(skill);
@@ -170,30 +177,99 @@ async function handle(action: Action): Promise<void> {
     case 'preset.apply': {
       const { presets } = await catalog.load();
       const choice = await select({
-        message: 'Pick a preset',
-        options: presets.map((p) => ({
-          value: p.id,
-          label: `${p.name} — ${p.description}`,
-        })),
+        message: 'Pick a preset (ESC = back)',
+        options: [
+          ...presets.map((p) => ({
+            value: p.id,
+            label: `${p.name} — ${p.description}`,
+          })),
+          { value: '__back__', label: '← Back to main menu' },
+        ],
       });
-      if (isCancel(choice)) return;
+      if (isCancel(choice) || choice === '__back__') return;
       const preset = await catalog.findPreset(choice as string);
       if (!preset) return;
-      const s = spinner();
-      s.start(t('preset.applying', { preset: preset.id }));
-      for (const toolId of preset.tools) {
-        const provider = getProvider(toolId);
-        if (!provider) continue;
-        const det = await provider.detect();
-        if (!det.installed) await provider.install({});
-      }
+
+      const toolLines = preset.tools.map((id) => {
+        const p = getProvider(id);
+        return `  • ${id}${p ? `  (${p.name})` : ''}`;
+      });
+      const skillPreviews: string[] = [];
       for (const skillId of preset.skills) {
         const skill = await catalog.findSkill(skillId);
-        if (!skill) continue;
+        if (!skill) { skillPreviews.push(`  • ${skillId}  ${kleur.red('(missing in catalog)')}`); continue; }
         const targets = await adaptersForSkill(skill);
-        for (const { adapter } of targets) await adapter.install(skill, skill.source);
+        const targetIds = targets.map((t) => t.toolId).join(', ') || kleur.dim('no installed tool supports it');
+        skillPreviews.push(`  • ${skillId}  →  ${targetIds}`);
       }
-      s.stop(t('preset.applied', { preset: preset.id }));
+      note(
+        [
+          kleur.bold(`Preset: ${preset.name}`),
+          kleur.dim(preset.description),
+          '',
+          kleur.bold(`Tools (${preset.tools.length}):`),
+          ...toolLines,
+          '',
+          kleur.bold(`Skills (${preset.skills.length}):`),
+          ...skillPreviews,
+        ].join('\n'),
+        'Preview',
+      );
+
+      const go = await confirm({ message: 'Apply this preset?', initialValue: true });
+      if (isCancel(go) || go !== true) { log.info('Cancelled.'); return; }
+
+      let toolsInstalled = 0;
+      let toolsSkipped = 0;
+      const skillsInstalled: string[] = [];
+      const skillsSkipped: string[] = [];
+
+      for (const toolId of preset.tools) {
+        const provider = getProvider(toolId);
+        if (!provider) { log.warn(`skip unknown tool ${toolId}`); continue; }
+        const det = await provider.detect();
+        if (det.installed) {
+          log.step(`[tool] ${toolId} already installed${det.version ? ` (${det.version})` : ''}, skipping`);
+          toolsSkipped++;
+          continue;
+        }
+        const s = spinner();
+        s.start(`[tool] installing ${toolId}`);
+        try {
+          await provider.install({});
+          s.stop(`[tool] ${toolId} installed`);
+          toolsInstalled++;
+        } catch (e) {
+          s.stop(`[tool] ${toolId} failed: ${String(e)}`);
+        }
+      }
+
+      for (const skillId of preset.skills) {
+        const skill = await catalog.findSkill(skillId);
+        if (!skill) { log.warn(`[skill] ${skillId} not in catalog, skipping`); skillsSkipped.push(skillId); continue; }
+        const targets = await adaptersForSkill(skill);
+        if (targets.length === 0) { log.warn(`[skill] ${skillId}: no installed tool supports it, skipping`); skillsSkipped.push(skillId); continue; }
+        for (const { toolId, adapter } of targets) {
+          try {
+            await adapter.install(skill, skill.source);
+            log.step(`[skill] ${skillId} → ${toolId}`);
+          } catch (e) {
+            log.error(`[skill] ${skillId} → ${toolId} failed: ${String(e)}`);
+          }
+        }
+        skillsInstalled.push(skillId);
+      }
+
+      note(
+        [
+          kleur.green(`✓ Preset "${preset.name}" applied`),
+          `  tools installed: ${toolsInstalled}  (skipped existing: ${toolsSkipped})`,
+          `  skills installed: ${skillsInstalled.length}  (skipped: ${skillsSkipped.length})`,
+          skillsInstalled.length ? `  installed skills: ${skillsInstalled.join(', ')}` : '',
+          skillsSkipped.length ? kleur.yellow(`  skipped skills: ${skillsSkipped.join(', ')}`) : '',
+        ].filter(Boolean).join('\n'),
+        'Summary',
+      );
       return;
     }
 
@@ -219,8 +295,4 @@ async function handle(action: Action): Promise<void> {
       return;
     }
   }
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  runTui().then(() => outro('done'));
 }
