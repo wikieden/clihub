@@ -1,0 +1,75 @@
+[
+  {
+    "id": "filesystem",
+    "name": "Filesystem",
+    "description": "Read/write files in allowed directories via the official MCP filesystem server.",
+    "supports": { "claude-code": true, "codex": true, "kiro-cli": true, "gemini-cli": true },
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "${HOME}"],
+    "homepage": "https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem",
+    "tags": ["filesystem", "files", "official"]
+  },
+  {
+    "id": "github",
+    "name": "GitHub",
+    "description": "Issues, PRs, code search, file ops on GitHub via the official MCP GitHub server.",
+    "supports": { "claude-code": true, "codex": true, "kiro-cli": true, "gemini-cli": true },
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-github"],
+    "env": {
+      "GITHUB_PERSONAL_ACCESS_TOKEN": "Personal access token with repo scope"
+    },
+    "homepage": "https://github.com/modelcontextprotocol/servers/tree/main/src/github",
+    "tags": ["github", "code", "official"]
+  },
+  {
+    "id": "sequential-thinking",
+    "name": "Sequential Thinking",
+    "description": "Step-by-step structured reasoning tool.",
+    "supports": { "claude-code": true, "codex": true, "kiro-cli": true, "gemini-cli": true },
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+    "homepage": "https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking",
+    "tags": ["reasoning", "thinking", "official"]
+  },
+  {
+    "id": "memory",
+    "name": "Memory",
+    "description": "Persistent knowledge graph the model can append to and recall across sessions.",
+    "supports": { "claude-code": true, "codex": true, "kiro-cli": true, "gemini-cli": true },
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-memory"],
+    "homepage": "https://github.com/modelcontextprotocol/servers/tree/main/src/memory",
+    "tags": ["memory", "kb", "official"]
+  },
+  {
+    "id": "fetch",
+    "name": "Fetch",
+    "description": "Fetch a URL and return its contents as markdown.",
+    "supports": { "claude-code": true, "codex": true, "kiro-cli": true, "gemini-cli": true },
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-fetch"],
+    "homepage": "https://github.com/modelcontextprotocol/servers/tree/main/src/fetch",
+    "tags": ["http", "scraping", "official"]
+  },
+  {
+    "id": "context7",
+    "name": "Context7",
+    "description": "Up-to-date library documentation lookup.",
+    "supports": { "claude-code": true, "codex": true, "kiro-cli": true, "gemini-cli": true },
+    "command": "npx",
+    "args": ["-y", "@upstash/context7-mcp"],
+    "homepage": "https://context7.com",
+    "tags": ["docs", "library"]
+  },
+  {
+    "id": "playwright",
+    "name": "Playwright",
+    "description": "Browser automation — navigate, snapshot, fill forms, screenshots.",
+    "supports": { "claude-code": true, "codex": true, "kiro-cli": true, "gemini-cli": true },
+    "command": "npx",
+    "args": ["-y", "@playwright/mcp"],
+    "homepage": "https://github.com/microsoft/playwright-mcp",
+    "tags": ["browser", "e2e", "qa"]
+  }
+]

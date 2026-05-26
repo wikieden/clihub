@@ -34,19 +34,70 @@ export interface InstalledSkill {
   path: string;
 }
 
+/**
+ * Map of tool id → supported flag. Tool ids match provider ids
+ * (`claude-code`, `codex`, `kiro-cli`, `gemini-cli`, ...).
+ */
+export type Supports = Record<string, boolean | undefined>;
+
 export interface SkillManifest {
   id: string;
   name: string;
   description: string;
   version: string;
-  supports: {
-    'claude-code'?: boolean;
-    codex?: boolean;
-    kiro?: boolean;
-  };
+  supports: Supports;
   /** npm package, git url, or symbolic source like "oh-my-claudecode" */
   source: string;
   tags: string[];
+}
+
+/**
+ * MCP (Model Context Protocol) server definition for the catalog.
+ * Installing patches each CLI's settings file with a `mcpServers` entry
+ * keyed by `id`.
+ */
+export interface McpServerManifest {
+  id: string;
+  name: string;
+  description: string;
+  supports: Supports;
+  /** Executable + args used to launch the server (stdio transport). */
+  command: string;
+  args?: string[];
+  /** Required env vars; user is prompted or instructed to set these. */
+  env?: Record<string, string>;
+  homepage?: string;
+  tags?: string[];
+}
+
+/**
+ * Plugin manifest. Plugins are heavier than skills (often a directory
+ * tree with assets, slash commands, hooks) and are CLI-specific.
+ */
+export interface PluginManifest {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  supports: Supports;
+  /** Install source — usually a git URL. CLI-specific shorthands allowed. */
+  source: string;
+  homepage?: string;
+  tags?: string[];
+}
+
+export interface InstalledPlugin {
+  id: string;
+  name: string;
+  version: string;
+  path: string;
+}
+
+export interface InstalledMcpServer {
+  id: string;
+  name: string;
+  command: string;
+  args?: string[];
 }
 
 export interface ToolCatalogEntry {

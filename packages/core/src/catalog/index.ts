@@ -5,15 +5,22 @@
  */
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import type { Preset, SkillManifest, ToolCatalogEntry } from '../types.js';
+import type {
+  McpServerManifest,
+  Preset,
+  SkillManifest,
+  ToolCatalogEntry,
+} from '../types.js';
 import _skills from '../../../catalog/skills.json' with { type: 'json' };
 import _tools from '../../../catalog/tools.json' with { type: 'json' };
 import _presets from '../../../catalog/presets.json' with { type: 'json' };
+import _mcp from '../../../catalog/mcp.json' with { type: 'json' };
 
 export interface Catalog {
   skills: SkillManifest[];
   tools: ToolCatalogEntry[];
   presets: Preset[];
+  mcpServers: McpServerManifest[];
 }
 
 export interface CatalogLoaderOpts {
@@ -32,20 +39,27 @@ export class CatalogLoader {
   async load(): Promise<Catalog> {
     if (this.cache) return this.cache;
     if (this.dir) {
-      const [skills, tools, presets] = await Promise.all([
+      const [skills, tools, presets, mcpServers] = await Promise.all([
         this.readJson<SkillManifest[]>('skills.json'),
         this.readJson<ToolCatalogEntry[]>('tools.json'),
         this.readJson<Preset[]>('presets.json'),
+        this.readJson<McpServerManifest[]>('mcp.json').catch(() => [] as McpServerManifest[]),
       ]);
-      this.cache = { skills, tools, presets };
+      this.cache = { skills, tools, presets, mcpServers };
     } else {
       this.cache = {
         skills: _skills as unknown as SkillManifest[],
         tools: _tools as unknown as ToolCatalogEntry[],
         presets: _presets as unknown as Preset[],
+        mcpServers: _mcp as unknown as McpServerManifest[],
       };
     }
     return this.cache;
+  }
+
+  async findMcpServer(id: string): Promise<McpServerManifest | undefined> {
+    const { mcpServers } = await this.load();
+    return mcpServers.find((m) => m.id === id);
   }
 
   async findSkill(id: string): Promise<SkillManifest | undefined> {

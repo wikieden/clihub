@@ -142,9 +142,9 @@ bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't
 ## Roadmap
 
 - **v0.1** ✅ — Claude Code provider, 5 core skills, backup/restore.
-- **v0.2** ✅ (current, `@wikieden/clihub@0.2.2` on npm) — Codex + Kiro + Gemini providers, 30 skills, 3 presets, cross-tool skill fan-out, i18n (en/zh/ja/ko/es), TUI with preset preview + back navigation, single-binary 148KB tarball with zero install-time deps.
-- **v0.3** — Per-CLI guided install flows, `agentskills.io` SKILL.md catalog format, doctor with quota signals, MCP-server install/sync.
-- **v0.4+** — Remote catalog sync, Windows support, plugin SDK.
+- **v0.2** ✅ — Codex + Kiro + Gemini providers, 30 skills, 3 presets, cross-tool skill fan-out, i18n (en/zh/ja/ko/es), TUI with preset preview + back navigation, single-binary npm tarball with zero install-time deps.
+- **v0.3** ✅ (current, `@wikieden/clihub@0.3.0` on npm) — TUI restructured per-CLI: pick a CLI → install / skills / plugins / MCP / config / doctor in one place. New MCP catalog + `JsonMcpAdapter` patches `~/.claude/settings.json` and `~/.gemini/settings.json` with `mcpServers` entries (filesystem, github, sequential-thinking, memory, fetch, context7, playwright). Cross-tool actions (presets, fan-out, doctor-all) live under their own branch. Plugin install is stubbed pending v0.3.x.
+- **v0.4+** — `agentskills.io` SKILL.md catalog format, doctor with quota signals, plugin install (Claude Code marketplace), Codex MCP via TOML, remote catalog sync, Windows support.
 
 See [`docs/11-ROADMAP.md`](docs/11-ROADMAP.md).
 

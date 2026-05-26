@@ -24,6 +24,11 @@ export { ClaudeCodeSkillAdapter } from './skill/index.js';
 export { CodexSkillAdapter } from './skill/codex-adapter.js';
 export { KiroCliSkillAdapter } from './skill/kiro-adapter.js';
 export { GeminiCliSkillAdapter } from './skill/gemini-adapter.js';
+export {
+  JsonMcpAdapter,
+  type McpAdapter,
+  type JsonMcpAdapterOpts,
+} from './mcp/index.js';
 export { CatalogLoader, type Catalog } from './catalog/index.js';
 export {
   detectLocale,

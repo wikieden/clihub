@@ -1,6 +1,13 @@
 /**
- * TUI main menu. Uses @clack/prompts for the interactive flow. Routes
- * back into the same @clihub/core APIs the CLI uses.
+ * TUI main menu. Restructured in v0.3.0 so the top level branches *per
+ * CLI tool* — picking a tool drops you into a sub-menu that exposes
+ * install / update / skills / plugins / MCP / config / doctor for just
+ * that CLI. A separate "Cross-tool" branch keeps the fan-out actions
+ * (preset apply, install-to-all, doctor-all).
+ *
+ * Plugin and MCP support is added incrementally. Where a CLI doesn't
+ * yet have an adapter the menu shows a friendly "coming in v0.3.x"
+ * notice instead of failing.
  */
 import {
   cancel,
@@ -22,10 +29,13 @@ import {
   ClaudeCodeSkillAdapter,
   CodexSkillAdapter,
   GeminiCliSkillAdapter,
+  JsonMcpAdapter,
   KiroCliSkillAdapter,
   getProvider,
   listProviders,
   t,
+  type McpAdapter,
+  type McpServerManifest,
   type SkillManifest,
   type SkillSyncAdapter,
 } from '@clihub/core';
@@ -33,247 +43,389 @@ import {
 const catalog = new CatalogLoader();
 const backups = new BackupManager();
 
-const ADAPTERS: Record<string, () => SkillSyncAdapter> = {
+// ─── Per-CLI capability tables ────────────────────────────────────────
+
+const SUPPORTED_TOOLS = ['claude-code', 'codex', 'kiro-cli', 'gemini-cli'] as const;
+type ToolId = (typeof SUPPORTED_TOOLS)[number];
+
+const SKILL_ADAPTERS: Record<ToolId, () => SkillSyncAdapter> = {
   'claude-code': () => new ClaudeCodeSkillAdapter(),
   'codex': () => new CodexSkillAdapter(),
   'kiro-cli': () => new KiroCliSkillAdapter(),
   'gemini-cli': () => new GeminiCliSkillAdapter(),
 };
 
-async function adaptersForSkill(skill: SkillManifest): Promise<Array<{ toolId: string; adapter: SkillSyncAdapter }>> {
-  const result: Array<{ toolId: string; adapter: SkillSyncAdapter }> = [];
-  for (const [toolId, factory] of Object.entries(ADAPTERS)) {
-    if (!skill.supports[toolId as keyof typeof skill.supports]) continue;
-    const provider = getProvider(toolId);
-    if (!provider) continue;
-    const det = await provider.detect();
-    if (!det.installed) continue;
-    result.push({ toolId, adapter: factory() });
-  }
-  return result;
+/** JSON-shaped MCP settings paths (CLIs using the standard `mcpServers` map). */
+const MCP_SETTINGS_PATH: Partial<Record<ToolId, string>> = {
+  'claude-code': path.join(os.homedir(), '.claude', 'settings.json'),
+  'gemini-cli': path.join(os.homedir(), '.gemini', 'settings.json'),
+};
+
+function mcpAdapterFor(toolId: ToolId): McpAdapter | undefined {
+  const p = MCP_SETTINGS_PATH[toolId];
+  if (!p) return undefined;
+  return new JsonMcpAdapter({ path: p });
 }
 
-type Action =
-  | 'tool.list'
-  | 'tool.install'
-  | 'skill.list'
-  | 'skill.install'
-  | 'preset.apply'
-  | 'doctor'
-  | 'backup'
-  | 'exit';
+/** Plugin support is Claude Code-only for v0.3.0. */
+function supportsPlugins(toolId: ToolId): boolean {
+  return toolId === 'claude-code';
+}
+
+const BACK = '__back__';
+
+// ─── Public entry ─────────────────────────────────────────────────────
 
 export async function runTui(): Promise<void> {
   intro(kleur.bold().cyan(t('cli.title')));
 
   while (true) {
-    const action = (await select({
-      message: 'What would you like to do?',
+    const choice = (await select({
+      message: 'What would you like to do? (ESC = exit)',
       options: [
-        { value: 'tool.list', label: 'List tools' },
-        { value: 'tool.install', label: 'Install a tool' },
-        { value: 'skill.list', label: 'List installed skills' },
-        { value: 'skill.install', label: 'Install a skill' },
-        { value: 'preset.apply', label: 'Apply a preset' },
-        { value: 'doctor', label: 'Run doctor' },
-        { value: 'backup', label: 'Backup ~/.claude' },
+        ...SUPPORTED_TOOLS.map((id) => {
+          const p = getProvider(id);
+          const label = p ? p.name : id;
+          return { value: `cli:${id}`, label: `${kleur.cyan('▸')} ${label}  ${kleur.dim('(install, skills, MCP, ...)')}` };
+        }),
+        { value: 'sep1', label: kleur.dim('────────────────'), hint: '' },
+        { value: 'cross', label: `${kleur.magenta('◇')} Cross-tool actions  ${kleur.dim('(presets, fan-out, doctor-all)')}` },
+        { value: 'maint', label: `${kleur.yellow('◆')} Backup / Restore` },
+        { value: 'sep2', label: kleur.dim('────────────────'), hint: '' },
         { value: 'exit', label: 'Exit' },
       ],
-    })) as Action | symbol;
+    })) as string | symbol;
 
-    if (isCancel(action) || action === 'exit') {
+    if (isCancel(choice) || choice === 'exit') {
       cancel('Bye');
       return;
     }
+    if (choice === 'sep1' || choice === 'sep2') continue;
 
     try {
-      await handle(action as Action);
+      if (typeof choice === 'string' && choice.startsWith('cli:')) {
+        await cliMenu(choice.slice(4) as ToolId);
+      } else if (choice === 'cross') {
+        await crossMenu();
+      } else if (choice === 'maint') {
+        await maintenanceMenu();
+      }
     } catch (e) {
       log.error(String(e));
     }
   }
 }
 
-async function handle(action: Action): Promise<void> {
-  switch (action) {
-    case 'tool.list':
-      for (const p of listProviders()) {
-        const det = await p.detect();
-        log.info(
-          `${p.id}  ${p.name}  ${
-            det.installed ? `✓ ${det.version ?? ''}` : 'not installed'
-          }`,
-        );
-      }
-      return;
+// ─── Per-CLI submenu ─────────────────────────────────────────────────
 
+async function cliMenu(toolId: ToolId): Promise<void> {
+  const provider = getProvider(toolId);
+  if (!provider) {
+    log.error(`No provider registered for ${toolId}`);
+    return;
+  }
+
+  while (true) {
+    const det = await provider.detect();
+    const status = det.installed
+      ? kleur.green(`installed${det.version ? `  v${det.version}` : ''}`)
+      : kleur.dim('not installed');
+
+    const choice = (await select({
+      message: `${kleur.bold(provider.name)}  —  ${status}`,
+      options: [
+        det.installed
+          ? { value: 'tool.update', label: 'Update CLI to latest' }
+          : { value: 'tool.install', label: 'Install CLI' },
+        det.installed
+          ? { value: 'tool.uninstall', label: 'Uninstall CLI' }
+          : { value: 'tool.info', label: 'Show install info' },
+        { value: 'sep1', label: kleur.dim('───────── Skills'), hint: '' },
+        { value: 'skill.list', label: '  List installed skills' },
+        { value: 'skill.install', label: '  Install a skill' },
+        { value: 'skill.uninstall', label: '  Uninstall a skill' },
+        { value: 'sep2', label: kleur.dim('───────── Plugins'), hint: '' },
+        supportsPlugins(toolId)
+          ? { value: 'plugin.list', label: '  List installed plugins' }
+          : { value: 'plugin.notyet', label: kleur.dim('  Plugins — coming in v0.3.x') },
+        supportsPlugins(toolId)
+          ? { value: 'plugin.install', label: '  Install a plugin' }
+          : { value: 'plugin.notyet2', label: kleur.dim('  ') },
+        { value: 'sep3', label: kleur.dim('───────── MCP servers'), hint: '' },
+        mcpAdapterFor(toolId)
+          ? { value: 'mcp.list', label: '  List MCP servers' }
+          : { value: 'mcp.notyet', label: kleur.dim('  MCP — coming in v0.3.x for this CLI') },
+        mcpAdapterFor(toolId)
+          ? { value: 'mcp.install', label: '  Install an MCP server' }
+          : { value: 'mcp.notyet2', label: kleur.dim('  ') },
+        mcpAdapterFor(toolId)
+          ? { value: 'mcp.uninstall', label: '  Uninstall an MCP server' }
+          : { value: 'mcp.notyet3', label: kleur.dim('  ') },
+        { value: 'sep4', label: kleur.dim('───────── Maintenance'), hint: '' },
+        { value: 'doctor', label: 'Doctor (this CLI)' },
+        { value: 'config', label: 'Show config file' },
+        { value: 'sep5', label: kleur.dim('────────────────'), hint: '' },
+        { value: BACK, label: '← Back to main menu' },
+      ],
+    })) as string | symbol;
+
+    if (isCancel(choice) || choice === BACK) return;
+    if (typeof choice === 'string' && choice.startsWith('sep')) continue;
+    if (typeof choice === 'string' && choice.startsWith('plugin.notyet')) {
+      log.info(`Plugin support for ${toolId} is not implemented yet. See roadmap.`);
+      continue;
+    }
+    if (typeof choice === 'string' && choice.startsWith('mcp.notyet')) {
+      log.info(`MCP support for ${toolId} is not implemented yet. See roadmap.`);
+      continue;
+    }
+
+    try {
+      await handleCliAction(toolId, choice as string);
+    } catch (e) {
+      log.error(String(e));
+    }
+  }
+}
+
+async function handleCliAction(toolId: ToolId, action: string): Promise<void> {
+  const provider = getProvider(toolId)!;
+  switch (action) {
     case 'tool.install': {
-      const tools = listProviders();
-      const choice = await select({
-        message: 'Pick a tool (ESC = back)',
-        options: [
-          ...tools.map((p) => ({ value: p.id, label: p.name })),
-          { value: '__back__', label: '← Back to main menu' },
-        ],
-      });
-      if (isCancel(choice) || choice === '__back__') return;
-      const provider = getProvider(choice as string);
-      if (!provider) return;
       const s = spinner();
-      s.start(t('tool.install.start', { tool: provider.id }));
+      s.start(t('tool.install.start', { tool: toolId }));
       try {
         await provider.install({});
-        s.stop(t('tool.install.done', { tool: provider.id }));
+        s.stop(t('tool.install.done', { tool: toolId }));
       } catch (e) {
-        s.stop(t('tool.install.failed', { tool: provider.id, reason: String(e) }));
+        s.stop(t('tool.install.failed', { tool: toolId, reason: String(e) }));
       }
+      return;
+    }
+    case 'tool.update': {
+      const s = spinner();
+      s.start(t('tool.update.start', { tool: toolId }));
+      try {
+        await provider.update();
+        s.stop(t('tool.update.done', { tool: toolId }));
+      } catch (e) {
+        s.stop(`update failed: ${String(e)}`);
+      }
+      return;
+    }
+    case 'tool.uninstall': {
+      const ok = await confirm({ message: `Uninstall ${provider.name}?`, initialValue: false });
+      if (isCancel(ok) || ok !== true) return;
+      const s = spinner();
+      s.start(t('tool.uninstall.start', { tool: toolId }));
+      try {
+        await provider.uninstall();
+        s.stop(t('tool.uninstall.done', { tool: toolId }));
+      } catch (e) {
+        s.stop(`uninstall failed: ${String(e)}`);
+      }
+      return;
+    }
+    case 'tool.info': {
+      note(
+        [
+          kleur.bold(provider.name),
+          kleur.dim(provider.description),
+          `homepage:   ${provider.homepage}`,
+          `platforms:  ${provider.supportedPlatforms.join(', ')}`,
+          `installers: ${provider.installMethods.join(', ')}`,
+        ].join('\n'),
+        'Install info',
+      );
       return;
     }
 
     case 'skill.list': {
-      let any = false;
-      for (const [toolId, factory] of Object.entries(ADAPTERS)) {
-        const provider = getProvider(toolId);
-        if (!provider) continue;
-        const det = await provider.detect();
-        if (!det.installed) continue;
-        const installed = await factory().list();
-        if (installed.length === 0) continue;
-        any = true;
-        log.info(`[${toolId}]`);
-        for (const sk of installed) log.message(`  ${sk.id}  ${sk.name}  ${sk.version}`);
-      }
-      if (!any) log.info(t('skill.list.empty'));
+      const adapter = SKILL_ADAPTERS[toolId]();
+      const installed = await adapter.list();
+      if (installed.length === 0) { log.info(t('skill.list.empty')); return; }
+      for (const sk of installed) log.message(`  ${sk.id}  ${sk.name}  ${kleur.dim(sk.version)}`);
       return;
     }
-
     case 'skill.install': {
       const { skills } = await catalog.load();
-      const choice = await select({
-        message: 'Pick a skill (ESC = back)',
+      const supported = skills.filter((sk) => sk.supports[toolId]);
+      if (supported.length === 0) { log.info(`No skills in the catalog support ${toolId} yet.`); return; }
+      const pick = await select({
+        message: `Pick a skill to install on ${toolId} (ESC = back)`,
         options: [
-          ...skills.map((sk) => ({
-            value: sk.id,
-            label: `${sk.name} — ${sk.description}`,
-          })),
-          { value: '__back__', label: '← Back to main menu' },
+          ...supported.map((sk) => ({ value: sk.id, label: `${sk.name} — ${sk.description}` })),
+          { value: BACK, label: '← Back' },
         ],
       });
-      if (isCancel(choice) || choice === '__back__') return;
-      const skill = await catalog.findSkill(choice as string);
-      if (!skill) return;
-      const targets = await adaptersForSkill(skill);
-      if (targets.length === 0) { log.warn(`No installed tools support skill ${skill.id}`); return; }
+      if (isCancel(pick) || pick === BACK) return;
+      const skill = (await catalog.findSkill(pick as string))!;
       const s = spinner();
       s.start(t('skill.install.start', { skill: skill.id }));
-      for (const { toolId, adapter } of targets) {
-        await adapter.install(skill, skill.source);
-        log.step(`[${toolId}] installed`);
+      try {
+        await SKILL_ADAPTERS[toolId]().install(skill, skill.source);
+        s.stop(t('skill.install.done', { skill: skill.id }));
+      } catch (e) {
+        s.stop(t('skill.install.failed', { skill: skill.id, reason: String(e) }));
       }
-      s.stop(t('skill.install.done', { skill: skill.id }));
+      return;
+    }
+    case 'skill.uninstall': {
+      const adapter = SKILL_ADAPTERS[toolId]();
+      const installed = await adapter.list();
+      if (installed.length === 0) { log.info(t('skill.list.empty')); return; }
+      const pick = await select({
+        message: `Pick a skill to uninstall from ${toolId} (ESC = back)`,
+        options: [
+          ...installed.map((sk) => ({ value: sk.id, label: `${sk.id}  ${kleur.dim(sk.version)}` })),
+          { value: BACK, label: '← Back' },
+        ],
+      });
+      if (isCancel(pick) || pick === BACK) return;
+      const s = spinner();
+      s.start(t('skill.uninstall.start', { skill: pick as string }));
+      try {
+        await adapter.uninstall(pick as string);
+        s.stop(t('skill.uninstall.done', { skill: pick as string }));
+      } catch (e) {
+        s.stop(`uninstall failed: ${String(e)}`);
+      }
       return;
     }
 
-    case 'preset.apply': {
-      const { presets } = await catalog.load();
-      const choice = await select({
-        message: 'Pick a preset (ESC = back)',
+    case 'mcp.list': {
+      const adapter = mcpAdapterFor(toolId)!;
+      const servers = await adapter.list();
+      if (servers.length === 0) { log.info(`No MCP servers registered with ${toolId}.`); return; }
+      note(
+        servers.map((s) => `• ${kleur.bold(s.id)}  ${kleur.dim(`${s.command} ${(s.args ?? []).join(' ')}`)}`).join('\n'),
+        `MCP servers in ${adapter.configPath()}`,
+      );
+      return;
+    }
+    case 'mcp.install': {
+      const adapter = mcpAdapterFor(toolId)!;
+      const { mcpServers } = await catalog.load();
+      const supported = mcpServers.filter((m) => m.supports[toolId]);
+      if (supported.length === 0) { log.info(`No MCP servers in the catalog support ${toolId} yet.`); return; }
+      const pick = await select({
+        message: `Pick an MCP server to install on ${toolId} (ESC = back)`,
         options: [
-          ...presets.map((p) => ({
-            value: p.id,
-            label: `${p.name} — ${p.description}`,
-          })),
-          { value: '__back__', label: '← Back to main menu' },
+          ...supported.map((m) => ({ value: m.id, label: `${m.name} — ${m.description}` })),
+          { value: BACK, label: '← Back' },
         ],
       });
-      if (isCancel(choice) || choice === '__back__') return;
-      const preset = await catalog.findPreset(choice as string);
-      if (!preset) return;
-
-      const toolLines = preset.tools.map((id) => {
-        const p = getProvider(id);
-        return `  • ${id}${p ? `  (${p.name})` : ''}`;
+      if (isCancel(pick) || pick === BACK) return;
+      const server = (await catalog.findMcpServer(pick as string))!;
+      await previewAndInstallMcp(toolId, adapter, server);
+      return;
+    }
+    case 'mcp.uninstall': {
+      const adapter = mcpAdapterFor(toolId)!;
+      const servers = await adapter.list();
+      if (servers.length === 0) { log.info(`No MCP servers registered with ${toolId}.`); return; }
+      const pick = await select({
+        message: `Pick an MCP server to remove from ${toolId} (ESC = back)`,
+        options: [
+          ...servers.map((s) => ({ value: s.id, label: s.id })),
+          { value: BACK, label: '← Back' },
+        ],
       });
-      const skillPreviews: string[] = [];
-      for (const skillId of preset.skills) {
-        const skill = await catalog.findSkill(skillId);
-        if (!skill) { skillPreviews.push(`  • ${skillId}  ${kleur.red('(missing in catalog)')}`); continue; }
-        const targets = await adaptersForSkill(skill);
-        const targetIds = targets.map((t) => t.toolId).join(', ') || kleur.dim('no installed tool supports it');
-        skillPreviews.push(`  • ${skillId}  →  ${targetIds}`);
-      }
-      note(
-        [
-          kleur.bold(`Preset: ${preset.name}`),
-          kleur.dim(preset.description),
-          '',
-          kleur.bold(`Tools (${preset.tools.length}):`),
-          ...toolLines,
-          '',
-          kleur.bold(`Skills (${preset.skills.length}):`),
-          ...skillPreviews,
-        ].join('\n'),
-        'Preview',
-      );
+      if (isCancel(pick) || pick === BACK) return;
+      await adapter.uninstall(pick as string);
+      log.success(`Removed ${pick} from ${adapter.configPath()}`);
+      return;
+    }
 
-      const go = await confirm({ message: 'Apply this preset?', initialValue: true });
-      if (isCancel(go) || go !== true) { log.info('Cancelled.'); return; }
-
-      let toolsInstalled = 0;
-      let toolsSkipped = 0;
-      const skillsInstalled: string[] = [];
-      const skillsSkipped: string[] = [];
-
-      for (const toolId of preset.tools) {
-        const provider = getProvider(toolId);
-        if (!provider) { log.warn(`skip unknown tool ${toolId}`); continue; }
-        const det = await provider.detect();
-        if (det.installed) {
-          log.step(`[tool] ${toolId} already installed${det.version ? ` (${det.version})` : ''}, skipping`);
-          toolsSkipped++;
-          continue;
-        }
-        const s = spinner();
-        s.start(`[tool] installing ${toolId}`);
-        try {
-          await provider.install({});
-          s.stop(`[tool] ${toolId} installed`);
-          toolsInstalled++;
-        } catch (e) {
-          s.stop(`[tool] ${toolId} failed: ${String(e)}`);
-        }
-      }
-
-      for (const skillId of preset.skills) {
-        const skill = await catalog.findSkill(skillId);
-        if (!skill) { log.warn(`[skill] ${skillId} not in catalog, skipping`); skillsSkipped.push(skillId); continue; }
-        const targets = await adaptersForSkill(skill);
-        if (targets.length === 0) { log.warn(`[skill] ${skillId}: no installed tool supports it, skipping`); skillsSkipped.push(skillId); continue; }
-        for (const { toolId, adapter } of targets) {
-          try {
-            await adapter.install(skill, skill.source);
-            log.step(`[skill] ${skillId} → ${toolId}`);
-          } catch (e) {
-            log.error(`[skill] ${skillId} → ${toolId} failed: ${String(e)}`);
-          }
-        }
-        skillsInstalled.push(skillId);
-      }
-
-      note(
-        [
-          kleur.green(`✓ Preset "${preset.name}" applied`),
-          `  tools installed: ${toolsInstalled}  (skipped existing: ${toolsSkipped})`,
-          `  skills installed: ${skillsInstalled.length}  (skipped: ${skillsSkipped.length})`,
-          skillsInstalled.length ? `  installed skills: ${skillsInstalled.join(', ')}` : '',
-          skillsSkipped.length ? kleur.yellow(`  skipped skills: ${skillsSkipped.join(', ')}`) : '',
-        ].filter(Boolean).join('\n'),
-        'Summary',
-      );
+    case 'plugin.list':
+    case 'plugin.install': {
+      log.info('Plugin install is not implemented yet (v0.3.x roadmap). See README.');
       return;
     }
 
     case 'doctor': {
+      const r = await provider.doctor();
+      if (r.healthy) log.success(`${toolId}: ${t('doctor.healthy')}`);
+      else {
+        log.warn(`${toolId}: ${t('doctor.issues', { count: r.issues.length })}`);
+        for (const i of r.issues) log.message(`  - ${i}`);
+      }
+      return;
+    }
+    case 'config': {
+      const data = await provider.settingsAdapter.read();
+      note(
+        [`path: ${provider.settingsAdapter.configPath()}`, '', JSON.stringify(data, null, 2)].join('\n'),
+        `${provider.name} config`,
+      );
+      return;
+    }
+  }
+}
+
+async function previewAndInstallMcp(toolId: ToolId, adapter: McpAdapter, server: McpServerManifest): Promise<void> {
+  const envWarning = server.env && Object.keys(server.env).length > 0
+    ? [
+        '',
+        kleur.yellow('⚠ Required environment variables (set before running the CLI):'),
+        ...Object.entries(server.env).map(([k, hint]) => `   ${kleur.bold(k)}  ${kleur.dim(`— ${hint}`)}`),
+      ]
+    : [];
+  note(
+    [
+      kleur.bold(`${server.name}  →  ${toolId}`),
+      kleur.dim(server.description),
+      '',
+      `command: ${server.command} ${(server.args ?? []).join(' ')}`,
+      ...(envWarning as string[]),
+      '',
+      kleur.dim(`Will patch: ${adapter.configPath()}`),
+    ].join('\n'),
+    'MCP install preview',
+  );
+  const go = await confirm({ message: 'Install this MCP server?', initialValue: true });
+  if (isCancel(go) || go !== true) { log.info('Cancelled.'); return; }
+  const s = spinner();
+  s.start(`installing MCP server ${server.id}`);
+  try {
+    await adapter.install(server);
+    s.stop(`✓ MCP server ${server.id} added to ${adapter.configPath()}`);
+    if (server.env && Object.keys(server.env).length > 0) {
+      log.warn(`Remember to set ${Object.keys(server.env).join(', ')} in your shell before running ${toolId}.`);
+    }
+  } catch (e) {
+    s.stop(`install failed: ${String(e)}`);
+  }
+}
+
+// ─── Cross-tool submenu ──────────────────────────────────────────────
+
+async function crossMenu(): Promise<void> {
+  while (true) {
+    const choice = (await select({
+      message: 'Cross-tool actions (ESC = back)',
+      options: [
+        { value: 'preset.apply', label: 'Apply a preset (install tools + fan out skills)' },
+        { value: 'skill.fanout', label: 'Install a skill into every supported installed CLI' },
+        { value: 'doctor.all', label: 'Run doctor across every CLI' },
+        { value: 'tools.status', label: 'List status of every CLI' },
+        { value: BACK, label: '← Back' },
+      ],
+    })) as string | symbol;
+    if (isCancel(choice) || choice === BACK) return;
+    try {
+      await handleCrossAction(choice as string);
+    } catch (e) {
+      log.error(String(e));
+    }
+  }
+}
+
+async function handleCrossAction(action: string): Promise<void> {
+  switch (action) {
+    case 'preset.apply':   return runPresetApply();
+    case 'skill.fanout':   return runSkillFanout();
+    case 'doctor.all': {
       for (const p of listProviders()) {
         const r = await p.doctor();
         if (r.healthy) log.success(`${p.id}: ${t('doctor.healthy')}`);
@@ -284,14 +436,218 @@ async function handle(action: Action): Promise<void> {
       }
       return;
     }
+    case 'tools.status': {
+      for (const p of listProviders()) {
+        const det = await p.detect();
+        log.info(`${p.id}  ${p.name}  ${det.installed ? `✓ ${det.version ?? ''}` : kleur.dim('not installed')}`);
+      }
+      return;
+    }
+  }
+}
 
+async function adaptersForSkill(skill: SkillManifest): Promise<Array<{ toolId: string; adapter: SkillSyncAdapter }>> {
+  const result: Array<{ toolId: string; adapter: SkillSyncAdapter }> = [];
+  for (const toolId of SUPPORTED_TOOLS) {
+    if (!skill.supports[toolId]) continue;
+    const provider = getProvider(toolId);
+    if (!provider) continue;
+    const det = await provider.detect();
+    if (!det.installed) continue;
+    result.push({ toolId, adapter: SKILL_ADAPTERS[toolId]() });
+  }
+  return result;
+}
+
+async function runSkillFanout(): Promise<void> {
+  const { skills } = await catalog.load();
+  const pick = await select({
+    message: 'Pick a skill to fan out (ESC = back)',
+    options: [
+      ...skills.map((sk) => ({ value: sk.id, label: `${sk.name} — ${sk.description}` })),
+      { value: BACK, label: '← Back' },
+    ],
+  });
+  if (isCancel(pick) || pick === BACK) return;
+  const skill = (await catalog.findSkill(pick as string))!;
+  const targets = await adaptersForSkill(skill);
+  if (targets.length === 0) { log.warn(`No installed CLI supports skill ${skill.id}.`); return; }
+  const s = spinner();
+  s.start(t('skill.install.start', { skill: skill.id }));
+  for (const { toolId, adapter } of targets) {
+    try {
+      await adapter.install(skill, skill.source);
+      log.step(`[${toolId}] installed`);
+    } catch (e) {
+      log.error(`[${toolId}] ${String(e)}`);
+    }
+  }
+  s.stop(t('skill.install.done', { skill: skill.id }));
+}
+
+async function runPresetApply(): Promise<void> {
+  const { presets } = await catalog.load();
+  const choice = await select({
+    message: 'Pick a preset (ESC = back)',
+    options: [
+      ...presets.map((p) => ({ value: p.id, label: `${p.name} — ${p.description}` })),
+      { value: BACK, label: '← Back' },
+    ],
+  });
+  if (isCancel(choice) || choice === BACK) return;
+  const preset = (await catalog.findPreset(choice as string))!;
+
+  const toolLines = preset.tools.map((id) => {
+    const p = getProvider(id);
+    return `  • ${id}${p ? `  (${p.name})` : ''}`;
+  });
+  const skillPreviews: string[] = [];
+  for (const skillId of preset.skills) {
+    const skill = await catalog.findSkill(skillId);
+    if (!skill) { skillPreviews.push(`  • ${skillId}  ${kleur.red('(missing in catalog)')}`); continue; }
+    const targets = await adaptersForSkill(skill);
+    const targetIds = targets.map((tg) => tg.toolId).join(', ') || kleur.dim('no installed CLI supports it');
+    skillPreviews.push(`  • ${skillId}  →  ${targetIds}`);
+  }
+  note(
+    [
+      kleur.bold(`Preset: ${preset.name}`),
+      kleur.dim(preset.description),
+      '',
+      kleur.bold(`Tools (${preset.tools.length}):`),
+      ...toolLines,
+      '',
+      kleur.bold(`Skills (${preset.skills.length}):`),
+      ...skillPreviews,
+    ].join('\n'),
+    'Preview',
+  );
+
+  const go = await confirm({ message: 'Apply this preset?', initialValue: true });
+  if (isCancel(go) || go !== true) { log.info('Cancelled.'); return; }
+
+  let toolsInstalled = 0;
+  let toolsSkipped = 0;
+  const skillsInstalled: string[] = [];
+  const skillsSkipped: string[] = [];
+
+  for (const toolId of preset.tools) {
+    const provider = getProvider(toolId);
+    if (!provider) { log.warn(`skip unknown tool ${toolId}`); continue; }
+    const det = await provider.detect();
+    if (det.installed) {
+      log.step(`[tool] ${toolId} already installed${det.version ? ` (${det.version})` : ''}, skipping`);
+      toolsSkipped++;
+      continue;
+    }
+    const s = spinner();
+    s.start(`[tool] installing ${toolId}`);
+    try {
+      await provider.install({});
+      s.stop(`[tool] ${toolId} installed`);
+      toolsInstalled++;
+    } catch (e) {
+      s.stop(`[tool] ${toolId} failed: ${String(e)}`);
+    }
+  }
+
+  for (const skillId of preset.skills) {
+    const skill = await catalog.findSkill(skillId);
+    if (!skill) { log.warn(`[skill] ${skillId} not in catalog, skipping`); skillsSkipped.push(skillId); continue; }
+    const targets = await adaptersForSkill(skill);
+    if (targets.length === 0) { log.warn(`[skill] ${skillId}: no installed tool supports it, skipping`); skillsSkipped.push(skillId); continue; }
+    for (const { toolId, adapter } of targets) {
+      try {
+        await adapter.install(skill, skill.source);
+        log.step(`[skill] ${skillId} → ${toolId}`);
+      } catch (e) {
+        log.error(`[skill] ${skillId} → ${toolId} failed: ${String(e)}`);
+      }
+    }
+    skillsInstalled.push(skillId);
+  }
+
+  note(
+    [
+      kleur.green(`✓ Preset "${preset.name}" applied`),
+      `  tools installed: ${toolsInstalled}  (skipped existing: ${toolsSkipped})`,
+      `  skills installed: ${skillsInstalled.length}  (skipped: ${skillsSkipped.length})`,
+      skillsInstalled.length ? `  installed skills: ${skillsInstalled.join(', ')}` : '',
+      skillsSkipped.length ? kleur.yellow(`  skipped skills: ${skillsSkipped.join(', ')}`) : '',
+    ].filter(Boolean).join('\n'),
+    'Summary',
+  );
+}
+
+// ─── Maintenance submenu ─────────────────────────────────────────────
+
+async function maintenanceMenu(): Promise<void> {
+  while (true) {
+    const choice = (await select({
+      message: 'Backup / Restore (ESC = back)',
+      options: [
+        { value: 'backup', label: 'Create backup of ~/.claude' },
+        { value: 'list', label: 'List backups' },
+        { value: 'restore', label: 'Restore a backup by id' },
+        { value: 'rollback', label: 'Restore the most recent backup' },
+        { value: BACK, label: '← Back' },
+      ],
+    })) as string | symbol;
+    if (isCancel(choice) || choice === BACK) return;
+    try {
+      await handleMaintAction(choice as string);
+    } catch (e) {
+      log.error(String(e));
+    }
+  }
+}
+
+async function handleMaintAction(action: string): Promise<void> {
+  switch (action) {
     case 'backup': {
       const s = spinner();
       s.start('backing up');
-      const entry = await backups.create({
-        sourceDir: path.join(os.homedir(), '.claude'),
-      });
+      const entry = await backups.create({ sourceDir: path.join(os.homedir(), '.claude') });
       s.stop(t('backup.created', { path: entry.path }));
+      return;
+    }
+    case 'list': {
+      const all = await backups.list();
+      if (all.length === 0) { log.info(t('backup.list.empty')); return; }
+      for (const b of all) log.message(`  ${b.id}  ${kleur.dim(b.path)}`);
+      return;
+    }
+    case 'restore': {
+      const all = await backups.list();
+      if (all.length === 0) { log.info(t('backup.list.empty')); return; }
+      const pick = await select({
+        message: 'Pick a backup to restore (ESC = back)',
+        options: [
+          ...all.map((b) => ({ value: b.id, label: `${b.id}  ${kleur.dim(b.path)}` })),
+          { value: BACK, label: '← Back' },
+        ],
+      });
+      if (isCancel(pick) || pick === BACK) return;
+      const ok = await confirm({
+        message: `Restore ${pick}? This overwrites ~/.claude with the snapshot.`,
+        initialValue: false,
+      });
+      if (isCancel(ok) || ok !== true) return;
+      await backups.restore(pick as string, path.join(os.homedir(), '.claude'));
+      log.success(t('restore.done', { id: pick as string }));
+      return;
+    }
+    case 'rollback': {
+      const all = await backups.list();
+      const latest = all[0];
+      if (!latest) { log.warn(t('backup.list.empty')); return; }
+      const ok = await confirm({
+        message: `Rollback to most recent (${latest.id})? Overwrites ~/.claude.`,
+        initialValue: false,
+      });
+      if (isCancel(ok) || ok !== true) return;
+      await backups.restore(latest.id, path.join(os.homedir(), '.claude'));
+      log.success(t('restore.done', { id: latest.id }));
       return;
     }
   }
