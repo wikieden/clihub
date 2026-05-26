@@ -21,6 +21,9 @@ export {
   type BackupOptions,
 } from './backup/index.js';
 export { ClaudeCodeSkillAdapter } from './skill/index.js';
+export { CodexSkillAdapter } from './skill/codex-adapter.js';
+export { KiroCliSkillAdapter } from './skill/kiro-adapter.js';
+export { GeminiCliSkillAdapter } from './skill/gemini-adapter.js';
 export { CatalogLoader, type Catalog } from './catalog/index.js';
 export {
   detectLocale,

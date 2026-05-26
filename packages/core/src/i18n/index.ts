@@ -4,14 +4,20 @@
  */
 import en from './locales/en.json' with { type: 'json' };
 import zhCN from './locales/zh-CN.json' with { type: 'json' };
+import ja from './locales/ja.json' with { type: 'json' };
+import ko from './locales/ko.json' with { type: 'json' };
+import es from './locales/es.json' with { type: 'json' };
 
-export type Locale = 'en' | 'zh-CN';
+export type Locale = 'en' | 'zh-CN' | 'ja' | 'ko' | 'es';
 
 type Dict = Record<string, string>;
 
 const LOCALES: Record<Locale, Dict> = {
   en: en as Dict,
   'zh-CN': zhCN as Dict,
+  ja: ja as Dict,
+  ko: ko as Dict,
+  es: es as Dict,
 };
 
 let currentLocale: Locale = detectLocale();
@@ -28,6 +34,9 @@ export function detectLocale(): Locale {
     '';
   const normalized = raw.replace('_', '-').toLowerCase();
   if (normalized.startsWith('zh')) return 'zh-CN';
+  if (normalized.startsWith('ja')) return 'ja';
+  if (normalized.startsWith('ko')) return 'ko';
+  if (normalized.startsWith('es')) return 'es';
   return 'en';
 }
 
