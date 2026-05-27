@@ -18,5 +18,8 @@
   "files": [
     "src",
     "dist"
-  ]
+  ],
+  "devDependencies": {
+    "smol-toml": "^1.6.1"
+  }
 }

@@ -1,6 +1,6 @@
 /**
  * Codex CLI ToolProvider. Installs via `npm i -g @openai/codex`.
- * Settings live at ~/.codex/config.json. No skill adapter in v0.1.
+ * Settings live at ~/.codex/config.toml (TOML, not JSON).
  */
 import { execFile } from 'node:child_process';
 import { promises as fs } from 'node:fs';
@@ -8,7 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
-import { JsonSettingsAdapter } from '../../settings/index.js';
+import { TomlSettingsAdapter } from '../../settings/toml.js';
 import type {
   DetectResult,
   HealthReport,
@@ -20,9 +20,9 @@ const execFileP = promisify(execFile);
 
 const NPM_PACKAGE = '@openai/codex';
 const CONFIG_DIR = path.join(os.homedir(), '.codex');
-const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
+const CONFIG_PATH = path.join(CONFIG_DIR, 'config.toml');
 
-const settingsAdapter = new JsonSettingsAdapter({ path: CONFIG_PATH });
+const settingsAdapter = new TomlSettingsAdapter({ path: CONFIG_PATH });
 
 async function tryExec(
   cmd: string,

@@ -13,6 +13,7 @@ export { codexProvider } from './tools/providers/codex.js';
 export { kiroProvider } from './tools/providers/kiro.js';
 export { geminiProvider } from './tools/providers/gemini.js';
 export { JsonSettingsAdapter } from './settings/index.js';
+export { TomlSettingsAdapter, type TomlSettingsAdapterOpts } from './settings/toml.js';
 export {
   BackupManager,
   defaultBackupRoot,
