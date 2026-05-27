@@ -46,6 +46,13 @@ npm install -g @wikieden/clihub
 bun add -g @wikieden/clihub
 ```
 
+Or run it as a container without installing anything locally:
+
+```bash
+docker run --rm -it -v ~/.claude:/root/.claude wikieden/clihub
+docker run --rm -it wikieden/clihub doctor
+```
+
 Requirements: Node ≥ 18 (or Bun). On Linux/macOS/WSL.
 
 ## Quickstart
