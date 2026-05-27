@@ -2,11 +2,13 @@
 
 ## One-liner
 
-**The install + sync + rollback control plane for multi-CLI AI coding.** One command installs Claude Code, Codex, Gemini and Kiro side by side, keeps their skills / MCP servers / plugins in sync, and ships one-command rollback when an upgrade breaks something.
+**The infrastructure layer for AI coding.** One control plane to install Claude Code, Codex, Gemini and Kiro side by side, keep their skills / MCP servers / plugins in sync, switch between accounts and proxies, and roll back when an upgrade breaks something.
 
 ## Mission
 
-Make switching between AI CLIs as painless as switching browsers. No vendor lock-in. When a new CLI lands, the user brings their skill / MCP / config stack with them.
+Make AI coding tooling feel like `git`, `npm` and `brew` — boring, reliable, vendor-neutral. When a new CLI lands, users bring their entire stack (skills, MCP servers, accounts, proxy config) with them. When a team needs reproducible environments, clihub locks them. When a vendor changes its skill format, clihub absorbs the delta.
+
+clihub aims to be the **default substrate** every AI coding workflow runs on top of — not a tool you choose, but the layer that makes the choice irrelevant.
 
 ## Why this exists
 
@@ -69,6 +71,25 @@ This repo (formerly `CCEnvOneCLick`) carries:
 5. **i18n by default** — auto-detect from `$LANG`, override with `CLIHUB_LANG`.
 6. **Safety rails** — every write is preceded by a timestamped backup; `--dry-run` + `rollback` available everywhere.
 
+## Infrastructure pillars
+
+clihub graduates from "useful CLI" to "AI coding substrate" along ten pillars. The first eight describe the technical substrate; the last two are what make ordinary people pick it up.
+
+| # | Pillar | What it means | Status |
+|---|---|---|---|
+| I | **Spec & standards** | clihub authors / endorses open specs for SKILL.md, MCP, PluginManifest, LockFile, Catalog. Other clients can implement against the spec without using clihub. | v0.4 partial (SKILL.md installer); RFC drafts in v0.7. |
+| II | **Reproducibility** | `clihub.lock.json`, `clihub install --frozen`, plan/apply (Terraform-style), structured audit log. Same lockfile → same world. | v0.5 (yaml + lockfile). |
+| III | **Federation** | Multiple catalogs (`clihub catalog add <url>`), regional mirrors, private team catalogs, conflict arbitration. | v0.5 partial (sync); multi-source v0.6. |
+| IV | **Trust** | sigstore-cosign signed catalog releases, SHA256 verified files, npm provenance, transparency log. | v0.6 (signing). |
+| V | **Composability** | Provider SDK + Adapter SDK + lifecycle hooks. Third-party `clihub-plugin-*` packages add CLIs we don't ship. | v0.7 (SDK alpha). |
+| VI | **Reach** | macOS / Linux / Windows; npm / brew / scoop / winget / apt / docker; CI action; VS Code / JetBrains thin clients. | v0.5 Windows, v0.6 winget/scoop, v0.7 IDE. |
+| VII | **Community** | Public registry, RFC process, compatibility test suite, `clihub-compatible` badge. | v1.0 (registry beta). |
+| VIII | **Adoption** | Vendor partnerships (Anthropic, OpenAI, Google, AWS), competitor inter-op, course / book inclusions. | continuous from v0.4. |
+| **IX** | **Config management** | Proxy support (HTTP/HTTPS/SOCKS5, MITM CA bundle), profile switching for multi-account (personal / work / client-X), system-keychain credential vault, unified OAuth across CLIs. | v0.5–0.6. |
+| **X** | **Ease of use** | First-run wizard, in-TUI search, recent / favourites, tab completion, error codes with linked docs, `doctor --fix` autoremediation, man pages, smart defaults. | v0.5. |
+
+Each pillar feeds the others: Pillars I–IV make clihub credible as infra; V–VII make it self-sustaining; VIII gets it picked up; IX–X stop new users bouncing.
+
 ## Cultural principles
 
 1. **Vendor-neutral** — never favour one CLI, even though Claude Code is the lead workload.
@@ -88,8 +109,17 @@ This repo (formerly `CCEnvOneCLick`) carries:
 | Stage | Weekly npm downloads | GitHub stars | Notes |
 |---|---|---|---|
 | v0.4 | 500 | 200 | HN / Reddit / V2EX launch |
-| v0.5 | 1.5k | 500 | Windows, watch, search |
-| v1.0 | 5k | 2k | stable API, plugin SDK |
+| v0.5 | 1.5k | 500 | Windows, watch, search, proxy + profiles |
+| v0.6 | 3k | 1k | catalog signing, multi-source federation |
+| v0.7 | 4k | 1.5k | provider SDK alpha, RFC spec draft |
+| v1.0 | 5k | 2k | stable API, plugin SDK, registry beta |
 | v2.0 | 50k/month | 10k | enterprise pilot ≥3 |
 
-See `docs/11-ROADMAP.md` for the release plan and `docs/13-MONETIZATION.md` for the long-term business model.
+## Related design docs
+
+- [`docs/11-ROADMAP.md`](11-ROADMAP.md) — release plan v0.1 → v2.0.
+- [`docs/13-MONETIZATION.md`](13-MONETIZATION.md) — three-phase business model.
+- [`docs/14-SPRINT.md`](14-SPRINT.md) — day-by-day sprint plan.
+- [`docs/17-INFRA-PILLARS.md`](17-INFRA-PILLARS.md) — ten pillars in depth.
+- [`docs/18-CONFIG-PROXY-PROFILE.md`](18-CONFIG-PROXY-PROFILE.md) — proxy + profile + keychain design.
+- [`docs/19-CLIHUBYAML.md`](19-CLIHUBYAML.md) — `clihub.yaml` schema draft.

@@ -56,33 +56,80 @@ clihub config show codex                                # parses TOML
 
 ## Planned
 
-### v0.5 — Windows + observability
+### v0.5 — Windows + config + ease of use
 
-- Windows 路径 / PowerShell support
+Expanded scope after the infra-vision review. v0.5 now covers Pillars IX (Config) and X (Ease of Use) in addition to the original observability slice. Splits into four shippable tranches (v0.5.0 → v0.5.3).
+
+**v0.5.0 — Windows + watch + search** (Sprint 5):
+
+- Windows paths / PowerShell shebang / CRLF handling
 - `clihub watch` — detect CLI upgrades, auto-backup, surface rollback CTA
 - Skill / plugin / MCP full-text search (`clihub search <query>`)
-- Quota / usage signals in `doctor` (Anthropic + OpenAI usage where exposed)
-- CI release pipeline (tag → `npm publish` via Classic Automation token)
+- Quota / usage signals in `doctor` where vendor APIs expose them
+- Tab completion for bash / zsh / fish / PowerShell
+- man page auto-gen
 
-### v0.6 — team mode
+**v0.5.1 — Proxy + CA + ease wins** (Sprint 6):
 
-- `clihub team init` → `clihub.lock.json` (per-project skill / MCP / version pins)
+- Recognise `HTTPS_PROXY` / `HTTP_PROXY` / `ALL_PROXY` / `NO_PROXY`
+- Bearer-auth and SOCKS5 proxy URLs (`socks5://user:pass@host:port`)
+- `clihub config set proxy.http <url>` persistent override
+- Custom CA bundle (`clihub config set ca-bundle <path>`) for corp MITM
+- Inject proxy env into Claude Code / Codex / Gemini / Kiro settings
+- `clihub doctor --fix` auto-remediation pass
+- Error code system (`CLIHUB-E-NNN`) with linked docs
+- First-run TUI wizard (≤ 5 steps, ≤ 60 s to first working CLI)
+
+**v0.5.2 — Profiles + keychain** (Sprint 7):
+
+- `clihub profile <create|use|list|switch|rm|clone|current>` for multi-account workflows
+- Profile storage at `~/.clihub/profiles/<name>/` with HOME / XDG override on activate
+- System-keychain credential vault (macOS Keychain / libsecret / Windows Credential Manager)
+- `clihub.yaml profile:` per-project override (auto-switch on directory entry)
+- Cross-profile share rules (skills shared, API keys not)
+- Unified OAuth flow → token routed to each CLI's native credentials file
+
+**v0.5.3 — Apply / lockfile draft** (Sprint 8):
+
+- `clihub.yaml` declarative project config (see [`19-CLIHUBYAML.md`](19-CLIHUBYAML.md))
+- `clihub init` interactive scaffold
+- `clihub apply --plan` / `--dry-run` (Terraform-style)
+- `clihub.lock.json` generation + `clihub install --frozen`
+- Structured audit log at `~/.clihub/audit.log`
+
+### v0.6 — federation + signing + team mode
+
+- sigstore-cosign signing of catalog manifests
+- `clihub catalog add <url>` multi-source federation (apt-style sources)
+- Regional mirror support (`CLIHUB_CATALOG_MIRROR=`)
 - HTTP transport for MCP servers (currently stdio-only)
 - New providers: Cursor, OpenCode, Goose, Junie
+- `clihub team init` group lockfile + push/pull to private team catalog
 
-### v1.0 — stable API
+### v0.7 — provider SDK + spec draft
+
+- Provider SDK alpha (third-party `clihub-plugin-cursor`-style packages)
+- Lifecycle hooks (pre-install / post-install / pre-rollback / post-apply)
+- RFC drafts at `docs/spec/*` for SKILL.md, MCP-MANIFEST.json, PLUGIN.json, LockFile, Catalog
+- `clihub completion` extended; `clihub help <topic>` long-form
+- `clihub/setup-action@v1` for GitHub Actions
+
+### v1.0 — stable API + registry beta
 
 - Public API freeze + semver guarantee
-- Plugin SDK (third-party `ToolProvider` / `SkillSyncAdapter` packages)
 - 100+ skills / 50+ MCP / 20+ plugins in the catalog
-- VS Code extension wrapper
+- VS Code extension thin client
 - Documentation site (`clihub.dev`)
+- `clihub.dev` registry beta (npm-style publish, no PR needed)
+- `clihub-compatible` badge + automated compat test suite
 
-### v2.0 — registry + enterprise
+### v2.0 — registry GA + enterprise
 
-- `clihub.dev` skill/plugin registry (npm-style publish, no PR needed)
-- Enterprise tier: SSO, private catalog, audit log
-- `clihub cloud` sync of catalog + config across machines
+- Public registry GA
+- Enterprise tier: SSO, private catalog, audit log, license-compliance scan
+- `clihub cloud` E2E-encrypted sync of catalog + config across machines
+- Polyglot thin clients (Rust / Go) hitting the same registry
+- CNCF Sandbox proposal
 
 ## Technical-debt budget (per release)
 

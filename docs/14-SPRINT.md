@@ -96,31 +96,123 @@ clihub skill install https://github.com/foo/bar-skill
 
 ---
 
+## Sprint 5 (2026-06-21 → 06-27) — v0.5.0 · Windows + watch + search
+
+**Goal**: ship v0.5.0 — Windows compat + observability tranche.
+
+| Day | Task |
+|---|---|
+| Mon | Windows paths / PowerShell shebang / CRLF normalisation across providers |
+| Tue | `clihub watch` — file-watcher on each CLI's settings dir; auto-snapshot on changes |
+| Wed | `clihub search <query>` — full-text fuzzy over skills/plugins/MCP/presets |
+| Thu | Tab completion: `clihub completion <bash|zsh|fish|powershell>` |
+| Fri | man-page auto-gen from cac → `man clihub`; publish v0.5.0 |
+
+**Acceptance**
+
+```bash
+clihub search auth                          # finds auth-related skills + MCP
+clihub watch                                # daemonised; logs to ~/.clihub/watch.log
+clihub completion zsh >> ~/.zshrc
+man clihub
+```
+
+---
+
+## Sprint 6 (2026-06-28 → 07-04) — v0.5.1 · Proxy + CA + ease wins
+
+**Goal**: Pillar IX (Config) + Pillar X (Ease of Use) first half.
+
+| Day | Task |
+|---|---|
+| Mon | Env detection: `HTTPS_PROXY` / `HTTP_PROXY` / `ALL_PROXY` / `NO_PROXY`; persist via `clihub config set proxy.*` |
+| Tue | SOCKS5 + basic-auth URL parsing; per-CLI inject into settings.json/config.toml |
+| Wed | Custom CA bundle: `clihub config set ca-bundle <path>`; route into npm/git/curl/CLI env |
+| Thu | `clihub doctor --fix`: auto-remediate stale catalog, missing settings, bad proxy |
+| Fri | Error code system (`CLIHUB-E-NNN` + `clihub.dev/errors/<code>`); first-run TUI wizard |
+
+**Acceptance**
+
+```bash
+HTTPS_PROXY=socks5://corp.proxy:1080 clihub catalog sync
+clihub config set ca-bundle /etc/ssl/corp-ca.pem
+clihub doctor --fix
+# First-run on clean machine ≤ 60 s to first working CLI
+```
+
+---
+
+## Sprint 7 (2026-07-05 → 07-11) — v0.5.2 · Profiles + keychain
+
+**Goal**: Pillar IX (Config) second half — multi-account.
+
+| Day | Task |
+|---|---|
+| Mon | Profile storage layout at `~/.clihub/profiles/<name>/{.claude,.codex,.gemini,.kiro}/` + activation via HOME / XDG_CONFIG_HOME override |
+| Tue | `clihub profile <create\|use\|list\|switch\|rm\|clone\|current>` CLI + TUI lane |
+| Wed | System-keychain integration (macOS Keychain / libsecret / Windows Credential Manager) for API keys |
+| Thu | `clihub.yaml profile:` field auto-switch on directory entry; shell hook installer |
+| Fri | Unified OAuth flow (Anthropic + OpenAI + Google) routed into each CLI's credentials; publish v0.5.2 |
+
+**Acceptance**
+
+```bash
+clihub profile create work
+clihub profile use work && clihub doctor    # work account active
+cd ~/projects/client-x && clihub doctor     # auto-switches via clihub.yaml
+clihub auth set ANTHROPIC_API_KEY            # encrypted in keychain
+```
+
+---
+
+## Sprint 8 (2026-07-12 → 07-18) — v0.5.3 · `clihub.yaml` + lockfile + apply
+
+**Goal**: Pillar II (Reproducibility) draft.
+
+| Day | Task |
+|---|---|
+| Mon | `clihub.yaml` schema implementation (see [`19-CLIHUBYAML.md`](19-CLIHUBYAML.md)) |
+| Tue | `clihub init` interactive scaffold + `--non-interactive` for CI |
+| Wed | `clihub apply --plan` (no writes; show diff) + `--dry-run` |
+| Thu | `clihub.lock.json` generator + `clihub install --frozen` (refuses if lock missing) |
+| Fri | Structured `~/.clihub/audit.log` (JSON-lines); publish v0.5.3 |
+
+**Acceptance**
+
+```bash
+clihub init                                    # writes clihub.yaml
+clihub apply --plan                            # diff vs current world
+clihub install --frozen                        # uses clihub.lock.json
+tail -f ~/.clihub/audit.log | jq .             # who installed what when
+```
+
+---
+
 ## 3-month outlook
 
-### Month 1 (now → 2026-06-30)
+### Month 1 (2026-06) — v0.4 launch
 
 - ✅ v0.3.2 — Codex TOML (shipped)
-- 🚧 v0.4.0 — plugin install + remote sync + SKILL.md
+- ✅ v0.4.0/0.4.1 — plugin install + remote sync + SKILL.md (shipped)
 - 📋 Public launch (Sprint 4)
 - **KPI target**: 500 weekly downloads, 200 stars
 
-### Month 2 (2026-07)
+### Month 2 (2026-07) — v0.5 ramp
 
-- v0.5 — Windows support (paths, PowerShell shebang)
-- `clihub watch` — detect CLI upgrades, auto-backup, surface rollback CTA
-- `clihub search <query>` — full-text over catalog
-- New providers: Cursor, Goose
-- Recruit 3 Windows beta testers
-- **KPI target**: 1k weekly downloads, 500 stars
+- v0.5.0 Windows + watch + search (Sprint 5)
+- v0.5.1 Proxy + CA + ease (Sprint 6)
+- v0.5.2 Profiles + keychain (Sprint 7)
+- v0.5.3 `clihub.yaml` + apply + lockfile (Sprint 8)
+- Recruit 3 Windows beta testers + 3 corp-proxy beta testers
+- **KPI target**: 1.5k weekly downloads, 500 stars
 
-### Month 3 (2026-08)
+### Month 3 (2026-08) — v0.6 federation
 
-- v0.6 — team mode: `clihub.lock.json` (per-project pins)
-- HTTP transport for MCP servers (currently stdio-only)
-- New providers: OpenCode, Junie
-- First enterprise pilot conversation (still free)
-- **KPI target**: 1.5k weekly downloads, 700 stars
+- v0.6 — sigstore signing, multi-source catalogs, mirror support
+- HTTP transport for MCP servers
+- New providers: Cursor, Goose, OpenCode, Junie
+- First enterprise pilot conversation (free)
+- **KPI target**: 3k weekly downloads, 1k stars
 
 ---
 
