@@ -7,6 +7,8 @@
 
 **The one tool that installs Claude Code, Codex, Gemini CLI, and Kiro — keeps their skills in sync across every CLI — and ships one-command rollback when an update bites.**
 
+![demo](docs/assets/demo.gif)
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/wikieden/clihub/main/scripts/install.sh | sh
 clihub preset apply starter
