@@ -17,6 +17,7 @@ import _tools from '../../../catalog/tools.json' with { type: 'json' };
 import _presets from '../../../catalog/presets.json' with { type: 'json' };
 import _mcp from '../../../catalog/mcp.json' with { type: 'json' };
 import _plugins from '../../../catalog/plugins.json' with { type: 'json' };
+import { defaultCatalogDir, readCatalogManifest } from './sync.js';
 
 export interface Catalog {
   skills: SkillManifest[];
@@ -41,25 +42,55 @@ export class CatalogLoader {
 
   async load(): Promise<Catalog> {
     if (this.cache) return this.cache;
+    // 1. explicit dir override (tests / private team catalogs)
     if (this.dir) {
-      const [skills, tools, presets, mcpServers, plugins] = await Promise.all([
-        this.readJson<SkillManifest[]>('skills.json'),
-        this.readJson<ToolCatalogEntry[]>('tools.json'),
-        this.readJson<Preset[]>('presets.json'),
-        this.readJson<McpServerManifest[]>('mcp.json').catch(() => [] as McpServerManifest[]),
-        this.readJson<PluginManifest[]>('plugins.json').catch(() => [] as PluginManifest[]),
-      ]);
-      this.cache = { skills, tools, presets, mcpServers, plugins };
-    } else {
-      this.cache = {
-        skills: _skills as unknown as SkillManifest[],
-        tools: _tools as unknown as ToolCatalogEntry[],
-        presets: _presets as unknown as Preset[],
-        mcpServers: _mcp as unknown as McpServerManifest[],
-        plugins: _plugins as unknown as PluginManifest[],
-      };
+      this.cache = await this.loadFromDir(this.dir);
+      return this.cache;
     }
+    // 2. user-synced catalog at ~/.clihub/catalog/ (if a manifest exists)
+    const userDir = defaultCatalogDir();
+    const manifest = await readCatalogManifest(userDir);
+    if (manifest) {
+      try {
+        this.cache = await this.loadFromDir(userDir);
+        return this.cache;
+      } catch {
+        // fall through to bundled if the synced files are corrupt
+      }
+    }
+    // 3. bundled fallback
+    this.cache = {
+      skills: _skills as unknown as SkillManifest[],
+      tools: _tools as unknown as ToolCatalogEntry[],
+      presets: _presets as unknown as Preset[],
+      mcpServers: _mcp as unknown as McpServerManifest[],
+      plugins: _plugins as unknown as PluginManifest[],
+    };
     return this.cache;
+  }
+
+  /** Source the catalog is currently being read from. */
+  async source(): Promise<{ kind: 'bundled' | 'user' | 'override'; dir?: string }> {
+    if (this.dir) return { kind: 'override', dir: this.dir };
+    const userDir = defaultCatalogDir();
+    const manifest = await readCatalogManifest(userDir);
+    if (manifest) return { kind: 'user', dir: userDir };
+    return { kind: 'bundled' };
+  }
+
+  private async loadFromDir(dir: string): Promise<Catalog> {
+    const readAt = async <T>(name: string): Promise<T> => {
+      const raw = await fs.readFile(path.join(dir, name), 'utf8');
+      return JSON.parse(raw) as T;
+    };
+    const [skills, tools, presets, mcpServers, plugins] = await Promise.all([
+      readAt<SkillManifest[]>('skills.json'),
+      readAt<ToolCatalogEntry[]>('tools.json'),
+      readAt<Preset[]>('presets.json'),
+      readAt<McpServerManifest[]>('mcp.json').catch(() => [] as McpServerManifest[]),
+      readAt<PluginManifest[]>('plugins.json').catch(() => [] as PluginManifest[]),
+    ]);
+    return { skills, tools, presets, mcpServers, plugins };
   }
 
   async findMcpServer(id: string): Promise<McpServerManifest | undefined> {
@@ -87,8 +118,4 @@ export class CatalogLoader {
     return presets.find((p) => p.id === id);
   }
 
-  private async readJson<T>(name: string): Promise<T> {
-    const raw = await fs.readFile(path.join(this.dir!, name), 'utf8');
-    return JSON.parse(raw) as T;
-  }
 }

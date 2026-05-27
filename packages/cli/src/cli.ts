@@ -356,6 +356,69 @@ cli
     }
   });
 
+// ─── catalog <action> [url] ───────────────────────────────────────────
+cli
+  .command('catalog <action> [url]', 'Manage the local catalog  (sync | status | verify)')
+  .action(async (action: string, url: string | undefined) => {
+    const {
+      syncCatalog,
+      readCatalogManifest,
+      verifyCatalog,
+      defaultCatalogDir,
+      DEFAULT_CATALOG_URL,
+    } = await import('@clihub/core');
+    const dir = defaultCatalogDir();
+
+    switch (action) {
+      case 'sync': {
+        const src = url ?? DEFAULT_CATALOG_URL;
+        info(`Syncing catalog from ${src} → ${dir}`);
+        try {
+          const result = await syncCatalog({ url: src });
+          ok(`catalog synced (${result.files.length} files)`);
+          for (const f of result.files) {
+            console.log(`  ${kleur.dim(f.sha256.slice(0, 12))}  ${f.name}  ${kleur.dim(`${f.bytes}b`)}`);
+          }
+          info(`last sync: ${result.manifest.lastSync}`);
+        } catch (e) {
+          err(`sync failed: ${String(e)}`);
+          process.exit(1);
+        }
+        return;
+      }
+      case 'status': {
+        const manifest = await readCatalogManifest(dir);
+        if (!manifest) {
+          info(`No synced catalog at ${dir}. Currently serving the bundled catalog.`);
+          info(`Run \`clihub catalog sync\` to pull from ${DEFAULT_CATALOG_URL}`);
+          return;
+        }
+        console.log(kleur.bold('Synced catalog'));
+        console.log(`  dir:        ${dir}`);
+        console.log(`  source:     ${manifest.source}`);
+        console.log(`  last sync:  ${manifest.lastSync}`);
+        if (manifest.version) console.log(`  version:    ${manifest.version}`);
+        console.log(`  files:`);
+        for (const [name, sum] of Object.entries(manifest.checksums)) {
+          console.log(`    ${kleur.dim(sum?.slice(0, 19) ?? '?')}  ${name}`);
+        }
+        return;
+      }
+      case 'verify': {
+        const bad = await verifyCatalog(dir);
+        if (bad.length === 0) {
+          ok('catalog checksums match manifest');
+          return;
+        }
+        err(`checksum mismatch: ${bad.join(', ')}`);
+        process.exit(1);
+      }
+      default:
+        err(`Unknown catalog action: ${action}. Valid: sync | status | verify`);
+        process.exit(1);
+    }
+  });
+
 // ─── backup [action] ──────────────────────────────────────────────────
 cli
   .command('backup [action]', 'Backup ~/.claude  (no arg = create, list = list backups)')

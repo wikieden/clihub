@@ -39,6 +39,17 @@ export {
 export { runHealthMatrix, type ToolHealthRow } from './doctor/index.js';
 export { CatalogLoader, type Catalog } from './catalog/index.js';
 export {
+  syncCatalog,
+  readCatalogManifest,
+  verifyCatalog,
+  defaultCatalogDir,
+  DEFAULT_CATALOG_URL,
+  CATALOG_FILES,
+  type CatalogManifest,
+  type SyncCatalogOpts,
+  type SyncResult,
+} from './catalog/sync.js';
+export {
   detectLocale,
   setLocale,
   getLocale,
