@@ -11,6 +11,8 @@ import { promisify } from 'node:util';
 
 import { JsonSettingsAdapter } from '../../settings/index.js';
 import { ClaudeCodeSkillAdapter } from '../../skill/index.js';
+import { whichCmd } from '../../utils/which.js';
+import { parseVersion } from '../../utils/version.js';
 import type {
   DetectResult,
   HealthReport,
@@ -47,11 +49,10 @@ export const claudeCodeProvider: ToolProvider = {
   installMethods: ['npm', 'bun'],
 
   async detect(): Promise<DetectResult> {
-    const which = await tryExec('which', ['claude']);
-    if (!which || !which.stdout.trim()) return { installed: false };
-    const binPath = which.stdout.trim();
+    const binPath = await whichCmd('claude');
+    if (!binPath) return { installed: false };
     const ver = await tryExec('claude', ['--version']);
-    const version = ver?.stdout.trim().split(/\s+/)[0];
+    const version = parseVersion(ver?.stdout);
     return { installed: true, path: binPath, version };
   },
 

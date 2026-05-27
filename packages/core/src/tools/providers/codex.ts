@@ -9,6 +9,8 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 
 import { TomlSettingsAdapter } from '../../settings/toml.js';
+import { whichCmd } from '../../utils/which.js';
+import { parseVersion } from '../../utils/version.js';
 import type {
   DetectResult,
   HealthReport,
@@ -44,11 +46,10 @@ export const codexProvider: ToolProvider = {
   installMethods: ['npm', 'bun'],
 
   async detect(): Promise<DetectResult> {
-    const which = await tryExec('which', ['codex']);
-    if (!which?.stdout.trim()) return { installed: false };
-    const binPath = which.stdout.trim();
+    const binPath = await whichCmd('codex');
+    if (!binPath) return { installed: false };
     const ver = await tryExec('codex', ['--version']);
-    const version = ver?.stdout.trim().split(/\s+/).pop();
+    const version = parseVersion(ver?.stdout);
     return { installed: true, path: binPath, version };
   },
 

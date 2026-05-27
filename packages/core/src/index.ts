@@ -47,6 +47,7 @@ export {
   type GitClonePluginAdapterOpts,
 } from './plugin/index.js';
 export { runHealthMatrix, type ToolHealthRow } from './doctor/index.js';
+export { whichCmd } from './utils/which.js';
 export { CatalogLoader, type Catalog } from './catalog/index.js';
 export {
   syncCatalog,

@@ -9,6 +9,8 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 
 import { JsonSettingsAdapter } from '../../settings/index.js';
+import { whichCmd } from '../../utils/which.js';
+import { parseVersion } from '../../utils/version.js';
 import type {
   DetectResult,
   HealthReport,
@@ -42,11 +44,10 @@ export const kiroProvider: ToolProvider = {
   installMethods: ['curl', 'brew'],
 
   async detect(): Promise<DetectResult> {
-    const which = await tryExec('which', ['kiro']);
-    if (!which?.stdout.trim()) return { installed: false };
-    const binPath = which.stdout.trim();
+    const binPath = await whichCmd('kiro');
+    if (!binPath) return { installed: false };
     const ver = await tryExec('kiro', ['--version']);
-    const version = ver?.stdout.trim().split(/\s+/)[0];
+    const version = parseVersion(ver?.stdout);
     return { installed: true, path: binPath, version };
   },
 
@@ -73,7 +74,7 @@ export const kiroProvider: ToolProvider = {
 
   async uninstall(): Promise<void> {
     try { await execFileP('brew', ['uninstall', '--cask', 'kiro']); return; } catch { /* try manual */ }
-    const binPath = (await tryExec('which', ['kiro']))?.stdout.trim();
+    const binPath = await whichCmd('kiro');
     if (binPath) await fs.rm(binPath, { force: true });
   },
 

@@ -9,6 +9,8 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 
 import { JsonSettingsAdapter } from '../../settings/index.js';
+import { whichCmd } from '../../utils/which.js';
+import { parseVersion } from '../../utils/version.js';
 import type {
   DetectResult,
   HealthReport,
@@ -43,11 +45,10 @@ export const geminiProvider: ToolProvider = {
   installMethods: ['npm', 'bun'],
 
   async detect(): Promise<DetectResult> {
-    const which = await tryExec('which', ['gemini']);
-    if (!which?.stdout.trim()) return { installed: false };
-    const binPath = which.stdout.trim();
+    const binPath = await whichCmd('gemini');
+    if (!binPath) return { installed: false };
     const ver = await tryExec('gemini', ['--version']);
-    const version = ver?.stdout.trim().split(/\s+/).pop();
+    const version = parseVersion(ver?.stdout);
     return { installed: true, path: binPath, version };
   },
 
