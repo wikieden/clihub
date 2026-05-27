@@ -1,0 +1,52 @@
+[
+  {
+    "id": "superpowers",
+    "name": "Superpowers",
+    "description": "Process-driven skill bundle (brainstorming, debugging, planning, TDD, verification).",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "https://github.com/obra/superpowers.git",
+    "homepage": "https://github.com/obra/superpowers",
+    "tags": ["workflow", "skills-bundle", "process"]
+  },
+  {
+    "id": "oh-my-claudecode",
+    "name": "Oh My Claude Code",
+    "description": "Multi-agent orchestration plugin with executors, planners, reviewers and a team workflow.",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "https://github.com/yeachan-heo/oh-my-claudecode.git",
+    "homepage": "https://github.com/yeachan-heo/oh-my-claudecode",
+    "tags": ["multi-agent", "workflow", "team"]
+  },
+  {
+    "id": "ccpi-everything",
+    "name": "ccpi — everything-claude-code",
+    "description": "Large marketplace bundle: code review, security, framework patterns, deep research and 100+ skills.",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "https://github.com/jeremylongshore/claude-code-plugins-plus-skills.git",
+    "homepage": "https://github.com/jeremylongshore/claude-code-plugins-plus-skills",
+    "tags": ["marketplace", "skills-bundle", "patterns"]
+  },
+  {
+    "id": "claude-skills-fanout",
+    "name": "claude-skills (fan-out catalog)",
+    "description": "313+ skills with a converter that fans them out across 13 different AI CLIs.",
+    "version": "latest",
+    "supports": { "claude-code": true, "codex": true, "gemini-cli": true, "kiro-cli": true },
+    "source": "https://github.com/alirezarezvani/claude-skills.git",
+    "homepage": "https://github.com/alirezarezvani/claude-skills",
+    "tags": ["catalog", "multi-cli", "skills-bundle"]
+  },
+  {
+    "id": "claude-code-router",
+    "name": "claude-code-router",
+    "description": "Route Claude Code requests to different model providers / endpoints.",
+    "version": "latest",
+    "supports": { "claude-code": true },
+    "source": "https://github.com/musistudio/claude-code-router.git",
+    "homepage": "https://github.com/musistudio/claude-code-router",
+    "tags": ["routing", "infra", "model"]
+  }
+]

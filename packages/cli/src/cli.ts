@@ -10,12 +10,14 @@ import pkg from '../package.json' with { type: 'json' };
 import {
   BackupManager,
   CatalogLoader,
+  ClaudeCodePluginAdapter,
   ClaudeCodeSkillAdapter,
   CodexSkillAdapter,
   GeminiCliSkillAdapter,
   KiroCliSkillAdapter,
   getProvider,
   listProviders,
+  type PluginAdapter,
   type SkillSyncAdapter,
   type SkillManifest,
   t,
@@ -32,6 +34,10 @@ const ADAPTERS: Record<string, () => SkillSyncAdapter> = {
   'codex': () => new CodexSkillAdapter(),
   'kiro-cli': () => new KiroCliSkillAdapter(),
   'gemini-cli': () => new GeminiCliSkillAdapter(),
+};
+
+const PLUGIN_ADAPTERS: Record<string, () => PluginAdapter> = {
+  'claude-code': () => new ClaudeCodePluginAdapter(),
 };
 
 async function adaptersForSkill(skill: SkillManifest): Promise<Array<{ toolId: string; adapter: SkillSyncAdapter }>> {
@@ -280,6 +286,72 @@ cli
       }
       default:
         err(`Unknown preset action: ${action}. Valid: list | apply`);
+        process.exit(1);
+    }
+  });
+
+// ─── plugin <action> [id] ─────────────────────────────────────────────
+cli
+  .command('plugin <action> [id]', 'Manage plugins  (list | install | uninstall | update)')
+  .option('--tool <tool>', 'Limit to a specific CLI', { default: 'claude-code' })
+  .action(async (action: string, id: string | undefined, opts: { tool: string }) => {
+    const factory = PLUGIN_ADAPTERS[opts.tool];
+    if (!factory) {
+      err(`Plugins not yet supported for tool: ${opts.tool}. Currently supported: ${Object.keys(PLUGIN_ADAPTERS).join(', ')}`);
+      process.exit(1);
+    }
+    const adapter = factory();
+
+    switch (action) {
+      case 'list': {
+        const installed = await adapter.list();
+        if (installed.length === 0) {
+          info(`No plugins installed for ${opts.tool} (root: ${adapter.rootDir()})`);
+          return;
+        }
+        console.log(kleur.bold(`[${opts.tool}] plugins (${installed.length}):`));
+        for (const p of installed) {
+          console.log(`  ${kleur.bold(p.id)}  ${kleur.dim(p.version)}  ${kleur.dim(p.path)}`);
+        }
+        return;
+      }
+      case 'install': {
+        if (!id) { err('id required: clihub plugin install <id>'); process.exit(1); }
+        const plugin = await catalog.findPlugin(id);
+        if (!plugin) { err(`Plugin not found in catalog: ${id}`); process.exit(1); }
+        if (!plugin.supports[opts.tool]) {
+          err(`Plugin ${id} does not declare support for ${opts.tool}`);
+          process.exit(1);
+        }
+        info(`[${opts.tool}] cloning ${plugin.source} → ${path.join(adapter.rootDir(), plugin.id)}`);
+        try {
+          await adapter.install(plugin);
+          ok(`[${opts.tool}] plugin ${id} installed`);
+        } catch (e) {
+          err(`[${opts.tool}] plugin ${id} install failed: ${String(e)}`);
+          process.exit(1);
+        }
+        return;
+      }
+      case 'uninstall': {
+        if (!id) { err('id required: clihub plugin uninstall <id>'); process.exit(1); }
+        await adapter.uninstall(id);
+        ok(`[${opts.tool}] plugin ${id} removed`);
+        return;
+      }
+      case 'update': {
+        if (!id) { err('id required: clihub plugin update <id>'); process.exit(1); }
+        try {
+          await adapter.update(id);
+          ok(`[${opts.tool}] plugin ${id} updated`);
+        } catch (e) {
+          err(`[${opts.tool}] plugin ${id} update failed: ${String(e)}`);
+          process.exit(1);
+        }
+        return;
+      }
+      default:
+        err(`Unknown plugin action: ${action}. Valid: list | install | uninstall | update`);
         process.exit(1);
     }
   });

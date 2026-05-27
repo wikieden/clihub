@@ -26,6 +26,7 @@ import path from 'node:path';
 import {
   BackupManager,
   CatalogLoader,
+  ClaudeCodePluginAdapter,
   ClaudeCodeSkillAdapter,
   CodexSkillAdapter,
   GeminiCliSkillAdapter,
@@ -36,6 +37,8 @@ import {
   t,
   type McpAdapter,
   type McpServerManifest,
+  type PluginAdapter,
+  type PluginManifest,
   type SkillManifest,
   type SkillSyncAdapter,
 } from '@clihub/core';
@@ -67,9 +70,14 @@ function mcpAdapterFor(toolId: ToolId): McpAdapter | undefined {
   return new JsonMcpAdapter({ path: p });
 }
 
-/** Plugin support is Claude Code-only for v0.3.0. */
+/** Plugin support is Claude Code-only for v0.3.x. */
 function supportsPlugins(toolId: ToolId): boolean {
   return toolId === 'claude-code';
+}
+
+function pluginAdapterFor(toolId: ToolId): PluginAdapter | undefined {
+  if (toolId === 'claude-code') return new ClaudeCodePluginAdapter();
+  return undefined;
 }
 
 const BACK = '__back__';
@@ -147,10 +155,13 @@ async function cliMenu(toolId: ToolId): Promise<void> {
         { value: 'sep2', label: kleur.dim('───────── Plugins'), hint: '' },
         supportsPlugins(toolId)
           ? { value: 'plugin.list', label: '  List installed plugins' }
-          : { value: 'plugin.notyet', label: kleur.dim('  Plugins — coming in v0.3.x') },
+          : { value: 'plugin.notyet', label: kleur.dim('  Plugins — coming for this CLI') },
         supportsPlugins(toolId)
           ? { value: 'plugin.install', label: '  Install a plugin' }
           : { value: 'plugin.notyet2', label: kleur.dim('  ') },
+        supportsPlugins(toolId)
+          ? { value: 'plugin.uninstall', label: '  Uninstall a plugin' }
+          : { value: 'plugin.notyet3', label: kleur.dim('  ') },
         { value: 'sep3', label: kleur.dim('───────── MCP servers'), hint: '' },
         mcpAdapterFor(toolId)
           ? { value: 'mcp.list', label: '  List MCP servers' }
@@ -337,9 +348,72 @@ async function handleCliAction(toolId: ToolId, action: string): Promise<void> {
       return;
     }
 
-    case 'plugin.list':
+    case 'plugin.list': {
+      const adapter = pluginAdapterFor(toolId);
+      if (!adapter) { log.info(`Plugin support not yet available for ${toolId}`); return; }
+      const installed = await adapter.list();
+      if (installed.length === 0) {
+        log.info(`No plugins installed at ${adapter.rootDir()}`);
+        return;
+      }
+      const lines = [`Root: ${adapter.rootDir()}`, ''];
+      for (const p of installed) lines.push(`  ${p.id}  ${p.version}  ${kleur.dim(p.path)}`);
+      note(lines.join('\n'), `Installed plugins (${installed.length})`);
+      return;
+    }
     case 'plugin.install': {
-      log.info('Plugin install is not implemented yet (v0.3.x roadmap). See README.');
+      const adapter = pluginAdapterFor(toolId);
+      if (!adapter) { log.info(`Plugin support not yet available for ${toolId}`); return; }
+      const { plugins } = await catalog.load();
+      const compatible = plugins.filter((p) => p.supports[toolId]);
+      if (compatible.length === 0) {
+        log.warn(`No plugins in the catalog support ${toolId}`);
+        return;
+      }
+      const choice = await select({
+        message: `Pick a plugin to install (ESC = back)`,
+        options: [
+          ...compatible.map((p) => ({
+            value: p.id,
+            label: `${p.name} — ${p.description}`,
+          })),
+          { value: BACK, label: '← Back' },
+        ],
+      });
+      if (isCancel(choice) || choice === BACK) return;
+      const plugin = compatible.find((p) => p.id === choice)!;
+      const confirmIt = await confirm({
+        message: `Clone ${plugin.source} into ${path.join(adapter.rootDir(), plugin.id)}?`,
+        initialValue: true,
+      });
+      if (isCancel(confirmIt) || confirmIt !== true) return;
+      const s = spinner();
+      s.start(`Installing ${plugin.id}...`);
+      try {
+        await adapter.install(plugin);
+        s.stop(`✓ ${plugin.id} installed`);
+      } catch (e) {
+        s.stop(`✗ ${plugin.id} failed: ${String(e)}`);
+      }
+      return;
+    }
+    case 'plugin.uninstall': {
+      const adapter = pluginAdapterFor(toolId);
+      if (!adapter) { log.info(`Plugin support not yet available for ${toolId}`); return; }
+      const installed = await adapter.list();
+      if (installed.length === 0) { log.info('No plugins installed.'); return; }
+      const pick = await select({
+        message: 'Pick a plugin to uninstall (ESC = back)',
+        options: [
+          ...installed.map((p) => ({ value: p.id, label: `${p.id}  ${kleur.dim(p.version)}` })),
+          { value: BACK, label: '← Back' },
+        ],
+      });
+      if (isCancel(pick) || pick === BACK) return;
+      const sure = await confirm({ message: `Remove ${pick}?`, initialValue: false });
+      if (isCancel(sure) || sure !== true) return;
+      await adapter.uninstall(pick as string);
+      log.success(`Removed ${pick} from ${adapter.rootDir()}`);
       return;
     }
 
