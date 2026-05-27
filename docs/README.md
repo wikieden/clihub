@@ -18,6 +18,7 @@
 | 11 | [ROADMAP](11-ROADMAP.md) | 版本里程碑、范围、验收 |
 | 12 | [TESTING](12-TESTING.md) | 测试矩阵、沙盒安装、dev-test.sh |
 | 13 | [MONETIZATION](13-MONETIZATION.md) | 长期盈利模式、阶段触发条件、反模式 |
+| 14 | [SPRINT](14-SPRINT.md) | 4 周 sprint 详细计划 + 3 月展望 + KPI |
 | -- | [REVIEW](REVIEW.md) | **总体目标 review** — 风险 / 决策点 / 最小切片 |
 
 ## 快速理解

@@ -1,5 +1,8 @@
 # Roadmap
 
+> Tactical sprint view (day-by-day, 4-week sprints + 3-month outlook): [`14-SPRINT.md`](14-SPRINT.md).
+> Business model & monetisation phases: [`13-MONETIZATION.md`](13-MONETIZATION.md).
+
 Status anchors: ✅ shipped · 🚧 in progress · 📋 planned
 
 ## Released
