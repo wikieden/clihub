@@ -20,6 +20,7 @@
 | 13 | [MONETIZATION](13-MONETIZATION.md) | 长期盈利模式、阶段触发条件、反模式 |
 | 14 | [SPRINT](14-SPRINT.md) | 4 周 sprint 详细计划 + 3 月展望 + KPI |
 | 15 | [SKILL-MD](15-SKILL-MD.md) | agentskills.io SKILL.md 格式兼容说明 + 装 git URL / 本地路径 |
+| 16 | [LAUNCH](16-LAUNCH.md) | v0.4 公告文案 — HN / Reddit / V2EX / X / dev.to / 掘金 |
 | -- | [REVIEW](REVIEW.md) | **总体目标 review** — 风险 / 决策点 / 最小切片 |
 
 ## 快速理解
