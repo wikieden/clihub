@@ -18,7 +18,7 @@ jobs:
       - run: bun install
       - run: bun run --filter '@clihub/core' build
       - run: bun run --filter '@clihub/core' typecheck
-      - run: bun run --filter 'clihub' typecheck
+      - run: bun run --filter '@wikieden/clihub' typecheck
 
   build:
     name: Build dist
@@ -29,7 +29,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
-      - run: bun run --filter 'clihub' build
+      - run: bun run --filter '@wikieden/clihub' build
       - name: Smoke test dist binary
         run: node packages/cli/dist/cli.js --version
 

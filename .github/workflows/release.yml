@@ -1,0 +1,79 @@
+name: Release
+
+# Publish @wikieden/clihub to npm + create a GitHub Release whenever a
+# `v*` tag is pushed. The job verifies the tag matches the version in
+# packages/cli/package.json before publishing.
+#
+# Required repo secrets:
+#   NPM_TOKEN — Classic Automation token (bypasses 2FA).
+#
+# Manual publish (without a tag) is still available via the
+# `workflow_dispatch` trigger.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install
+        run: bun install
+
+      - name: Typecheck
+        run: |
+          bun run --filter '@clihub/core' build
+          bun run --filter '@clihub/core' typecheck
+          bun run --filter '@wikieden/clihub' typecheck
+
+      - name: Build
+        run: bun run --filter '@wikieden/clihub' build
+
+      - name: Verify tag matches package version
+        if: github.event_name == 'push'
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PKG_VERSION="$(node -e "console.log(require('./packages/cli/package.json').version)")"
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package version $PKG_VERSION"
+            exit 1
+          fi
+          echo "tag and package version agree on $PKG_VERSION"
+
+      - name: Smoke test built binary
+        run: node packages/cli/dist/cli.js --version
+
+      - name: Publish to npm
+        working-directory: packages/cli
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
