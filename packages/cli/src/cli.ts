@@ -53,6 +53,73 @@ async function adaptersForSkill(skill: SkillManifest): Promise<Array<{ toolId: s
   return result;
 }
 
+/**
+ * Resolve a skill id into a SkillManifest. The id can be:
+ *   · a catalog key (e.g. "tdd") — looked up in CatalogLoader
+ *   · a git URL (https://..., git@..., or http://...) — cloned, SKILL.md parsed
+ *   · a local path (./foo, /abs/path, ~/path) — SKILL.md read directly
+ */
+async function resolveSkillFromId(id: string): Promise<SkillManifest | undefined> {
+  const isGitUrl = /^(https?:\/\/|git@|git:\/\/|ssh:\/\/)/.test(id) || id.endsWith('.git');
+  const isPath = id.startsWith('./') || id.startsWith('../') || id.startsWith('/') || id.startsWith('~');
+
+  if (isGitUrl) {
+    const { execFile } = await import('node:child_process');
+    const { promisify } = await import('node:util');
+    const { createHash } = await import('node:crypto');
+    const { promises: fsP } = await import('node:fs');
+    const exec = promisify(execFile);
+    const { discoverSkillMdRepo } = await import('@clihub/core');
+
+    const cacheRoot = path.join(os.homedir(), '.clihub', 'skill-md-cache');
+    const hash = createHash('sha1').update(id).digest('hex').slice(0, 12);
+    const cloneDir = path.join(cacheRoot, hash);
+    await fsP.mkdir(cacheRoot, { recursive: true });
+
+    const exists = await fsP.access(path.join(cloneDir, '.git')).then(() => true).catch(() => false);
+    if (exists) {
+      info(`updating cached clone at ${cloneDir}`);
+      await exec('git', ['-C', cloneDir, 'pull', '--ff-only']);
+    } else {
+      info(`cloning ${id} → ${cloneDir}`);
+      await exec('git', ['clone', '--depth=1', id, cloneDir]);
+    }
+
+    const found = await discoverSkillMdRepo(cloneDir);
+    if (!found) {
+      err(`No SKILL.md found in ${id}`);
+      return undefined;
+    }
+    return found.manifest;
+  }
+
+  if (isPath) {
+    const { discoverSkillMdRepo, manifestFromSkillMd, findSkillMd } = await import('@clihub/core');
+    const { promises: fsP } = await import('node:fs');
+    const expanded = id.startsWith('~') ? path.join(os.homedir(), id.slice(1)) : path.resolve(id);
+    const stat = await fsP.stat(expanded).catch(() => undefined);
+    if (!stat) {
+      err(`Path not found: ${expanded}`);
+      return undefined;
+    }
+    if (stat.isFile() && /SKILL\.md$/i.test(expanded)) {
+      return manifestFromSkillMd(expanded);
+    }
+    if (stat.isDirectory()) {
+      const found = await discoverSkillMdRepo(expanded);
+      if (!found) {
+        err(`No SKILL.md found under ${expanded}`);
+        return undefined;
+      }
+      return found.manifest;
+    }
+    err(`Unsupported path: ${expanded}`);
+    return undefined;
+  }
+
+  return catalog.findSkill(id);
+}
+
 const ok = (msg: string) => console.log(kleur.green('✓'), msg);
 const info = (msg: string) => console.log(kleur.cyan('ℹ'), msg);
 const warn = (msg: string) => console.log(kleur.yellow('⚠'), msg);
@@ -198,8 +265,8 @@ cli
         return;
       }
       case 'install': {
-        if (!id) { err('id required: clihub skill install <id>'); process.exit(1); }
-        const skill = await catalog.findSkill(id);
+        if (!id) { err('id required: clihub skill install <id|git-url|path>'); process.exit(1); }
+        const skill = await resolveSkillFromId(id);
         if (!skill) { err(t('skill.notFound', { skill: id })); process.exit(1); }
         const targets = opts.tool
           ? (() => {
@@ -208,16 +275,16 @@ cli
             })()
           : await adaptersForSkill(skill);
         if (targets.length === 0) {
-          warn(`No installed tools support skill ${id}`);
+          warn(`No installed tools support skill ${skill.id}`);
           return;
         }
         for (const { toolId, adapter } of targets) {
-          info(`[${toolId}] ${t('skill.install.start', { skill: id })}`);
+          info(`[${toolId}] ${t('skill.install.start', { skill: skill.id })}`);
           try {
             await adapter.install(skill, skill.source);
-            ok(`[${toolId}] ${t('skill.install.done', { skill: id })}`);
+            ok(`[${toolId}] ${t('skill.install.done', { skill: skill.id })}`);
           } catch (e) {
-            err(`[${toolId}] ${t('skill.install.failed', { skill: id, reason: String(e) })}`);
+            err(`[${toolId}] ${t('skill.install.failed', { skill: skill.id, reason: String(e) })}`);
           }
         }
         return;

@@ -22,6 +22,16 @@ export {
   type BackupOptions,
 } from './backup/index.js';
 export { ClaudeCodeSkillAdapter } from './skill/index.js';
+export {
+  parseSkillMd,
+  type SkillMdParsed,
+} from './skill-md/parser.js';
+export {
+  findSkillMd,
+  manifestFromSkillMd,
+  discoverSkillMdRepo,
+  type SkillMdLocation,
+} from './skill-md/manifest.js';
 export { CodexSkillAdapter } from './skill/codex-adapter.js';
 export { KiroCliSkillAdapter } from './skill/kiro-adapter.js';
 export { GeminiCliSkillAdapter } from './skill/gemini-adapter.js';
