@@ -1,128 +1,105 @@
-# 路线图与里程碑
+# Roadmap
 
-## v0.1 — MVP (4 周)
+Status anchors: ✅ shipped · 🚧 in progress · 📋 planned
 
-**目标**：能装 Claude Code + 5 个核心 skill + 中英双语 TUI。
+## Released
 
-### 范围
+### v0.1 ✅ — MVP
 
-- [ ] monorepo 骨架 (bun workspace)
-- [ ] `@clihub/core` 底座 (settings/backup/i18n)
-- [ ] `clihub` CLI (cac + clack TUI)
-- [ ] i18n: en + zh-CN
-- [ ] ToolProvider: `claude-code`
-- [ ] 内置 skill catalog: 5 个
-  - superpowers, oh-my-claudecode, codegraph,
-    tavily-dynamic-search, caveman
-- [ ] CC SkillSyncAdapter (native 落盘)
-- [ ] clihub skill 包（装到 ~/.claude/skills/clihub）
-- [ ] /clihub slash command
-- [ ] statusline 集成（保留现 statusline.sh）
-- [ ] npm + bun 安装
-- [ ] doctor / backup / restore / rollback
-- [ ] 一个 preset: `starter`
+- monorepo skeleton (bun workspaces)
+- `@clihub/core` (settings, backup, i18n)
+- `clihub` CLI (cac + clack TUI)
+- i18n: en + zh-CN
+- ToolProvider: `claude-code`
+- 5 core skills, `starter` preset
+- doctor / backup / restore / rollback
 
-### 不做
+### v0.2 ✅ — multi-CLI
 
-- 其它 CLI 工具 provider
-- 跨工具 skill 同步
-- 远端 catalog
-- 文档站
+- Codex + Kiro + Gemini providers
+- Cross-tool `SkillSyncAdapter`s
+- Catalog: 30 skills, 3 presets
+- i18n: + ja / ko / es
+- npm publish as `@wikieden/clihub`
+- single-binary 148 KB tarball, zero install-time deps
 
-### 验收
+### v0.3 ✅ — UX & health
 
-```bash
-curl -fsSL clihub.dev/install | sh
-clihub
-clihub tool install claude-code
-clihub preset apply starter
-clihub doctor
-# 在 CC 内: /clihub → 能 list / install skill
-```
+- TUI: per-CLI guided menus, preset preview, back navigation
+- MCP catalog (`packages/catalog/mcp.json`) + `JsonMcpAdapter`
+- Cross-CLI doctor matrix (CLI / STATUS / VERSION / SETTINGS / SKILLS / MCP) with `--json`
+- Kiro install fix (broken `kiro.dev/install.sh` → `brew install --cask kiro`)
+- Codex TOML settings adapter (`~/.codex/config.toml` reads now work)
 
-## v0.2 — 多工具 (4 周)
+## In progress
 
-- [ ] CodexProvider + CodexSkillAdapter (bridge)
-- [ ] KiroCliProvider + KiroSteeringAdapter
-- [ ] GeminiCliProvider + GeminiSkillAdapter
-- [ ] skill manifest 支持 `supports.<tool>` 与 `adapters/`
-- [ ] catalog 扩充到 30 skill
-- [ ] preset: `fullstack`, `lark-office`
-- [ ] i18n: + ja, ko, es
+### v0.4 🚧 — open standard + sync
 
-### 验收
+Sub-tasks:
+
+- 🚧 **Step A — agentskills.io SKILL.md format**: parse YAML frontmatter (`name`, `description`); allow catalog to load from `skills/<id>/SKILL.md` directories. Make clihub an installer for the open standard.
+- ✅ **Step B — Codex TOML settings** (shipped in v0.3.2).
+- 🚧 **Step C — Plugin install (Claude Code)**: `PluginManifest` catalog + `ClaudeCodePluginAdapter` (git clone into `~/.claude/plugins/<id>/`). `clihub plugin <action> [id]` CLI + TUI lane.
+- 🚧 **Step D — Remote catalog sync**: `clihub catalog sync [url]` downloads JSON files to `~/.clihub/catalog/`; `CatalogLoader` prefers user dir when present.
+
+### Acceptance
 
 ```bash
-clihub tool install codex
-clihub skill install tavily        # 自动落 CC + codex
-clihub doctor                       # 两工具都看到 tavily
+clihub catalog sync                                    # pulls latest catalog
+clihub plugin install <id> --tool claude-code          # git clone into ~/.claude/plugins/<id>
+clihub skill install <skill-md-path> --tool codex      # SKILL.md → codex adapter
+clihub config show codex                                # parses TOML
 ```
 
-## v0.3 — 生态 (4 周)
+## Planned
 
-- [ ] `clihub plugin add` 加载 npm 包 ToolProvider
-- [ ] 远端 catalog: `catalog.clihub.dev`
-- [ ] `clihub catalog sync`
-- [ ] 插件作者文档 + 模板仓库
-- [ ] brew tap: `clihub/tap/clihub`
-- [ ] 文档站 `clihub.dev` 上线
-- [ ] catalog 扩到 50 skill
-- [ ] i18n: + fr, de, pt-BR
+### v0.5 — Windows + observability
 
-### 验收
+- Windows 路径 / PowerShell support
+- `clihub watch` — detect CLI upgrades, auto-backup, surface rollback CTA
+- Skill / plugin / MCP full-text search (`clihub search <query>`)
+- Quota / usage signals in `doctor` (Anthropic + OpenAI usage where exposed)
+- CI release pipeline (tag → `npm publish` via Classic Automation token)
 
-```bash
-brew install clihub/tap/clihub
-clihub plugin add clihub-plugin-myai
-clihub catalog sync
-```
+### v0.6 — team mode
 
-## v0.4 — 完备 (4 周)
+- `clihub team init` → `clihub.lock.json` (per-project skill / MCP / version pins)
+- HTTP transport for MCP servers (currently stdio-only)
+- New providers: Cursor, OpenCode, Goose, Junie
 
-- [ ] catalog 80+ skill 全量
-- [ ] i18n: + zh-TW, ru, ar
-- [ ] winget / scoop 分发
-- [ ] Windows 路径与脚本完整支持
-- [ ] CI 模式打磨
-- [ ] preset: `geek`, `designer`
-- [ ] backup / restore 多工具事务
+### v1.0 — stable API
 
-## v1.0 — GA
+- Public API freeze + semver guarantee
+- Plugin SDK (third-party `ToolProvider` / `SkillSyncAdapter` packages)
+- 100+ skills / 50+ MCP / 20+ plugins in the catalog
+- VS Code extension wrapper
+- Documentation site (`clihub.dev`)
 
-- 稳定 API
-- 文档完整
-- 用户超 1000
-- 第三方插件 ≥ 5
+### v2.0 — registry + enterprise
 
-## 技术债务追踪
+- `clihub.dev` skill/plugin registry (npm-style publish, no PR needed)
+- Enterprise tier: SSO, private catalog, audit log
+- `clihub cloud` sync of catalog + config across machines
 
-每发版 review：
+## Technical-debt budget (per release)
 
-- [ ] 测试覆盖率 ≥ 70%
-- [ ] i18n key 100% 翻译至核心 5 语
-- [ ] 文档与代码同步
-- [ ] 启动延迟 < 150ms
-- [ ] 烟雾测试矩阵：3 平台 × 2 包管 × 3 工具
+| Bar | Target |
+|---|---|
+| Test coverage | ≥ 70 % |
+| i18n key parity | 100 % across en / zh-CN / ja / ko / es |
+| Startup latency | < 150 ms (v0.x), < 80 ms (v1.0+) |
+| First-install wall-clock | < 90 s (v0.x), < 60 s (v1.0+) |
+| Docs in sync with code | every release |
+| Smoke matrix | 3 platforms × 2 package managers × 4 tools |
 
-## 度量指标
+## Risk register
 
-| 指标 | v0.1 | v0.3 | v1.0 |
-|---|---|---|---|
-| 装机用户 | 50 | 300 | 1000 |
-| GitHub stars | 100 | 500 | 2000 |
-| skill 数 | 5 | 50 | 80+ |
-| 支持工具 | 1 | 4 | 6+ |
-| 支持语言 | 2 | 5 | 10 |
-| 启动延迟 | <150ms | <100ms | <80ms |
-| 首装耗时 | <120s | <90s | <60s |
-
-## 风险
-
-| 风险 | 影响 | 缓解 |
+| Risk | Impact | Mitigation |
 |---|---|---|
-| Anthropic 改 skill 格式 | 高 | adapter 抽象层吸收变化 |
-| Codex skill 机制变 | 中 | bridge 也加适配 |
-| 翻译质量参差 | 低 | LLM 辅助 + 母语 review 制度 |
-| npm 包名冲突 | 低 | 主域名 + npm 早抢注 |
-| Windows 兼容 | 中 | 早期招 Windows beta 测试者 |
-| 维护者精力 | 高 | 模块化 + 插件化分散负担 |
+| Anthropic changes the skill format | high | adapter layer absorbs deltas |
+| alirezarezvani/claude-skills adds CLI install | high | get to npm + presets + rollback first |
+| AI CLI shake-out: a CLI dies | high | provider abstraction; drop the provider, no user impact |
+| nobody cares (silent fail) | medium | v0.4 launch on HN / Reddit / V2EX |
+| translation drift | low | LLM-assisted + native-speaker review on release |
+| Windows compat | medium | recruit Windows beta users early |
+| maintainer bandwidth | high | plugin SDK opens up provider development |

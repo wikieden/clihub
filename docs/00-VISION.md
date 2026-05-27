@@ -1,55 +1,95 @@
-# clihub — 总体愿景
+# clihub — Vision
 
-## 一句话
+## One-liner
 
-让任何人**一行命令**完成「AI 编程 CLI 工具 + 配置 + skill 生态」的安装与日常维护，初学者零心智负担，老手保留全部可定制空间。
+**The install + sync + rollback control plane for multi-CLI AI coding.** One command installs Claude Code, Codex, Gemini and Kiro side by side, keeps their skills / MCP servers / plugins in sync, and ships one-command rollback when an upgrade breaks something.
 
-## 工程范围
+## Mission
 
-本仓库（原 `CCEnvOneCLick`，将更名为 `clihub`）演化为以下产物的承载：
+Make switching between AI CLIs as painless as switching browsers. No vendor lock-in. When a new CLI lands, the user brings their skill / MCP / config stack with them.
 
-1. **`clihub` npm 包** — 跨平台 CLI 工具 + 库
-2. **`clihub` Claude Code skill** — 在 Claude Code 内部直接调用配置管家
-3. **CC statusline** — 双行状态栏（原工程功能保留）
-4. **catalog** — skill / MCP / tool 元数据目录
-5. **install scripts** — bash / curl 一键安装器
+## Why this exists
 
-## 目标用户三类
+Every AI coding CLI ships its own bespoke layout for skills, plugins and MCP servers. Running more than one means:
 
-| 角色 | 痛点 | clihub 解法 |
+- Reinstalling the same skill in four different folders.
+- Manually copying `superpowers` to `~/.claude/skills/`, `~/.codex/skills/`, `~/.kiro/skills/`, `~/.gemini/skills/`.
+- Watching an unrelated upgrade flatten your config with no way back.
+
+clihub fixes all three with a single binary.
+
+## Three-layer positioning
+
+| Layer | What clihub is | Analogy |
 |---|---|---|
-| **小白** | 不懂 settings.json / hooks / MCP，被术语吓退 | TUI 交互菜单 + 预设 + 中文 UI |
-| **半熟手** | 知道大概，懒得记命令 | `clihub` 子命令 + tab 补全 |
-| **老手** | 自定义需求多 | `--json` 输出 + 插件扩展 + dry-run |
+| **Bottom** | Meta-installer for AI CLIs | brew for AI CLIs |
+| **Middle** | Cross-CLI skill / MCP / plugin sync engine | rsync for agent config |
+| **Top** | Personal & team AI-coding environment manager | dotfiles for 2026 |
 
-## 核心价值主张
+## Target users (priority order)
 
-1. **一键覆盖全流程**：装 Claude Code 本体 → 装配套 skill → 改配置 → 加 MCP → 配 hooks，单一入口
-2. **在工具内自举**：装完后用户在 Claude Code 里说 "clihub 帮我装 tavily skill"，无需回终端
-3. **跨 AI CLI 工具**：Claude Code / Codex CLI / Kiro CLI / Gemini CLI 用同一套 clihub 管
-4. **统一 skill 抽象**：一份 skill 源文，自动适配各工具的扩展机制
-5. **国际化**：默认探测系统语言，支持至少十种主流语言
-6. **安全护栏**：所有写操作自动备份，dry-run / rollback 一键复原
+1. **Multi-CLI power users** — running 2+ CLIs, deepest pain, seed users.
+2. **Enterprise dev-tooling teams** — standardise the team's AI CLI stack, lock versions, audit backups.
+3. **Skill / plugin authors** — clihub becomes the distribution channel (oh-my-zsh : zsh).
+4. **Newcomers** — TUI onboarding, one-shot presets.
 
-## 非目标
+## Competitive moat
 
-- 不做 AI CLI 工具的功能替代（不重写 Claude Code）
-- 不做企业级集中管理后台（多用户 / 审计日志 / SSO）
-- 不绑定云端账号，纯本地工具
+| Competitor | Stars | Overlap | clihub-only |
+|---|---|---|---|
+| alirezarezvani/claude-skills | 16k | skill fan-out | install the CLIs + preset + rollback |
+| multica-ai/multica | 33k | multi-CLI orchestration | manager, not orchestrator |
+| jeremylongshore/ccpi | 2k | Claude Code plugin marketplace | cross-CLI + MCP + backup |
+| oh-my-claudecode | — | Claude Code plugin | cross-CLI |
 
-## 长期路线图
+**Moat depth** (deepest first):
+1. CLI install matrix — others don't bother.
+2. Backup / one-command rollback of `~/.claude` (and siblings).
+3. Presets bundling tools + skills + MCP + plugin.
+4. Installer for the open `agentskills.io` SKILL.md standard.
+5. i18n (zh / ja / ko / es) — non-English market grab.
 
-| 阶段 | 目标 | 关键交付 |
-|---|---|---|
-| **v0.1** | MVP | CLI + TUI + claude-code provider + i18n (en/zh-CN) + 5 个核心 skill |
-| **v0.2** | 多工具 | codex / kiro-cli / gemini-cli provider + skill 跨工具同步 |
-| **v0.3** | 生态 | 插件机制 `clihub-plugin-*` + 远端 catalog 热更新 |
-| **v0.4** | 完备 | 全 skill 目录（50+） + 全语言（10+） + brew / winget 分发 |
-| **v1.0** | GA | 稳定 API + 文档站 + 用户超 1000 |
+## Engineering footprint
 
-## 成功指标
+This repo (formerly `CCEnvOneCLick`) carries:
 
-- 首次安装到能跑 `/clihub` ≤ 60 秒
-- 装一个新 skill ≤ 3 步交互
-- 配置出错回滚 ≤ 1 命令
-- 翻译贡献门槛：只改 JSON，无需懂代码
+1. **`@wikieden/clihub` npm package** — cross-platform CLI + bundled library.
+2. **`clihub` Claude Code skill** — calls the same kernel from inside Claude Code.
+3. **`/clihub` slash command** — same menu inside the agent.
+4. **Catalog** — `skills.json`, `tools.json`, `presets.json`, `mcp.json` (and `plugins.json`).
+5. **Install scripts** — `curl | sh` with git-clone fallback.
+6. **Statusline** — preserved two-line statusline from v0.0.
+
+## Core value props
+
+1. **One entry covers the whole flow** — install the CLI, install its skills, patch settings, add MCP, set hooks.
+2. **In-tool self-hosting** — once installed, the user runs operations from inside Claude Code via the `clihub` skill.
+3. **Cross-CLI** — Claude Code / Codex / Kiro / Gemini share one source of truth.
+4. **One skill source, many adapters** — provider abstraction maps the same skill into each CLI's extension mechanism.
+5. **i18n by default** — auto-detect from `$LANG`, override with `CLIHUB_LANG`.
+6. **Safety rails** — every write is preceded by a timestamped backup; `--dry-run` + `rollback` available everywhere.
+
+## Cultural principles
+
+1. **Vendor-neutral** — never favour one CLI, even though Claude Code is the lead workload.
+2. **Open standards first** — agentskills.io SKILL.md, MCP, OCI images when relevant.
+3. **Zero telemetry by default** — opt-in only, and only for aggregate counters.
+4. **TUI is first-class** — never a second-class citizen to the flag-driven CLI.
+5. **Rollback is sacred** — backups are never overwritten; we never lose user state.
+
+## Non-goals
+
+- Don't replace the AI CLIs (no Claude Code rewrite).
+- Don't ship a closed enterprise console (that's a paid future tier, but the local CLI stays open).
+- Don't require a cloud account for the local tool.
+
+## Success metrics (per stage)
+
+| Stage | Weekly npm downloads | GitHub stars | Notes |
+|---|---|---|---|
+| v0.4 | 500 | 200 | HN / Reddit / V2EX launch |
+| v0.5 | 1.5k | 500 | Windows, watch, search |
+| v1.0 | 5k | 2k | stable API, plugin SDK |
+| v2.0 | 50k/month | 10k | enterprise pilot ≥3 |
+
+See `docs/11-ROADMAP.md` for the release plan and `docs/13-MONETIZATION.md` for the long-term business model.
