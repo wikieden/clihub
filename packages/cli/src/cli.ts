@@ -115,22 +115,53 @@ cli
 
 // ─── doctor ───────────────────────────────────────────────────────────
 cli
-  .command('doctor [id]', 'Check health of installed tools')
-  .action(async (id?: string) => {
-    const targets = id ? [getProvider(id)].filter(Boolean) : listProviders();
-    let total = 0;
-    for (const p of targets) {
-      if (!p) continue;
-      const report = await p.doctor();
-      if (report.healthy) {
-        ok(`${p.id}: ${t('doctor.healthy')}`);
-      } else {
-        warn(`${p.id}: ${t('doctor.issues', { count: report.issues.length })}`);
-        for (const issue of report.issues) console.log(`    - ${issue}`);
-        total += report.issues.length;
+  .command('doctor [id]', 'Cross-CLI health matrix (install + settings + skills + MCP)')
+  .option('--json', 'Output the matrix as JSON instead of a table')
+  .action(async (id: string | undefined, opts: { json?: boolean }) => {
+    const { runHealthMatrix } = await import('@clihub/core');
+    let rows = await runHealthMatrix();
+    if (id) rows = rows.filter((r) => r.id === id);
+
+    if (opts.json) {
+      console.log(JSON.stringify(rows, null, 2));
+      const exitNonZero = rows.some((r) => r.installed && r.issues.length > 0);
+      if (exitNonZero) process.exit(1);
+      return;
+    }
+
+    const headers = ['CLI', 'STATUS', 'VERSION', 'SETTINGS', 'SKILLS', 'MCP'];
+    const data = rows.map((r) => [
+      r.name,
+      r.installed ? kleur.green('✓ installed') : kleur.dim('✗ not installed'),
+      r.installed ? (r.version ?? kleur.dim('?')) : kleur.dim('—'),
+      r.installed
+        ? (r.settingsExists ? r.settingsPath : kleur.yellow(`${r.settingsPath} (missing)`))
+        : kleur.dim('—'),
+      r.installed && r.skillCount !== undefined ? String(r.skillCount) : kleur.dim('—'),
+      r.installed && r.mcpCount !== undefined ? String(r.mcpCount) : kleur.dim('—'),
+    ]);
+
+    const stripAnsi = (s: string) => s.replace(/\x1B\[[0-9;]*m/g, '');
+    const widths = headers.map((h, i) =>
+      Math.max(h.length, ...data.map((row) => stripAnsi(row[i] ?? '').length)),
+    );
+    const pad = (s: string, w: number) => s + ' '.repeat(Math.max(0, w - stripAnsi(s).length));
+
+    console.log(kleur.bold(headers.map((h, i) => pad(h, widths[i]!)).join('  ')));
+    console.log(kleur.dim(widths.map((w) => '─'.repeat(w)).join('  ')));
+    for (const row of data) {
+      console.log(row.map((c, i) => pad(c, widths[i]!)).join('  '));
+    }
+
+    let problems = 0;
+    for (const r of rows) {
+      if (r.installed && r.issues.length > 0) {
+        warn(`${r.id}: ${t('doctor.issues', { count: r.issues.length })}`);
+        for (const issue of r.issues) console.log(`    - ${issue}`);
+        problems += r.issues.length;
       }
     }
-    if (total > 0) process.exit(1);
+    if (problems > 0) process.exit(1);
   });
 
 // ─── skill <action> [id] ──────────────────────────────────────────────

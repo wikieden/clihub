@@ -29,6 +29,7 @@ export {
   type McpAdapter,
   type JsonMcpAdapterOpts,
 } from './mcp/index.js';
+export { runHealthMatrix, type ToolHealthRow } from './doctor/index.js';
 export { CatalogLoader, type Catalog } from './catalog/index.js';
 export {
   detectLocale,

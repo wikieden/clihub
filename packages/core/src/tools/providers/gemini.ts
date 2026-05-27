@@ -20,7 +20,7 @@ const execFileP = promisify(execFile);
 
 const NPM_PACKAGE = '@google/gemini-cli';
 const CONFIG_DIR = path.join(os.homedir(), '.gemini');
-const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
+const CONFIG_PATH = path.join(CONFIG_DIR, 'settings.json');
 const settingsAdapter = new JsonSettingsAdapter({ path: CONFIG_PATH });
 
 async function tryExec(

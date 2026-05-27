@@ -426,11 +426,30 @@ async function handleCrossAction(action: string): Promise<void> {
     case 'preset.apply':   return runPresetApply();
     case 'skill.fanout':   return runSkillFanout();
     case 'doctor.all': {
-      for (const p of listProviders()) {
-        const r = await p.doctor();
-        if (r.healthy) log.success(`${p.id}: ${t('doctor.healthy')}`);
-        else {
-          log.warn(`${p.id}: ${t('doctor.issues', { count: r.issues.length })}`);
+      const { runHealthMatrix } = await import('@clihub/core');
+      const rows = await runHealthMatrix();
+      const lines: string[] = [];
+      const stripAnsi = (s: string) => s.replace(/\x1B\[[0-9;]*m/g, '');
+      const cells = rows.map((r) => [
+        r.name,
+        r.installed ? kleur.green('✓') : kleur.dim('✗'),
+        r.installed ? (r.version ?? kleur.dim('?')) : kleur.dim('—'),
+        r.installed && r.skillCount !== undefined ? String(r.skillCount) : kleur.dim('—'),
+        r.installed && r.mcpCount !== undefined ? String(r.mcpCount) : kleur.dim('—'),
+        r.issues.length > 0 ? kleur.yellow(`${r.issues.length} issue(s)`) : kleur.green('ok'),
+      ]);
+      const headers = ['CLI', 'INST', 'VERSION', 'SKILLS', 'MCP', 'HEALTH'];
+      const widths = headers.map((h, i) =>
+        Math.max(h.length, ...cells.map((row) => stripAnsi(row[i] ?? '').length)),
+      );
+      const pad = (s: string, w: number) => s + ' '.repeat(Math.max(0, w - stripAnsi(s).length));
+      lines.push(kleur.bold(headers.map((h, i) => pad(h, widths[i]!)).join('  ')));
+      lines.push(kleur.dim(widths.map((w) => '─'.repeat(w)).join('  ')));
+      for (const row of cells) lines.push(row.map((c, i) => pad(c, widths[i]!)).join('  '));
+      note(lines.join('\n'), 'Health matrix');
+      for (const r of rows) {
+        if (r.installed && r.issues.length > 0) {
+          log.warn(`${r.id}:`);
           for (const i of r.issues) log.message(`  - ${i}`);
         }
       }

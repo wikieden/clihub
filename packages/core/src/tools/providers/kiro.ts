@@ -46,18 +46,29 @@ export const kiroProvider: ToolProvider = {
     if (!which?.stdout.trim()) return { installed: false };
     const binPath = which.stdout.trim();
     const ver = await tryExec('kiro', ['--version']);
-    const version = ver?.stdout.trim().split(/\s+/).pop();
+    const version = ver?.stdout.trim().split(/\s+/)[0];
     return { installed: true, path: binPath, version };
   },
 
   async install(opts: InstallOpts = {}): Promise<void> {
     if (opts.dryRun) return;
-    const method = opts.method ?? 'curl';
-    if (method === 'brew') {
+    const platform = process.platform;
+    const hasBrew = !!(await tryExec('brew', ['--version']));
+
+    if (opts.method === 'brew' || (opts.method === undefined && platform === 'darwin' && hasBrew)) {
       await execFileP('brew', ['install', '--cask', 'kiro']);
-    } else {
-      await execFileP('sh', ['-c', 'curl -fsSL https://kiro.dev/install.sh | sh']);
+      return;
     }
+
+    const installPage = 'https://kiro.dev/downloads';
+    throw new Error(
+      `Kiro CLI has no scripted installer on ${platform}.\n` +
+      `Install methods:\n` +
+      `  • macOS:  brew install --cask kiro  (or download from ${installPage})\n` +
+      `  • Linux:  download .deb / .tar.gz from ${installPage}\n` +
+      `  • Windows: download .msi from ${installPage}\n` +
+      `Once installed, run \`clihub doctor kiro-cli\` to verify.`,
+    );
   },
 
   async uninstall(): Promise<void> {
