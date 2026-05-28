@@ -22,6 +22,7 @@ import { GeminiCliSkillAdapter } from '../skill/gemini-adapter.js';
 import { JsonMcpAdapter } from '../mcp/index.js';
 import { listProviders } from '../tools/registry.js';
 import type { SkillSyncAdapter } from '../tools/types.js';
+import { loadConfig, resolveProxy, proxyEnvVector, type ClihubConfig } from '../config/index.js';
 
 export interface ToolHealthRow {
   id: string;
@@ -56,6 +57,110 @@ async function fileExists(p: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** Vendor endpoints used by `probeNetwork`. Public URLs only. */
+const PROBE_HOSTS: Record<string, string> = {
+  'claude-code': 'https://api.anthropic.com',
+  codex: 'https://api.openai.com',
+  'gemini-cli': 'https://generativelanguage.googleapis.com',
+  'kiro-cli': 'https://kiro.dev',
+};
+
+export interface RepairAction {
+  toolId: string;
+  action: string;
+  ok: boolean;
+  detail?: string;
+}
+
+export interface RepairResult {
+  attempted: RepairAction[];
+}
+
+export interface NetworkProbe {
+  toolId: string;
+  host: string;
+  proxy?: string;
+  status?: number;
+  latencyMs?: number;
+  error?: string;
+}
+
+/**
+ * Try to fix common config drift without user input:
+ *   - missing settings directory  → mkdir -p
+ *   - missing catalog dir         → noop (sync command does it)
+ *   - missing skills dir          → mkdir -p
+ * No-ops for issues we can't safely fix without confirmation.
+ */
+export async function attemptAutoRepair(
+  rows: ToolHealthRow[] = [],
+): Promise<RepairResult> {
+  const actions: RepairAction[] = [];
+  for (const row of rows.length ? rows : await runHealthMatrix()) {
+    if (!row.installed) continue;
+    const settingsDir = path.dirname(row.settingsPath);
+    try {
+      await fs.access(settingsDir);
+    } catch {
+      try {
+        await fs.mkdir(settingsDir, { recursive: true });
+        actions.push({
+          toolId: row.id,
+          action: `mkdir ${settingsDir}`,
+          ok: true,
+        });
+      } catch (err) {
+        actions.push({
+          toolId: row.id,
+          action: `mkdir ${settingsDir}`,
+          ok: false,
+          detail: String(err),
+        });
+      }
+    }
+  }
+  return { attempted: actions };
+}
+
+/**
+ * Probe each installed CLI's primary vendor API host through the
+ * resolved clihub proxy. Reports status code + latency; no auth.
+ */
+export async function probeNetwork(
+  cfg?: ClihubConfig,
+): Promise<NetworkProbe[]> {
+  const config = cfg ?? (await loadConfig());
+  const env = { ...process.env, ...proxyEnvVector(config) } as NodeJS.ProcessEnv;
+  const out: NetworkProbe[] = [];
+  for (const provider of listProviders()) {
+    const det = await provider.detect();
+    if (!det.installed) continue;
+    const host = PROBE_HOSTS[provider.id];
+    if (!host) continue;
+    const proxy = resolveProxy(host, config, env);
+    const started = Date.now();
+    try {
+      const res = await fetch(host, { signal: AbortSignal.timeout(5000) });
+      out.push({
+        toolId: provider.id,
+        host,
+        proxy,
+        status: res.status,
+        latencyMs: Date.now() - started,
+      });
+    } catch (e) {
+      out.push({
+        toolId: provider.id,
+        host,
+        proxy,
+        latencyMs: Date.now() - started,
+        error: String(e),
+      });
+    }
+  }
+  return out;
 }
 
 export async function runHealthMatrix(): Promise<ToolHealthRow[]> {

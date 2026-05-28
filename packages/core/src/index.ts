@@ -46,7 +46,15 @@ export {
   type PluginAdapter,
   type GitClonePluginAdapterOpts,
 } from './plugin/index.js';
-export { runHealthMatrix, type ToolHealthRow } from './doctor/index.js';
+export {
+  runHealthMatrix,
+  attemptAutoRepair,
+  probeNetwork,
+  type ToolHealthRow,
+  type RepairAction,
+  type RepairResult,
+  type NetworkProbe,
+} from './doctor/index.js';
 export { whichCmd } from './utils/which.js';
 export { parseVersion } from './utils/version.js';
 export {
@@ -65,6 +73,24 @@ export {
   type CompletionShell,
 } from './completion/index.js';
 export { generateMan } from './man/index.js';
+export {
+  loadConfig,
+  saveConfig,
+  setConfigKey,
+  getConfigKey,
+  resolveProxy,
+  proxyEnvVector,
+  defaultConfigPath,
+  type ClihubConfig,
+  type ConfigIoOpts,
+} from './config/index.js';
+export {
+  formatErrorMessage,
+  createError,
+  listErrors,
+  type ClihubError,
+  type ClihubErrorCode,
+} from './errors/index.js';
 export { CatalogLoader, type Catalog } from './catalog/index.js';
 export {
   syncCatalog,

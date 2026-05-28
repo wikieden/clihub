@@ -190,13 +190,35 @@ cli
 cli
   .command('doctor [id]', 'Cross-CLI health matrix (install + settings + skills + MCP)')
   .option('--json', 'Output the matrix as JSON instead of a table')
-  .action(async (id: string | undefined, opts: { json?: boolean }) => {
-    const { runHealthMatrix } = await import('@clihub/core');
+  .option('--fix', 'Attempt to auto-remediate common issues (missing dirs, etc.)')
+  .option('--check-network', 'Probe each vendor API host through the resolved proxy')
+  .action(async (
+    id: string | undefined,
+    opts: { json?: boolean; fix?: boolean; checkNetwork?: boolean },
+  ) => {
+    const {
+      runHealthMatrix,
+      attemptAutoRepair,
+      probeNetwork,
+    } = await import('@clihub/core');
     let rows = await runHealthMatrix();
     if (id) rows = rows.filter((r) => r.id === id);
 
+    let repair: Awaited<ReturnType<typeof attemptAutoRepair>> | undefined;
+    if (opts.fix) {
+      repair = await attemptAutoRepair(rows);
+      // Re-read after fixing so the table reflects the new state.
+      rows = await runHealthMatrix();
+      if (id) rows = rows.filter((r) => r.id === id);
+    }
+
+    let probes: Awaited<ReturnType<typeof probeNetwork>> | undefined;
+    if (opts.checkNetwork) {
+      probes = await probeNetwork();
+    }
+
     if (opts.json) {
-      console.log(JSON.stringify(rows, null, 2));
+      console.log(JSON.stringify({ rows, repair, probes }, null, 2));
       const exitNonZero = rows.some((r) => r.installed && r.issues.length > 0);
       if (exitNonZero) process.exit(1);
       return;
@@ -226,6 +248,29 @@ cli
       console.log(row.map((c, i) => pad(c, widths[i]!)).join('  '));
     }
 
+    if (repair && repair.attempted.length > 0) {
+      console.log();
+      console.log(kleur.bold('repair:'));
+      for (const a of repair.attempted) {
+        const mark = a.ok ? kleur.green('✓') : kleur.red('✗');
+        console.log(`  ${mark} [${a.toolId}] ${a.action}${a.detail ? ` — ${a.detail}` : ''}`);
+      }
+    }
+
+    if (probes && probes.length > 0) {
+      console.log();
+      console.log(kleur.bold('network:'));
+      for (const p of probes) {
+        const proxyTag = p.proxy ? kleur.dim(`(via ${p.proxy})`) : kleur.dim('(direct)');
+        if (p.error) {
+          console.log(`  ${kleur.red('✗')} [${p.toolId}] ${p.host} ${proxyTag} — ${p.error}`);
+        } else {
+          const status = p.status && p.status < 500 ? kleur.green(String(p.status)) : kleur.yellow(String(p.status));
+          console.log(`  ${kleur.green('✓')} [${p.toolId}] ${p.host} ${proxyTag} → ${status} ${kleur.dim(`${p.latencyMs}ms`)}`);
+        }
+      }
+    }
+
     let problems = 0;
     for (const r of rows) {
       if (r.installed && r.issues.length > 0) {
@@ -234,7 +279,7 @@ cli
         problems += r.issues.length;
       }
     }
-    if (problems > 0) process.exit(1);
+    if (problems > 0 && !opts.fix) process.exit(1);
   });
 
 // ─── skill <action> [id] ──────────────────────────────────────────────
@@ -533,23 +578,148 @@ cli
 
 // ─── config ───────────────────────────────────────────────────────────
 cli
-  .command('config <action> [tool]', 'Show or edit config  (show)')
-  .action(async (action: string, toolId: string | undefined) => {
-    if (action !== 'show') {
-      err(`Unknown config action: ${action}. Valid: show`);
-      process.exit(1);
-    }
-    const targets = toolId ? [getProvider(toolId)].filter(Boolean) : listProviders();
-    for (const p of targets) {
-      if (!p) continue;
-      const det = await p.detect();
-      if (!det.installed) {
-        info(`${p.id}: not installed`);
-        continue;
+  .command('config <action> [key] [value]', 'Show or edit clihub config  (show | get | set | unset)')
+  .action(async (action: string, keyOrTool: string | undefined, value: string | undefined) => {
+    const {
+      loadConfig,
+      setConfigKey,
+      getConfigKey,
+      defaultConfigPath,
+    } = await import('@clihub/core');
+
+    switch (action) {
+      case 'show': {
+        const cfg = await loadConfig();
+        console.log(kleur.bold(`── clihub global (${defaultConfigPath()}) ──`));
+        console.log(JSON.stringify(cfg, null, 2));
+        const targets = keyOrTool ? [getProvider(keyOrTool)].filter(Boolean) : listProviders();
+        for (const p of targets) {
+          if (!p) continue;
+          const det = await p.detect();
+          if (!det.installed) {
+            info(`${p.id}: not installed`);
+            continue;
+          }
+          const data = await p.settingsAdapter.read();
+          console.log(kleur.bold(`\n── ${p.name} (${p.settingsAdapter.configPath()}) ──`));
+          console.log(JSON.stringify(data, null, 2));
+        }
+        return;
       }
-      const data = await p.settingsAdapter.read();
-      console.log(kleur.bold(`\n── ${p.name} (${p.settingsAdapter.configPath()}) ──`));
-      console.log(JSON.stringify(data, null, 2));
+      case 'get': {
+        if (!keyOrTool) { err('key required: clihub config get <key>'); process.exit(1); }
+        const cfg = await loadConfig();
+        const v = getConfigKey(cfg, keyOrTool);
+        if (v === undefined) {
+          info(`${keyOrTool}: (unset)`);
+          return;
+        }
+        console.log(typeof v === 'string' ? v : JSON.stringify(v, null, 2));
+        return;
+      }
+      case 'set': {
+        if (!keyOrTool || value === undefined) {
+          err('usage: clihub config set <key> <value>');
+          process.exit(1);
+        }
+        await setConfigKey(keyOrTool, value);
+        ok(`${keyOrTool} = ${value}`);
+        return;
+      }
+      case 'unset': {
+        if (!keyOrTool) { err('key required: clihub config unset <key>'); process.exit(1); }
+        await setConfigKey(keyOrTool, undefined);
+        ok(`${keyOrTool} unset`);
+        return;
+      }
+      default:
+        err(`Unknown config action: ${action}. Valid: show | get | set | unset`);
+        process.exit(1);
+    }
+  });
+
+// ─── proxy ────────────────────────────────────────────────────────────
+cli
+  .command('proxy <action> [url]', 'Manage proxy + CA bundle  (set | unset | show | test)')
+  .option('--tool <id>', 'Limit to a specific CLI (default: all)')
+  .option('--ca-bundle <path>', 'Set CA bundle path along with the proxy')
+  .action(async (
+    action: string,
+    url: string | undefined,
+    opts: { tool?: string; caBundle?: string },
+  ) => {
+    const {
+      loadConfig,
+      setConfigKey,
+      resolveProxy,
+      proxyEnvVector,
+      defaultConfigPath,
+      formatErrorMessage,
+    } = await import('@clihub/core');
+
+    switch (action) {
+      case 'show': {
+        const cfg = await loadConfig();
+        console.log(kleur.bold(`proxy (from ${defaultConfigPath()}):`));
+        console.log(JSON.stringify(cfg.proxy ?? {}, null, 2));
+        if (cfg.caBundle) console.log(`ca-bundle: ${cfg.caBundle}`);
+        const sample = resolveProxy('https://api.anthropic.com', cfg);
+        if (sample) info(`effective proxy for https://api.anthropic.com → ${sample}`);
+        return;
+      }
+      case 'set': {
+        if (!url) {
+          err('usage: clihub proxy set <url> [--ca-bundle <path>] [--tool <id>]');
+          process.exit(1);
+        }
+        try {
+          // eslint-disable-next-line no-new
+          new URL(url);
+        } catch {
+          err(formatErrorMessage('CLIHUB-E-100', url));
+          process.exit(1);
+        }
+        const isHttps = url.toLowerCase().startsWith('https://');
+        if (url.startsWith('socks')) {
+          await setConfigKey('proxy.all', url);
+        } else if (isHttps) {
+          await setConfigKey('proxy.https', url);
+        } else {
+          await setConfigKey('proxy.http', url);
+        }
+        if (opts.caBundle) await setConfigKey('caBundle', opts.caBundle);
+        ok(`proxy set → ${url}${opts.tool ? ` (scope: ${opts.tool})` : ''}`);
+        info('Restart any running CLIs (claude, codex, gemini, kiro) to pick this up.');
+        return;
+      }
+      case 'unset': {
+        await setConfigKey('proxy', undefined);
+        ok('proxy cleared from clihub config');
+        return;
+      }
+      case 'test': {
+        const cfg = await loadConfig();
+        const env = { ...process.env, ...proxyEnvVector(cfg) } as NodeJS.ProcessEnv;
+        const targets = [
+          'https://registry.npmjs.org/-/ping',
+          'https://api.anthropic.com',
+          'https://api.openai.com',
+        ];
+        for (const target of targets) {
+          const proxy = resolveProxy(target, cfg, env);
+          process.stdout.write(`  ${target}  (proxy: ${proxy ?? 'direct'}) ... `);
+          try {
+            const res = await fetch(target, { signal: AbortSignal.timeout(5000) });
+            console.log(`${res.status} ${res.statusText || ''}`);
+          } catch (e) {
+            console.log(`✗ ${String(e)}`);
+          }
+        }
+        return;
+      }
+      default:
+        err(`Unknown proxy action: ${action}. Valid: set | unset | show | test`);
+        process.exit(1);
     }
   });
 
