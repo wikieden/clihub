@@ -73,22 +73,23 @@ This repo (formerly `CCEnvOneCLick`) carries:
 
 ## Infrastructure pillars
 
-clihub graduates from "useful CLI" to "AI coding substrate" along ten pillars. The first eight describe the technical substrate; the last two are what make ordinary people pick it up.
+clihub graduates from "useful CLI" to "AI coding substrate" along eleven pillars. The first eight describe the technical substrate; IX–X are what make ordinary people pick it up; XI is what makes them stay.
 
 | # | Pillar | What it means | Status |
 |---|---|---|---|
 | I | **Spec & standards** | clihub authors / endorses open specs for SKILL.md, MCP, PluginManifest, LockFile, Catalog. Other clients can implement against the spec without using clihub. | v0.4 partial (SKILL.md installer); RFC drafts in v0.7. |
-| II | **Reproducibility** | `clihub.lock.json`, `clihub install --frozen`, plan/apply (Terraform-style), structured audit log. Same lockfile → same world. | v0.5 (yaml + lockfile). |
+| II | **Reproducibility** | `clihub.lock.json`, `clihub install --frozen`, plan/apply (Terraform-style), structured audit log. Same lockfile → same world. | v0.5.3 (yaml + lockfile + version pin/rollback). |
 | III | **Federation** | Multiple catalogs (`clihub catalog add <url>`), regional mirrors, private team catalogs, conflict arbitration. | v0.5 partial (sync); multi-source v0.6. |
 | IV | **Trust** | sigstore-cosign signed catalog releases, SHA256 verified files, npm provenance, transparency log. | v0.6 (signing). |
 | V | **Composability** | Provider SDK + Adapter SDK + lifecycle hooks. Third-party `clihub-plugin-*` packages add CLIs we don't ship. | v0.7 (SDK alpha). |
-| VI | **Reach** | macOS / Linux / Windows; npm / brew / scoop / winget / apt / docker; CI action; VS Code / JetBrains thin clients. | v0.5 Windows, v0.6 winget/scoop, v0.7 IDE. |
+| VI | **Reach** | macOS / Linux / Windows; npm / brew / scoop / winget / apt / docker; CI action; VS Code / JetBrains thin clients. | v0.5.0 ✅ Windows portability, v0.6 winget/scoop, v0.7 IDE. |
 | VII | **Community** | Public registry, RFC process, compatibility test suite, `clihub-compatible` badge. | v1.0 (registry beta). |
 | VIII | **Adoption** | Vendor partnerships (Anthropic, OpenAI, Google, AWS), competitor inter-op, course / book inclusions. | continuous from v0.4. |
-| **IX** | **Config management** | Proxy support (HTTP/HTTPS/SOCKS5, MITM CA bundle), profile switching for multi-account (personal / work / client-X), system-keychain credential vault, unified OAuth across CLIs. | v0.5–0.6. |
-| **X** | **Ease of use** | First-run wizard, in-TUI search, recent / favourites, tab completion, error codes with linked docs, `doctor --fix` autoremediation, man pages, smart defaults. | v0.5. |
+| **IX** | **Config management** | Proxy support (HTTP/HTTPS/SOCKS5, MITM CA bundle), profile switching for multi-account (personal / work / client-X), system-keychain credential vault, unified OAuth across CLIs, per-profile `BASE_URL` injection. | v0.5.1 proxy + v0.5.2 profile/keychain. |
+| **X** | **Ease of use** | First-run wizard, in-TUI search, recent / favourites, tab completion, error codes with linked docs, `doctor --fix` autoremediation, man pages, live quota meter, smart defaults. | v0.5.0 ✅ search/completion/man; v0.5.1 wizard + quota. |
+| **XI** | **Cross-machine sync** | E2E-encrypted sync of catalog selection + presets + profile metadata + `clihub.yaml`/`clihub.lock.json` (not API keys — those stay in OS keychain). Self-host first; clihub Cloud optional. | v0.8 (self-host); Phase-2 monetisation: managed clihub Cloud. |
 
-Each pillar feeds the others: Pillars I–IV make clihub credible as infra; V–VII make it self-sustaining; VIII gets it picked up; IX–X stop new users bouncing.
+Each pillar feeds the others: Pillars I–IV make clihub credible as infra; V–VII make it self-sustaining; VIII gets it picked up; IX–X stop new users bouncing; XI keeps them across machines.
 
 ## Cultural principles
 
