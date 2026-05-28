@@ -48,6 +48,23 @@ export {
 } from './plugin/index.js';
 export { runHealthMatrix, type ToolHealthRow } from './doctor/index.js';
 export { whichCmd } from './utils/which.js';
+export { parseVersion } from './utils/version.js';
+export {
+  startWatch,
+  type WatchEvent,
+  type WatchOpts,
+  type WatchHandle,
+} from './watch/index.js';
+export {
+  searchCatalog,
+  type SearchHit,
+  type SearchCategory,
+} from './search/index.js';
+export {
+  generateCompletion,
+  type CompletionShell,
+} from './completion/index.js';
+export { generateMan } from './man/index.js';
 export { CatalogLoader, type Catalog } from './catalog/index.js';
 export {
   syncCatalog,

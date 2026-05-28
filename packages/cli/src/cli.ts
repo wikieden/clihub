@@ -584,6 +584,87 @@ cli
     }
   });
 
+// ─── search <query> ───────────────────────────────────────────────────
+cli
+  .command('search <query>', 'Search the catalog (skills + plugins + MCP + presets + tools)')
+  .option('--json', 'Output as JSON instead of a table')
+  .action(async (query: string, opts: { json?: boolean }) => {
+    const { searchCatalog } = await import('@clihub/core');
+    const hits = await searchCatalog(query);
+    if (opts.json) {
+      console.log(JSON.stringify(hits, null, 2));
+      return;
+    }
+    if (hits.length === 0) {
+      info(`No matches for "${query}"`);
+      return;
+    }
+    const CAT_COLOR: Record<string, (s: string) => string> = {
+      skill: kleur.cyan,
+      plugin: kleur.magenta,
+      mcp: kleur.yellow,
+      preset: kleur.green,
+      tool: kleur.blue,
+    };
+    for (const h of hits) {
+      const tag = (CAT_COLOR[h.category] ?? kleur.white)(`[${h.category}]`);
+      console.log(`${tag}  ${kleur.bold(h.id)}  ${kleur.dim(`(${h.score})`)}  ${h.name}`);
+      if (h.description) console.log(`        ${kleur.dim(h.description)}`);
+    }
+    info(`${hits.length} result(s) for "${query}"`);
+  });
+
+// ─── watch ────────────────────────────────────────────────────────────
+cli
+  .command('watch', 'Watch each installed CLI for setting changes; auto-backup on change')
+  .option('--debounce <ms>', 'Debounce window in ms', { default: 5000 })
+  .option('--tool <id>', 'Watch only one tool')
+  .action(async (opts: { debounce: number; tool?: string }) => {
+    const { startWatch } = await import('@clihub/core');
+    const handle = await startWatch({
+      debounceMs: Number(opts.debounce) || 5000,
+      toolIds: opts.tool ? [opts.tool] : undefined,
+    });
+    info('Watching for changes. Press Ctrl+C to stop.');
+    const cleanup = async () => {
+      info('Stopping watcher...');
+      await handle.stop();
+      process.exit(0);
+    };
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
+    for await (const ev of handle.events()) {
+      if (ev.error) {
+        warn(`[${ev.toolId}] ${ev.reason}: ${ev.error}`);
+      } else if (ev.reason === 'initial') {
+        info(`[${ev.toolId}] watching ${ev.file}`);
+      } else {
+        ok(`[${ev.toolId}] ${ev.reason} → backup ${ev.backupId ?? '?'}`);
+      }
+    }
+  });
+
+// ─── completion <shell> ───────────────────────────────────────────────
+cli
+  .command(
+    'completion <shell>',
+    'Print shell completion script (bash | zsh | fish | powershell | man)',
+  )
+  .action(async (shell: string) => {
+    if (shell === 'man') {
+      const { generateMan } = await import('@clihub/core');
+      process.stdout.write(generateMan(pkg.version));
+      return;
+    }
+    const validShells = ['bash', 'zsh', 'fish', 'powershell'] as const;
+    if (!(validShells as readonly string[]).includes(shell)) {
+      err(`Unknown shell: ${shell}. Valid: ${validShells.join(' | ')} | man`);
+      process.exit(1);
+    }
+    const { generateCompletion } = await import('@clihub/core');
+    process.stdout.write(generateCompletion(shell as (typeof validShells)[number]));
+  });
+
 // ─── default → TUI ────────────────────────────────────────────────────
 cli.command('', t('cli.title')).action(async () => {
   const { runTui } = await import('./tui/index.js');
