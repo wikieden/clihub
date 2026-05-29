@@ -289,6 +289,13 @@ export {
   type RecommendOptions,
 } from './recommend/index.js';
 export {
+  diffLockfiles,
+  compareVersions,
+  type LockDiff,
+  type DiffEntry,
+  type ChangeKind,
+} from './diff/index.js';
+export {
   computeStatus,
   type ComplianceState,
   type StatusItem,

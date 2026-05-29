@@ -4,6 +4,13 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.12.0] — clihub diff
+
+- `clihub diff <a> [b]` diffs two `clihub.lock.json` files (b defaults to
+  `./clihub.lock.json`): tools added / removed / upgraded / downgraded
+  (numeric version compare), plus skills / MCP / plugins presence changes.
+  `--json` for tooling. Pure + read-only.
+
 ## [1.11.0] — profile shell hook
 
 - `clihub profile hook <bash|zsh|fish>` emits a shell hook that auto-runs

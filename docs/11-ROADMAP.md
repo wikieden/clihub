@@ -150,14 +150,17 @@ enterprise line later (see "Enterprise line" below).
 
 - `clihub profile hook <bash|zsh|fish>` — auto-activates the profile named in a directory's `clihub.yaml` on `cd` (completes the v0.5.2 deferred auto-switch)
 
+### v1.12.0 ✅ — clihub diff
+
+- `clihub diff <a> [b]` — diffs two `clihub.lock.json` (added / removed / upgraded / downgraded tools + skills/mcp/plugins presence); `--json`. Read-only
+
 ## Planned (individual + newcomer — buildable now)
 
-### v1.12.0 📋 — quality of life
+### v1.13.0 📋 — unified MCP management
 
-- `clihub diff <lockA> <lockB>` (or lock vs live): added / removed / upgraded / downgraded
-- `clihub mcp <list|add|remove>` unified MCP management across CLIs (gap-check vs current `apply` MCP support first)
+- `clihub mcp <list|add|remove>` across every installed CLI (gap-check vs current `apply` MCP support first)
 
-### v1.13.0 📋 — grow the catalog
+### v1.14.0 📋 — grow the catalog
 
 - More batteries-included presets + catalog skills / MCP
 

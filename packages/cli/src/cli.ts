@@ -1813,6 +1813,39 @@ cli
     }
   });
 
+// ─── diff ─────────────────────────────────────────────────────────────
+cli
+  .command('diff <a> [b]', 'Diff two clihub.lock.json files (b defaults to ./clihub.lock.json)')
+  .option('--json', 'Output the diff as JSON')
+  .action(async (a: string, b: string | undefined, opts: { json?: boolean }) => {
+    const { readLockfile, diffLockfiles } = await import('@clihub/core');
+    const bPath = b ?? path.join(process.cwd(), 'clihub.lock.json');
+    const lockA = await readLockfile(a);
+    const lockB = await readLockfile(bPath);
+    if (!lockA) { err(`cannot read lockfile: ${a}`); process.exit(1); }
+    if (!lockB) { err(`cannot read lockfile: ${bPath}`); process.exit(1); }
+    const diff = diffLockfiles(lockA, lockB);
+
+    if (opts.json) { console.log(JSON.stringify(diff, null, 2)); return; }
+    if (diff.changed === 0) { ok('no differences'); return; }
+    const mark: Record<string, (s: string) => string> = {
+      added: (s) => kleur.green(`+ ${s}`),
+      removed: (s) => kleur.red(`- ${s}`),
+      upgraded: (s) => kleur.cyan(`↑ ${s}`),
+      downgraded: (s) => kleur.yellow(`↓ ${s}`),
+      changed: (s) => kleur.dim(`~ ${s}`),
+    };
+    for (const [section, entries] of [['tools', diff.tools], ['skills', diff.skills], ['mcp', diff.mcp], ['plugins', diff.plugins]] as const) {
+      if (entries.length === 0) continue;
+      console.log(kleur.bold(section + ':'));
+      for (const e of entries) {
+        const ver = e.from && e.to ? kleur.dim(`  ${e.from} → ${e.to}`) : e.to ? kleur.dim(`  ${e.to}`) : e.from ? kleur.dim(`  ${e.from}`) : '';
+        console.log(`  ${(mark[e.kind] ?? ((s: string) => s))(e.id)}${ver}`);
+      }
+    }
+    info(`${diff.changed} change(s): ${a} → ${bPath}`);
+  });
+
 // ─── schema ───────────────────────────────────────────────────────────
 cli
   .command('schema', 'Emit the clihub.yaml JSON Schema (for editor autocomplete + validation)')
