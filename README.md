@@ -5,7 +5,9 @@
 [![license](https://img.shields.io/npm/l/@wikieden/clihub.svg)](LICENSE)
 [![node](https://img.shields.io/node/v/@wikieden/clihub.svg)](https://nodejs.org)
 
-**The one tool that installs Claude Code, Codex, Gemini CLI, and Kiro — keeps their skills in sync across every CLI — and ships one-command rollback when an update bites.**
+**English** | [简体中文](README.zh-CN.md)
+
+**The one tool that installs Claude Code, Codex, Gemini CLI, Kiro, Cursor, and Goose — keeps their skills in sync across every CLI — and ships one-command rollback when an update bites.**
 
 ![demo](docs/assets/demo.gif)
 
