@@ -703,17 +703,118 @@ cli
       case 'use': {
         if (!arg1) { err('usage: clihub profile use <name>'); process.exit(1); }
         try {
+          const {
+            applyProfileBaseUrls,
+            appendAudit,
+            currentProfile: currentProfileFn,
+          } = await import('@clihub/core');
+          const previous = await currentProfileFn();
           const result = await useProfile(arg1, { force: opts.force });
           ok(`profile "${result.profile.name}" activated`);
           if (result.archived.length > 0) {
             info('archived (pre-existing) vendor dirs:');
             for (const a of result.archived) console.log(`    ${a}`);
           }
+          const patches = await applyProfileBaseUrls(result.profile.name, result.profile.baseUrls);
+          for (const p of patches) {
+            if (p.applied) {
+              info(`baseurl ${p.envVar} → ${p.filePath}`);
+            } else if (p.detail) {
+              warn(`baseurl ${p.envVar}: ${p.detail}`);
+            }
+          }
+          await appendAudit({
+            actor: 'cli',
+            action: 'profile.use',
+            from: previous ?? null,
+            to: result.profile.name,
+          });
         } catch (e) {
           err(String(e));
           process.exit(1);
         }
         return;
+      }
+      case 'baseurl': {
+        // clihub profile baseurl set <provider> <url>
+        // clihub profile baseurl unset <provider>
+        // clihub profile baseurl show [profile]
+        const {
+          applyProfileBaseUrls,
+          clearProfileBaseUrl,
+          appendAudit,
+          readProfileMeta: read,
+          writeProfileMeta,
+          currentProfile: currentProfileFn,
+        } = await import('@clihub/core');
+        const subAction = arg1;
+        if (!subAction) { err('usage: clihub profile baseurl <set|unset|show> [...]'); process.exit(1); }
+        if (subAction === 'show') {
+          const target = arg2 ?? (await currentProfileFn());
+          if (!target) { err('no active profile and no name given'); process.exit(1); }
+          try {
+            const meta = await read(target);
+            console.log(JSON.stringify(meta.baseUrls ?? {}, null, 2));
+          } catch (e) { err(String(e)); process.exit(1); }
+          return;
+        }
+        const active = await currentProfileFn();
+        if (!active) { err('no active profile. run `clihub profile use <name>` first.'); process.exit(1); }
+        if (subAction === 'set') {
+          const provider = arg2;
+          // The URL is in the next positional arg; cac passes it via opts.url
+          // if `--url=...` was used, otherwise it's the last bare positional.
+          const positionalUrl = process.argv.slice(2).filter((a) => !a.startsWith('-')).pop();
+          const finalUrl = positionalUrl && positionalUrl !== provider ? positionalUrl : undefined;
+          if (!provider || !finalUrl) {
+            err('usage: clihub profile baseurl set <anthropic|openai|google|kiro> <url>');
+            process.exit(1);
+          }
+          if (!['anthropic', 'openai', 'google', 'kiro'].includes(provider)) {
+            err(`unknown provider: ${provider}. valid: anthropic | openai | google | kiro`);
+            process.exit(1);
+          }
+          const meta = await read(active);
+          const nextBaseUrls = { ...(meta.baseUrls ?? {}), [provider]: finalUrl };
+          await writeProfileMeta(active, { baseUrls: nextBaseUrls });
+          const patches = await applyProfileBaseUrls(active, nextBaseUrls);
+          for (const p of patches) {
+            if (p.applied && p.provider === provider) {
+              ok(`${provider} → ${finalUrl} written to ${p.filePath}`);
+            } else if (!p.applied && p.detail) {
+              warn(`${p.provider}: ${p.detail}`);
+            }
+          }
+          await appendAudit({
+            actor: 'cli',
+            action: 'profile.baseurl.set',
+            profile: active,
+            provider,
+            url: finalUrl,
+          });
+          return;
+        }
+        if (subAction === 'unset') {
+          const provider = arg2;
+          if (!provider) { err('usage: clihub profile baseurl unset <provider>'); process.exit(1); }
+          const meta = await read(active);
+          if (meta.baseUrls && provider in meta.baseUrls) {
+            const next = { ...meta.baseUrls };
+            delete (next as Record<string, unknown>)[provider];
+            await writeProfileMeta(active, { baseUrls: next });
+          }
+          await clearProfileBaseUrl(active, provider as 'anthropic' | 'openai' | 'google' | 'kiro');
+          ok(`baseurl for ${provider} cleared from profile ${active}`);
+          await appendAudit({
+            actor: 'cli',
+            action: 'profile.baseurl.unset',
+            profile: active,
+            provider,
+          });
+          return;
+        }
+        err(`Unknown baseurl sub-action: ${subAction}. Valid: set | unset | show`);
+        process.exit(1);
       }
       case 'rm': {
         if (!arg1) { err('usage: clihub profile rm <name>'); process.exit(1); }
@@ -949,6 +1050,97 @@ cli
     }
     const { generateCompletion } = await import('@clihub/core');
     process.stdout.write(generateCompletion(shell as (typeof validShells)[number]));
+  });
+
+// ─── auth ─────────────────────────────────────────────────────────────
+cli
+  .command('auth <action> [key]', 'Manage per-profile secrets (set | get | list | rm | backend)')
+  .option('--reveal', 'For `get`: print the secret in plaintext (default: masked)')
+  .action(async (action: string, key: string | undefined, opts: { reveal?: boolean }) => {
+    const {
+      setSecret,
+      getSecret,
+      listSecrets,
+      removeSecret,
+      currentKeychain,
+      currentProfile: currentProfileFn,
+      appendAudit,
+    } = await import('@clihub/core');
+
+    if (action === 'backend') {
+      const info = await currentKeychain();
+      console.log(`${info.backend}  ${kleur.dim(info.detail)}`);
+      return;
+    }
+
+    const profile = await currentProfileFn();
+    if (!profile) {
+      err('no active profile. run `clihub profile use <name>` first.');
+      process.exit(1);
+    }
+
+    switch (action) {
+      case 'set': {
+        if (!key) { err('usage: clihub auth set <KEY>'); process.exit(1); }
+        const readline = await import('node:readline');
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: false });
+        let value = '';
+        if (process.stdin.isTTY) {
+          process.stdout.write(`Value for ${key} (input hidden): `);
+        }
+        for await (const line of rl) {
+          value = line;
+          break;
+        }
+        if (!value) { err('no value read'); process.exit(1); }
+        const info = await setSecret(profile, key, value);
+        ok(`${key} stored via ${info.backend}`);
+        await appendAudit({ actor: 'cli', action: 'auth.set', profile, key, backend: info.backend });
+        return;
+      }
+      case 'get': {
+        if (!key) { err('usage: clihub auth get <KEY> [--reveal]'); process.exit(1); }
+        const v = await getSecret(profile, key);
+        if (v === undefined) {
+          info(`${key} not set in profile ${profile}`);
+          return;
+        }
+        console.log(opts.reveal ? v : `${v.slice(0, 4)}…${v.slice(-2)} (${v.length} chars)`);
+        return;
+      }
+      case 'list': {
+        const keys = await listSecrets(profile);
+        if (keys.length === 0) {
+          info(`no secrets in profile ${profile}`);
+          return;
+        }
+        for (const k of keys) console.log(`  ${k}`);
+        return;
+      }
+      case 'rm': {
+        if (!key) { err('usage: clihub auth rm <KEY>'); process.exit(1); }
+        await removeSecret(profile, key);
+        ok(`${key} removed from profile ${profile}`);
+        await appendAudit({ actor: 'cli', action: 'auth.rm', profile, key });
+        return;
+      }
+      default:
+        err(`Unknown auth action: ${action}. Valid: set | get | list | rm | backend`);
+        process.exit(1);
+    }
+  });
+
+// ─── yaml ─────────────────────────────────────────────────────────────
+cli
+  .command('yaml', 'Show clihub.yaml metadata discovered by walking up from cwd')
+  .action(async () => {
+    const { loadClihubYaml } = await import('@clihub/core');
+    const meta = await loadClihubYaml();
+    if (!meta) {
+      info('no clihub.yaml found in this directory or any parent');
+      return;
+    }
+    console.log(JSON.stringify(meta, null, 2));
   });
 
 // ─── default → TUI ────────────────────────────────────────────────────

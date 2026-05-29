@@ -113,6 +113,36 @@ export {
   type ProfileRootOpts,
   type VendorId,
 } from './profile/index.js';
+export {
+  applyProfileBaseUrls,
+  clearProfileBaseUrl,
+  type BaseUrlPatch,
+  type ApplyBaseUrlsOpts,
+} from './profile/baseurls.js';
+export {
+  setSecret,
+  getSecret,
+  removeSecret,
+  listSecrets,
+  currentKeychain,
+  assertSecureKeychain,
+  type KeychainBackend,
+  type KeychainInfo,
+} from './auth/keychain.js';
+export {
+  appendAudit,
+  defaultAuditPath,
+  setAuditBestEffort,
+  type AuditActor,
+  type AuditEntry,
+  type AuditEntryBase,
+} from './audit/index.js';
+export {
+  findClihubYaml,
+  loadClihubYaml,
+  parseTopLevelYaml,
+  type ClihubYamlMeta,
+} from './clihubyaml/index.js';
 export { CatalogLoader, type Catalog } from './catalog/index.js';
 export {
   syncCatalog,
