@@ -106,52 +106,60 @@ Open specs so other clients can implement the same formats — see
 infra-blocked items): [Unified OAuth](spec/03-OAUTH-FLOW.md),
 [Registry API](spec/04-REGISTRY.md).
 
-## Next
+## Released (continued)
 
-> The remaining items are blocked on **external infrastructure** a local,
-> backend-free tool can't ship solo (vendor OAuth client ids, a hosted
-> registry, marketplace/winget submissions). Each has a design spec above
-> so the contract is fixed; implementation lands when the dependency is
-> available.
-
-### v1.5.0 ✅ — clihub auth login (Pillar IX)
+### v1.5.0 ✅ — auth login: OAuth device grant
 
 - `clihub auth login <provider>` — OAuth 2.0 device grant (RFC 8628), BYO provider config in `~/.clihub/auth-providers.json`; token written to the CLI's native credential file (0600). Headless/CI-friendly, security-reviewed. See [`spec/03-OAUTH-FLOW.md`](spec/03-OAUTH-FLOW.md)
 
-### v1.6.0 ✅ — auth refresh (Pillar IX, completes unified-auth core)
+### v1.6.0 ✅ — auth refresh
 
-- `clihub auth login <provider> --refresh` — RFC 6749 refresh-token grant; re-mints an access token from the stored `refresh_token` (rotated if returned), no browser. Token-expiry recovery
-
-### v1.8.0 ✅ — PKCE browser login (Pillar IX)
-
-- `clihub auth login <provider> --browser` — OAuth Authorization Code + PKCE (RFC 7636), 127.0.0.1 loopback redirect, CSPRNG state, S256 challenge. Security-reviewed. Three login modes now complete: device / browser / refresh
-
-## Later (external-infra blocked)
-
-### 📋 — managed backends
-
-- Managed **clihub Cloud** team backend remains optional (Phase-2 monetisation — see [`13-MONETIZATION.md`](13-MONETIZATION.md)); git-repo team sharing shipped in v1.2
-
-### v1.6 📋 — more reach + IDE
-
-- `winget` / `scoop` packaging; Docker image
-- VS Code / JetBrains thin clients hitting `@clihub/core`
-- ✅ first `docs/spec/*` RFC drafts landed (Provider JSON, LockFile, OAuth, Registry); SKILL.md / MCP-MANIFEST / PLUGIN.json drafts still to write
-- `winget` packaging (needs an MSI/exe; `pack scoop`/`pack brew`/`pack docker` already ship)
-- VS Code / JetBrains thin clients hitting `@clihub/core`
+- `clihub auth login <provider> --refresh` — RFC 6749 refresh-token grant; re-mints an access token from the stored `refresh_token` (rotated if returned). Token-expiry recovery
 
 ### v1.7.0 ✅ — conformance suite (Pillar VII, client side)
 
-- `clihub conformance [dir] [--json]` validates a catalog against the specs (manifest + sha256, JSON, provider specs, signature, lockfile). The machine-checkable basis for the `clihub-compatible` badge
+- `clihub conformance [dir] [--json]` validates a catalog against the specs (manifest + sha256, JSON, provider specs, signature, lockfile). Machine-checkable basis for a `clihub-compatible` badge
 
-### 📋 — registry beta (Pillar VII, server side — external-infra blocked)
+### v1.8.0 ✅ — PKCE browser login
 
-- `clihub.dev` registry beta (npm-style publish, no PR) — needs a hosted backend; see [`spec/04-REGISTRY.md`](spec/04-REGISTRY.md)
-- Documentation site at `clihub.dev`
+- `clihub auth login <provider> --browser` — OAuth Authorization Code + PKCE (RFC 7636), 127.0.0.1 loopback redirect, CSPRNG state, S256 challenge. Security-reviewed. Three login modes complete: device / browser / refresh
 
-### v2.0 📋 — registry GA + enterprise
+### tests ✅ — automated suite
 
-- Public registry GA
+- `bun test` unit suite for `@clihub/core` (signing, memory, sync, clihubyaml, generators, auth) + a CI `unit` job on push/PR
+
+## Planned (buildable now — no new infrastructure)
+
+### v1.9.0 📋 — quality pass (debt budget)
+
+- Expand test coverage to the IO modules (apply / status / conformance / team / memory) via tmp-dir fixtures, toward the ≥ 70 % bar
+- i18n key parity (en / zh-CN / ja / ko / es) for every command added since v0.6
+
+### v1.10.0 📋 — clihub diff + more specs
+
+- `clihub diff <lockA> <lockB>` (or lock vs live): added / removed / upgraded / downgraded tools + skills
+- Remaining Pillar-I spec drafts: SKILL.md, MCP-MANIFEST.json, PLUGIN.json
+
+### v1.11.0 📋 — profile shell hook
+
+- `clihub profile hook <bash|zsh|fish>` emits a shell hook that auto-activates the profile named in a directory's `clihub.yaml` on `cd` (completes the v0.5.2 deferred auto-switch)
+
+### v1.12.0 📋 — MCP management depth
+
+- `clihub mcp <list|add|remove>` unified MCP-server management across every installed CLI (gap-check against current `apply` MCP support first)
+
+## Blocked on external infrastructure
+
+Each has a fixed-contract design spec; implementation is gated on infra a local, backend-free tool can't provide:
+
+- **Registry server** (`clihub.dev`) — hosted publish/search backend. [`spec/04-REGISTRY.md`](spec/04-REGISTRY.md)
+- **clihub Cloud** — managed team backend (Phase-2 monetisation, [`13-MONETIZATION.md`](13-MONETIZATION.md)); git-repo team sharing already ships (v1.2)
+- **winget** — needs an MSI/exe installer (clihub is npm-only; `pack brew`/`scoop`/`docker` cover real package managers)
+- **VS Code / JetBrains clients** — marketplace publisher accounts; extension source is scaffoldable pre-publish
+
+## v2.0 — platform leap (gated on the above)
+
+- Public registry GA + `clihub-compatible` badge program
 - Enterprise tier: SSO, private catalog, audit log, license-compliance scan
 - Polyglot thin clients (Rust / Go) on the same registry
 - CNCF Sandbox proposal
