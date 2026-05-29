@@ -1294,7 +1294,7 @@ cli
 
 // ─── auth ─────────────────────────────────────────────────────────────
 cli
-  .command('auth <action> [key]', 'Manage per-profile secrets (set | get | list | rm | backend | status)')
+  .command('auth <action> [key]', 'Auth & secrets (login | status | set | get | list | rm | backend)')
   .option('--reveal', 'For `get`: print the secret in plaintext (default: masked)')
   .option('--json', 'For `status`: output as JSON')
   .action(async (action: string, key: string | undefined, opts: { reveal?: boolean; json?: boolean }) => {
@@ -1307,7 +1307,38 @@ cli
       currentProfile: currentProfileFn,
       appendAudit,
       inspectCredentials,
+      getAuthProvider,
+      startDeviceLogin,
+      pollDeviceToken,
+      writeNativeCredential,
+      defaultAuthProvidersPath,
     } = await import('@clihub/core');
+
+    if (action === 'login') {
+      if (!key) { err('usage: clihub auth login <provider>  (provider id, e.g. claude-code)'); process.exit(1); }
+      const cfg = await getAuthProvider(key);
+      if (!cfg) {
+        err(`no auth config for "${key}". Add one to ${defaultAuthProvidersPath()}:`);
+        console.log(kleur.dim(`  { "version": 1, "providers": { "${key}": { "deviceCodeUrl": "...", "tokenUrl": "...", "clientId": "...", "scope": "..." } } }`));
+        process.exit(1);
+      }
+      const device = await startDeviceLogin(cfg);
+      // Strip terminal control chars from provider-supplied strings (defense-in-depth).
+      const safe = (s: string) => s.replace(/[ --]/g, '');
+      console.log(`\n  Open ${kleur.cyan(safe(device.verification_uri))} and enter code: ${kleur.bold(safe(device.user_code))}`);
+      if (device.verification_uri_complete) console.log(kleur.dim(`  (or: ${safe(device.verification_uri_complete)})`));
+      info('waiting for authorization…');
+      try {
+        const token = await pollDeviceToken(cfg, device);
+        const file = await writeNativeCredential(key, token);
+        ok(`logged in — wrote ${file}`);
+        await appendAudit({ actor: 'cli', action: 'auth.login', key }).catch(() => {});
+      } catch (e) {
+        err(e instanceof Error ? e.message : String(e));
+        process.exit(1);
+      }
+      return;
+    }
 
     if (action === 'backend') {
       const info = await currentKeychain();
@@ -1382,7 +1413,7 @@ cli
         return;
       }
       default:
-        err(`Unknown auth action: ${action}. Valid: set | get | list | rm | backend | status`);
+        err(`Unknown auth action: ${action}. Valid: login | status | set | get | list | rm | backend`);
         process.exit(1);
     }
   });

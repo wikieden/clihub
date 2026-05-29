@@ -122,6 +122,7 @@ clihub profile <create|use|list|current|rm|clone|show>
 clihub profile baseurl <set|unset|show>   point a profile at LiteLLM/Nyro
 clihub auth <set|get|list|rm|backend>      per-profile keychain secrets
 clihub auth status [--json]                cross-CLI login + token-expiry visibility
+clihub auth login <provider>               OAuth device-grant login (BYO provider config)
 clihub proxy <set|unset|show|test>         HTTP/HTTPS/SOCKS5 + CA bundle
 clihub doctor [id] [--fix] [--check-network]
 clihub search <query>
@@ -205,8 +206,9 @@ bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't
 - **v1.1.0** ✅ — **`clihub ci`**: generate a GitHub Actions / GitLab workflow that validates `clihub.yaml` on every push (with commented opt-ins for memory `--check` and `status --strict`).
 - **v1.2.0** ✅ — **`clihub team`**: share a reproducible toolchain through a plain git repo. `team add <name> <git-url>` clones it; `team push` commits your `clihub.yaml` / lock / memory / schema; `team use` pulls them into a project. No clihub backend.
 - **v1.3.0** ✅ — **`clihub auth status`**: cross-CLI login + token-expiry visibility (best-effort, read-only; never prints token contents).
-- **v1.4.0** ✅ (current, `@wikieden/clihub@1.4.0` on npm) — **`clihub pack`**: generate distribution manifests — `pack docker` (Dockerfile), `pack brew` (Homebrew formula), `pack scoop` (Windows). Reach beyond npm.
-- **post-1.4** — full OAuth login flow, registry beta (`clihub.dev`), IDE thin clients.
+- **v1.4.0** ✅ — **`clihub pack`**: generate distribution manifests — `pack docker` / `pack brew` / `pack scoop`. Reach beyond npm.
+- **v1.5.0** ✅ (current, `@wikieden/clihub@1.5.0` on npm) — **`clihub auth login`**: OAuth 2.0 device-grant login (RFC 8628, headless/CI-friendly). Vendor-neutral — endpoints + client id are BYO config in `~/.clihub/auth-providers.json`; the token is written to the CLI's native credential file (0600). Security-reviewed (no token logging, atomic write, bounded poll).
+- **post-1.5** — browser/PKCE login variant, registry beta (`clihub.dev`), IDE thin clients.
 
 See [`docs/11-ROADMAP.md`](docs/11-ROADMAP.md) and [`docs/20-MARKET-RESEARCH.md`](docs/20-MARKET-RESEARCH.md).
 

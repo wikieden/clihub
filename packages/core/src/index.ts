@@ -155,6 +155,19 @@ export {
   type InspectOpts,
 } from './auth/credentials.js';
 export {
+  readAuthProviders,
+  getAuthProvider,
+  startDeviceLogin,
+  pollDeviceToken,
+  writeNativeCredential,
+  defaultAuthProvidersPath,
+  type AuthProviderConfig,
+  type AuthProvidersFile,
+  type AuthIoOpts,
+  type DeviceCodeResponse,
+  type TokenResult,
+} from './auth/login.js';
+export {
   appendAudit,
   defaultAuditPath,
   setAuditBestEffort,

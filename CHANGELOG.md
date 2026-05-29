@@ -4,6 +4,17 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.5.0] — clihub auth login
+
+- `clihub auth login <provider>` implements the OAuth 2.0 Device
+  Authorization Grant (RFC 8628) — headless/CI-friendly, no browser
+  redirect. Vendor specifics (endpoints, client id, scope) are BYO config
+  in `~/.clihub/auth-providers.json`; the token is written to the CLI's
+  native credential file (0600, atomic). Honours
+  `authorization_pending` / `slow_down`, bounded by the device-code
+  deadline. Security-reviewed: no token material logged, parent dir 0700,
+  provider strings sanitized before printing.
+
 ## [1.4.0] — clihub pack
 
 - `clihub pack <docker|brew|scoop> [--out file]` generates distribution

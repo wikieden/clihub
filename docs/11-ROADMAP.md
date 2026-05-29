@@ -114,10 +114,16 @@ infra-blocked items): [Unified OAuth](spec/03-OAUTH-FLOW.md),
 > so the contract is fixed; implementation lands when the dependency is
 > available.
 
-### v1.5 📋 — full unified auth
+### v1.5.0 ✅ — clihub auth login (Pillar IX)
 
-- `clihub auth login` → OAuth flow writing tokens into each CLI's native credentials file
-- Token-expiry recovery: re-auth UX on expired tokens
+- `clihub auth login <provider>` — OAuth 2.0 device grant (RFC 8628), BYO provider config in `~/.clihub/auth-providers.json`; token written to the CLI's native credential file (0600). Headless/CI-friendly, security-reviewed. See [`spec/03-OAUTH-FLOW.md`](spec/03-OAUTH-FLOW.md)
+
+## Later
+
+### 📋 — browser/PKCE login + auth refresh
+
+- `clihub auth login` PKCE/loopback variant for providers without device flow
+- `auth login --refresh` using a stored refresh_token
 - Managed **clihub Cloud** team backend remains optional (Phase-2 monetisation — see [`13-MONETIZATION.md`](13-MONETIZATION.md)); git-repo team sharing shipped in v1.2
 
 ### v1.6 📋 — more reach + IDE
