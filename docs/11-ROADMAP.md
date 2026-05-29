@@ -166,9 +166,13 @@ enterprise line later (see "Enterprise line" below).
 
 - +6 official MCP servers (postgres / sqlite / git / gitlab / slack / brave-search) — 14 total; + MCP integrity test
 
+### v1.16.0 ✅ — clihub init upgrade
+
+- `clihub init --from-installed` (infer tools + skills from this machine/project) + `--schema` (schema header + write clihub.schema.json)
+
 ## Planned (individual + newcomer — buildable now)
 
-### v1.16.0 📋 — more catalog + DX
+### v1.17.0 📋 — more catalog + DX
 
 - Grow catalog skills / MCP entries; ongoing newcomer-experience polish
 

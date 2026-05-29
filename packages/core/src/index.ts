@@ -305,6 +305,13 @@ export {
   type ChangeKind,
 } from './diff/index.js';
 export {
+  generateClihubYaml,
+  scaffoldFromInstalled,
+  type GenerateYamlOpts,
+  type ScaffoldOpts,
+  type Scaffold,
+} from './init/index.js';
+export {
   computeStatus,
   type ComplianceState,
   type StatusItem,

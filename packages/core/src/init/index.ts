@@ -1,0 +1,69 @@
+/**
+ * `clihub init` helpers (v1.16.0).
+ *
+ *   - generateClihubYaml(opts)     → a clihub.yaml document (pure string)
+ *   - scaffoldFromInstalled(opts)  → tools/skills inferred from this
+ *     machine (installed CLIs) + project (recommend), for `init --from-installed`
+ */
+import { listProviders } from '../tools/registry.js';
+import { recommend } from '../recommend/index.js';
+
+export interface GenerateYamlOpts {
+  profile?: string;
+  preset?: string;
+  tools?: string[];
+  skills?: string[];
+  /** Prepend a yaml-language-server schema reference comment. */
+  schema?: boolean;
+}
+
+export function generateClihubYaml(opts: GenerateYamlOpts = {}): string {
+  const tools = opts.tools && opts.tools.length > 0 ? opts.tools : ['claude-code'];
+  const skills = opts.skills ?? ['superpowers'];
+  const out: string[] = [];
+
+  if (opts.schema) out.push('# yaml-language-server: $schema=./clihub.schema.json');
+  out.push('version: 1');
+  if (opts.profile) out.push(`profile: ${opts.profile}`);
+
+  out.push('', 'tools:');
+  for (const t of tools) out.push(`  - ${t}`);
+
+  out.push('');
+  if (skills.length === 0) {
+    out.push('skills: []');
+  } else {
+    out.push('skills:');
+    for (const s of skills) out.push(`  - ${s}`);
+  }
+
+  out.push('');
+  if (opts.preset) out.push('presets:', `  - ${opts.preset}`);
+  else out.push('presets: []');
+
+  out.push('', 'mcp: []', 'plugins: []', '');
+  return out.join('\n');
+}
+
+export interface ScaffoldOpts {
+  cwd?: string;
+}
+
+export interface Scaffold {
+  tools: string[];
+  skills: string[];
+}
+
+/** Infer tools (installed CLIs) + skills (recommend) for this machine/project. */
+export async function scaffoldFromInstalled(opts: ScaffoldOpts = {}): Promise<Scaffold> {
+  const installed: string[] = [];
+  for (const p of listProviders()) {
+    if ((await p.detect()).installed) installed.push(p.id);
+  }
+  const tools = installed.length > 0 ? installed : ['claude-code'];
+
+  const recs = await recommend({ cwd: opts.cwd });
+  const skills = recs.filter((r) => r.kind === 'skill').slice(0, 6).map((r) => r.id);
+
+  return { tools, skills: skills.length > 0 ? skills : ['superpowers'] };
+}

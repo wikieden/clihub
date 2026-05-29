@@ -4,6 +4,15 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.16.0] — clihub init upgrade
+
+- `clihub init --from-installed` infers `tools` (the CLIs already on this
+  machine) and `skills` (from `recommend`) so the scaffolded `clihub.yaml`
+  fits your setup out of the box.
+- `clihub init --schema` adds a `# yaml-language-server: $schema=...` header
+  and writes `clihub.schema.json` for editor autocomplete.
+- core `generateClihubYaml` / `scaffoldFromInstalled` (reused, tested).
+
 ## [1.15.0] — grow the MCP catalog
 
 - Six more official MCP servers: `postgres`, `sqlite`, `git`, `gitlab`,

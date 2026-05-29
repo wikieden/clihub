@@ -1499,29 +1499,33 @@ cli
   .command('init', 'Scaffold a clihub.yaml in the current directory')
   .option('--profile <name>', 'Set the profile: field')
   .option('--preset <id>', 'Seed with a preset')
+  .option('--from-installed', 'Infer tools (installed CLIs) + skills (recommend) from this machine/project')
+  .option('--schema', 'Add a yaml-language-server schema header and write clihub.schema.json')
   .option('--force', 'Overwrite an existing clihub.yaml')
-  .action(async (opts: { profile?: string; preset?: string; force?: boolean }) => {
+  .action(async (opts: { profile?: string; preset?: string; fromInstalled?: boolean; schema?: boolean; force?: boolean }) => {
     const fsp = await import('node:fs/promises');
+    const { generateClihubYaml, scaffoldFromInstalled, clihubYamlSchemaJson } = await import('@clihub/core');
     const target = path.join(process.cwd(), 'clihub.yaml');
     const exists = await fsp.access(target).then(() => true).catch(() => false);
     if (exists && !opts.force) { err('clihub.yaml already exists (use --force to overwrite)'); process.exit(1); }
-    const lines = [
-      'version: 1',
-      ...(opts.profile ? [`profile: ${opts.profile}`] : []),
-      '',
-      'tools:',
-      '  - claude-code',
-      '',
-      'skills:',
-      '  - superpowers',
-      '',
-      ...(opts.preset ? ['presets:', `  - ${opts.preset}`, ''] : ['presets: []', '']),
-      'mcp: []',
-      'plugins: []',
-      '',
-    ];
-    await fsp.writeFile(target, lines.join('\n'), 'utf8');
+
+    let tools: string[] | undefined;
+    let skills: string[] | undefined;
+    if (opts.fromInstalled) {
+      await ensureProviders();
+      const scaffold = await scaffoldFromInstalled({ cwd: process.cwd() });
+      tools = scaffold.tools;
+      skills = scaffold.skills;
+      info(`inferred tools: ${tools.join(', ')}`);
+    }
+
+    const yaml = generateClihubYaml({ profile: opts.profile, preset: opts.preset, tools, skills, schema: opts.schema });
+    await fsp.writeFile(target, yaml, 'utf8');
     ok(`wrote ${target}`);
+    if (opts.schema) {
+      await fsp.writeFile(path.join(process.cwd(), 'clihub.schema.json'), clihubYamlSchemaJson(), 'utf8');
+      ok('wrote clihub.schema.json');
+    }
     info('edit it, then run `clihub apply --plan` to preview.');
   });
 
