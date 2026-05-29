@@ -31,3 +31,13 @@ test('preset ids are unique and the new dev presets are present', () => {
     expect(ids).toContain(id);
   }
 });
+
+test('every MCP entry is launchable (command or url) with a unique id', () => {
+  const mcp = load('mcp.json') as Array<{ id: string; command?: string; url?: string; supports?: Record<string, boolean> }>;
+  const ids = mcp.map((m) => m.id);
+  expect(new Set(ids).size).toBe(ids.length);
+  for (const m of mcp) {
+    expect({ id: m.id, launchable: Boolean(m.command || m.url) }).toEqual({ id: m.id, launchable: true });
+    expect(Object.keys(m.supports ?? {}).length).toBeGreaterThan(0);
+  }
+});

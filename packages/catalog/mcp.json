@@ -81,5 +81,76 @@
     "url": "https://mcp.deepwiki.com/mcp",
     "homepage": "https://deepwiki.com",
     "tags": ["docs", "remote", "http"]
+  },
+  {
+    "id": "postgres",
+    "name": "PostgreSQL",
+    "description": "Read-only SQL queries + schema inspection. Append your connection string as the last arg.",
+    "supports": { "claude-code": true, "codex": true, "kiro-cli": true, "gemini-cli": true },
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-postgres"],
+    "homepage": "https://github.com/modelcontextprotocol/servers/tree/main/src/postgres",
+    "tags": ["database", "postgres", "backend", "official"]
+  },
+  {
+    "id": "sqlite",
+    "name": "SQLite",
+    "description": "Query and inspect a local SQLite database. Append the db path as the last arg.",
+    "supports": { "claude-code": true, "codex": true, "kiro-cli": true, "gemini-cli": true },
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-sqlite"],
+    "homepage": "https://github.com/modelcontextprotocol/servers/tree/main/src/sqlite",
+    "tags": ["database", "sqlite", "official"]
+  },
+  {
+    "id": "git",
+    "name": "Git",
+    "description": "Read, search, and inspect a local git repository (log, diff, blame).",
+    "supports": { "claude-code": true, "codex": true, "kiro-cli": true, "gemini-cli": true },
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-git"],
+    "homepage": "https://github.com/modelcontextprotocol/servers/tree/main/src/git",
+    "tags": ["git", "vcs", "official"]
+  },
+  {
+    "id": "gitlab",
+    "name": "GitLab",
+    "description": "Issues, MRs, and file ops on GitLab via the official MCP GitLab server.",
+    "supports": { "claude-code": true, "codex": true, "kiro-cli": true, "gemini-cli": true },
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-gitlab"],
+    "env": {
+      "GITLAB_PERSONAL_ACCESS_TOKEN": "Personal access token with api scope",
+      "GITLAB_API_URL": "GitLab API base URL (defaults to https://gitlab.com/api/v4)"
+    },
+    "homepage": "https://github.com/modelcontextprotocol/servers/tree/main/src/gitlab",
+    "tags": ["gitlab", "git", "official"]
+  },
+  {
+    "id": "slack",
+    "name": "Slack",
+    "description": "Read channels, post messages, and search a Slack workspace.",
+    "supports": { "claude-code": true, "codex": true, "kiro-cli": true, "gemini-cli": true },
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-slack"],
+    "env": {
+      "SLACK_BOT_TOKEN": "Slack bot token (xoxb-...)",
+      "SLACK_TEAM_ID": "Slack team/workspace id"
+    },
+    "homepage": "https://github.com/modelcontextprotocol/servers/tree/main/src/slack",
+    "tags": ["slack", "collaboration", "official"]
+  },
+  {
+    "id": "brave-search",
+    "name": "Brave Search",
+    "description": "Web + local search via the Brave Search API.",
+    "supports": { "claude-code": true, "codex": true, "kiro-cli": true, "gemini-cli": true },
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+    "env": {
+      "BRAVE_API_KEY": "Brave Search API key"
+    },
+    "homepage": "https://github.com/modelcontextprotocol/servers/tree/main/src/brave-search",
+    "tags": ["search", "web", "official"]
   }
 ]

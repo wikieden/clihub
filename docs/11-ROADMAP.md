@@ -162,9 +162,13 @@ enterprise line later (see "Enterprise line" below).
 
 - Five new presets (`python` / `go` / `rust` / `research` / `devops`) — 8 total; + a catalog-integrity test (preset skill/tool ids must resolve)
 
+### v1.15.0 ✅ — grow the MCP catalog
+
+- +6 official MCP servers (postgres / sqlite / git / gitlab / slack / brave-search) — 14 total; + MCP integrity test
+
 ## Planned (individual + newcomer — buildable now)
 
-### v1.15.0 📋 — more catalog + DX
+### v1.16.0 📋 — more catalog + DX
 
 - Grow catalog skills / MCP entries; ongoing newcomer-experience polish
 

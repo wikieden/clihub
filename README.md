@@ -91,6 +91,8 @@ clihub rollback                        # restore the most recent snapshot
 
 **Skills**: 30 in the catalog — `superpowers`, `oh-my-claudecode`, `codegraph`, `tdd`, `review`, `frontend-design`, `api-design`, `database-migrations`, `caveman`, `lark-im`, `lark-doc`, `lark-wiki`, ... ([full list](packages/catalog/skills.json)).
 
+**MCP servers**: 14 — `filesystem`, `github`, `gitlab`, `postgres`, `sqlite`, `git`, `slack`, `brave-search`, `fetch`, `playwright`, `memory`, `sequential-thinking`, `context7`, `deepwiki` ([full list](packages/catalog/mcp.json)).
+
 **Presets** (8):
 - `starter` — Claude Code + 5 core skills (1-min setup).
 - `fullstack` — full-stack skills (frontend, backend, DB, review, security, git).

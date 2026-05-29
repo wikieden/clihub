@@ -4,6 +4,14 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.15.0] — grow the MCP catalog
+
+- Six more official MCP servers: `postgres`, `sqlite`, `git`, `gitlab`,
+  `slack`, `brave-search` (14 total). Improves `recommend` matches and the
+  `mcp add` menu.
+- MCP integrity test: every entry must be launchable (command or url),
+  declare `supports`, and have a unique id.
+
 ## [1.14.0] — grow the catalog
 
 - Five new batteries-included presets: `python`, `go`, `rust` (language
