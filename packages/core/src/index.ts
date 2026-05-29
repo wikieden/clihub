@@ -146,6 +146,26 @@ export {
   type ClihubYamlMeta,
 } from './clihubyaml/index.js';
 export {
+  parseClihubYaml,
+  type ClihubYamlConfig,
+  type YamlToolEntry,
+  type YamlSkillEntry,
+  type YamlMcpEntry,
+  type YamlPluginEntry,
+} from './clihubyaml/full.js';
+export {
+  planApply,
+  runApply,
+  generateLockfile,
+  writeLockfile,
+  readLockfile,
+  type PlanItem,
+  type PlanVerb,
+  type ApplyPlan,
+  type ApplyResult,
+  type Lockfile,
+} from './apply/index.js';
+export {
   recordVersion,
   readHistory,
   previousVersion,

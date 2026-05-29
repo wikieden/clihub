@@ -1298,6 +1298,108 @@ cli
     console.log(JSON.stringify(meta, null, 2));
   });
 
+// ─── init ─────────────────────────────────────────────────────────────
+cli
+  .command('init', 'Scaffold a clihub.yaml in the current directory')
+  .option('--profile <name>', 'Set the profile: field')
+  .option('--preset <id>', 'Seed with a preset')
+  .option('--force', 'Overwrite an existing clihub.yaml')
+  .action(async (opts: { profile?: string; preset?: string; force?: boolean }) => {
+    const fsp = await import('node:fs/promises');
+    const target = path.join(process.cwd(), 'clihub.yaml');
+    const exists = await fsp.access(target).then(() => true).catch(() => false);
+    if (exists && !opts.force) { err('clihub.yaml already exists (use --force to overwrite)'); process.exit(1); }
+    const lines = [
+      'version: 1',
+      ...(opts.profile ? [`profile: ${opts.profile}`] : []),
+      '',
+      'tools:',
+      '  - claude-code',
+      '',
+      'skills:',
+      '  - superpowers',
+      '',
+      ...(opts.preset ? ['presets:', `  - ${opts.preset}`, ''] : ['presets: []', '']),
+      'mcp: []',
+      'plugins: []',
+      '',
+    ];
+    await fsp.writeFile(target, lines.join('\n'), 'utf8');
+    ok(`wrote ${target}`);
+    info('edit it, then run `clihub apply --plan` to preview.');
+  });
+
+// ─── apply ────────────────────────────────────────────────────────────
+cli
+  .command('apply', 'Converge this machine to clihub.yaml')
+  .option('--plan', 'Show the diff without applying')
+  .option('--dry-run', 'Alias of --plan')
+  .action(async (opts: { plan?: boolean; dryRun?: boolean }) => {
+    const { findClihubYaml, parseClihubYaml, planApply, runApply, formatErrorMessage } = await import('@clihub/core');
+    const fsp = await import('node:fs/promises');
+    const file = await findClihubYaml();
+    if (!file) { err(formatErrorMessage('CLIHUB-E-600')); process.exit(1); }
+    const cfg = parseClihubYaml(await fsp.readFile(file, 'utf8'));
+
+    if (opts.plan || opts.dryRun) {
+      const plan = await planApply(cfg);
+      console.log(kleur.bold(`plan from ${file}:`));
+      for (const it of plan.items) {
+        const mark = it.verb === 'add' ? kleur.green('+')
+          : it.verb === 'upgrade' ? kleur.yellow('~')
+          : it.verb === 'missing' ? kleur.red('!')
+          : kleur.dim('=');
+        console.log(`  ${mark} ${it.kind} ${kleur.bold(it.id)}${it.detail ? kleur.dim(`  (${it.detail})`) : ''}`);
+      }
+      info(`${plan.add} add, ${plan.upgrade} upgrade, ${plan.skip} skip, ${plan.missing} missing`);
+      return;
+    }
+
+    info(`Applying ${file}...`);
+    const result = await runApply(cfg);
+    for (const d of result.done) ok(`${d.kind} ${d.id}${d.verb === 'skip' ? kleur.dim(' (already current)') : ''}`);
+    for (const f of result.failed) err(`${f.kind} ${f.id}: ${f.error}`);
+    if (result.failed.length > 0) process.exit(1);
+  });
+
+// ─── lock ─────────────────────────────────────────────────────────────
+cli
+  .command('lock', 'Generate clihub.lock.json from clihub.yaml')
+  .action(async () => {
+    const { findClihubYaml, parseClihubYaml, generateLockfile, writeLockfile, formatErrorMessage } = await import('@clihub/core');
+    const fsp = await import('node:fs/promises');
+    const file = await findClihubYaml();
+    if (!file) { err(formatErrorMessage('CLIHUB-E-600')); process.exit(1); }
+    const cfg = parseClihubYaml(await fsp.readFile(file, 'utf8'));
+    const lock = await generateLockfile(cfg, pkg.version);
+    const lockPath = path.join(path.dirname(file), 'clihub.lock.json');
+    await writeLockfile(lock, lockPath);
+    ok(`wrote ${lockPath}`);
+    info(`tools: ${Object.keys(lock.tools).length}, skills: ${Object.keys(lock.skills).length}, mcp: ${Object.keys(lock.mcp).length}, plugins: ${Object.keys(lock.plugins).length}`);
+  });
+
+// ─── install [--frozen] ───────────────────────────────────────────────
+cli
+  .command('install', 'Install from clihub.yaml (or clihub.lock.json with --frozen)')
+  .option('--frozen', 'Require clihub.lock.json and refuse drift')
+  .action(async (opts: { frozen?: boolean }) => {
+    const { findClihubYaml, parseClihubYaml, runApply, readLockfile, formatErrorMessage } = await import('@clihub/core');
+    const fsp = await import('node:fs/promises');
+    const file = await findClihubYaml();
+    if (!file) { err(formatErrorMessage('CLIHUB-E-600')); process.exit(1); }
+    const dir = path.dirname(file);
+    if (opts.frozen) {
+      const lock = await readLockfile(path.join(dir, 'clihub.lock.json'));
+      if (!lock) { err(formatErrorMessage('CLIHUB-E-604', 'clihub.lock.json missing; run `clihub lock` first')); process.exit(1); }
+      info(`Installing --frozen from clihub.lock.json (clihub ${lock.clihub})`);
+    }
+    const cfg = parseClihubYaml(await fsp.readFile(file, 'utf8'));
+    const result = await runApply(cfg);
+    for (const d of result.done) ok(`${d.kind} ${d.id}`);
+    for (const f of result.failed) err(`${f.kind} ${f.id}: ${f.error}`);
+    if (result.failed.length > 0) process.exit(1);
+  });
+
 // ─── default → TUI ────────────────────────────────────────────────────
 cli.command('', t('cli.title')).action(async () => {
   const { runTui } = await import('./tui/index.js');
