@@ -1297,7 +1297,8 @@ cli
   .command('auth <action> [key]', 'Auth & secrets (login | status | set | get | list | rm | backend)')
   .option('--reveal', 'For `get`: print the secret in plaintext (default: masked)')
   .option('--json', 'For `status`: output as JSON')
-  .action(async (action: string, key: string | undefined, opts: { reveal?: boolean; json?: boolean }) => {
+  .option('--refresh', 'For `login`: refresh using the stored refresh_token (no browser)')
+  .action(async (action: string, key: string | undefined, opts: { reveal?: boolean; json?: boolean; refresh?: boolean }) => {
     const {
       setSecret,
       getSecret,
@@ -1311,16 +1312,31 @@ cli
       startDeviceLogin,
       pollDeviceToken,
       writeNativeCredential,
+      refreshToken,
+      readNativeRefreshToken,
       defaultAuthProvidersPath,
     } = await import('@clihub/core');
 
     if (action === 'login') {
-      if (!key) { err('usage: clihub auth login <provider>  (provider id, e.g. claude-code)'); process.exit(1); }
+      if (!key) { err('usage: clihub auth login <provider> [--refresh]  (provider id, e.g. claude-code)'); process.exit(1); }
       const cfg = await getAuthProvider(key);
       if (!cfg) {
         err(`no auth config for "${key}". Add one to ${defaultAuthProvidersPath()}:`);
         console.log(kleur.dim(`  { "version": 1, "providers": { "${key}": { "deviceCodeUrl": "...", "tokenUrl": "...", "clientId": "...", "scope": "..." } } }`));
         process.exit(1);
+      }
+      if (opts.refresh) {
+        const rt = await readNativeRefreshToken(key);
+        if (!rt) { err(`no stored refresh_token for "${key}"; run \`clihub auth login ${key}\` first`); process.exit(1); }
+        try {
+          const token = await refreshToken(cfg, rt);
+          const file = await writeNativeCredential(key, token);
+          ok(`refreshed — wrote ${file}`);
+        } catch (e) {
+          err(e instanceof Error ? e.message : String(e));
+          process.exit(1);
+        }
+        return;
       }
       const device = await startDeviceLogin(cfg);
       // Strip terminal control chars from provider-supplied strings (defense-in-depth).

@@ -155,6 +155,48 @@ export async function pollDeviceToken(
   }
 }
 
+/** Exchange a refresh_token for a fresh access token (RFC 6749 §6). */
+export async function refreshToken(
+  cfg: AuthProviderConfig,
+  refreshTokenValue: string,
+  opts: AuthIoOpts = {},
+): Promise<TokenResult> {
+  const doFetch = opts.fetchImpl ?? fetch;
+  const now = opts.now ?? Date.now();
+  const res = await doFetch(cfg.tokenUrl, {
+    method: 'POST',
+    headers: FORM_HEADERS,
+    body: form({ grant_type: 'refresh_token', refresh_token: refreshTokenValue, client_id: cfg.clientId }),
+  });
+  const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok || typeof json.access_token !== 'string') {
+    const error = typeof json.error === 'string' ? json.error : `HTTP ${res.status}`;
+    throw new Error(`token refresh failed: ${error}`);
+  }
+  const expiresIn = typeof json.expires_in === 'number' ? json.expires_in : undefined;
+  return {
+    access_token: json.access_token,
+    // providers may rotate refresh tokens; keep the old one if none returned
+    refresh_token: typeof json.refresh_token === 'string' ? json.refresh_token : refreshTokenValue,
+    expires_at: expiresIn ? now + expiresIn * 1000 : undefined,
+    token_type: typeof json.token_type === 'string' ? json.token_type : undefined,
+    scope: typeof json.scope === 'string' ? json.scope : undefined,
+  };
+}
+
+/** Read the stored refresh_token from a CLI's native credential file. */
+export async function readNativeRefreshToken(tool: string, opts: AuthIoOpts = {}): Promise<string | undefined> {
+  const home = opts.home ?? os.homedir();
+  const file = credentialPath(tool, home);
+  if (!file) return undefined;
+  try {
+    const raw = JSON.parse(await fs.readFile(file, 'utf8')) as Record<string, unknown>;
+    return typeof raw.refresh_token === 'string' ? raw.refresh_token : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function credentialPath(tool: string, home: string): string | undefined {
   const source = CREDENTIAL_SOURCES.find((s) => s.tool === tool);
   if (!source) return undefined;

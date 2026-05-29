@@ -160,6 +160,8 @@ export {
   startDeviceLogin,
   pollDeviceToken,
   writeNativeCredential,
+  refreshToken,
+  readNativeRefreshToken,
   defaultAuthProvidersPath,
   type AuthProviderConfig,
   type AuthProvidersFile,

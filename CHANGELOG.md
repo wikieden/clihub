@@ -4,6 +4,14 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.6.0] — auth login --refresh
+
+- `clihub auth login <provider> --refresh` re-mints an access token from
+  the stored `refresh_token` (RFC 6749 §6 refresh grant) with no browser —
+  the token-expiry-recovery half of unified auth. Rotates the refresh
+  token when the provider returns a new one; rewrites the native
+  credential file (0600).
+
 ## [1.5.0] — clihub auth login
 
 - `clihub auth login <provider>` implements the OAuth 2.0 Device

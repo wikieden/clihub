@@ -122,7 +122,7 @@ clihub profile <create|use|list|current|rm|clone|show>
 clihub profile baseurl <set|unset|show>   point a profile at LiteLLM/Nyro
 clihub auth <set|get|list|rm|backend>      per-profile keychain secrets
 clihub auth status [--json]                cross-CLI login + token-expiry visibility
-clihub auth login <provider>               OAuth device-grant login (BYO provider config)
+clihub auth login <provider> [--refresh]   OAuth device-grant login / refresh stored token
 clihub proxy <set|unset|show|test>         HTTP/HTTPS/SOCKS5 + CA bundle
 clihub doctor [id] [--fix] [--check-network]
 clihub search <query>
@@ -207,8 +207,9 @@ bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't
 - **v1.2.0** ✅ — **`clihub team`**: share a reproducible toolchain through a plain git repo. `team add <name> <git-url>` clones it; `team push` commits your `clihub.yaml` / lock / memory / schema; `team use` pulls them into a project. No clihub backend.
 - **v1.3.0** ✅ — **`clihub auth status`**: cross-CLI login + token-expiry visibility (best-effort, read-only; never prints token contents).
 - **v1.4.0** ✅ — **`clihub pack`**: generate distribution manifests — `pack docker` / `pack brew` / `pack scoop`. Reach beyond npm.
-- **v1.5.0** ✅ (current, `@wikieden/clihub@1.5.0` on npm) — **`clihub auth login`**: OAuth 2.0 device-grant login (RFC 8628, headless/CI-friendly). Vendor-neutral — endpoints + client id are BYO config in `~/.clihub/auth-providers.json`; the token is written to the CLI's native credential file (0600). Security-reviewed (no token logging, atomic write, bounded poll).
-- **post-1.5** — browser/PKCE login variant, registry beta (`clihub.dev`), IDE thin clients.
+- **v1.5.0** ✅ — **`clihub auth login`**: OAuth 2.0 device-grant login (RFC 8628, headless/CI-friendly). Vendor-neutral BYO config; token written to the CLI's native credential file (0600). Security-reviewed.
+- **v1.6.0** ✅ (current, `@wikieden/clihub@1.6.0` on npm) — **`clihub auth login --refresh`**: token-expiry recovery via the RFC 6749 refresh-token grant — re-mint an access token from the stored `refresh_token` (rotated if the provider returns a new one), no browser. Completes the auth pillar.
+- **post-1.6** — browser/PKCE login variant, registry beta (`clihub.dev`), IDE thin clients.
 
 See [`docs/11-ROADMAP.md`](docs/11-ROADMAP.md) and [`docs/20-MARKET-RESEARCH.md`](docs/20-MARKET-RESEARCH.md).
 

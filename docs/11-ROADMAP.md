@@ -118,12 +118,15 @@ infra-blocked items): [Unified OAuth](spec/03-OAUTH-FLOW.md),
 
 - `clihub auth login <provider>` — OAuth 2.0 device grant (RFC 8628), BYO provider config in `~/.clihub/auth-providers.json`; token written to the CLI's native credential file (0600). Headless/CI-friendly, security-reviewed. See [`spec/03-OAUTH-FLOW.md`](spec/03-OAUTH-FLOW.md)
 
+### v1.6.0 ✅ — auth refresh (Pillar IX, completes unified-auth core)
+
+- `clihub auth login <provider> --refresh` — RFC 6749 refresh-token grant; re-mints an access token from the stored `refresh_token` (rotated if returned), no browser. Token-expiry recovery
+
 ## Later
 
-### 📋 — browser/PKCE login + auth refresh
+### 📋 — browser/PKCE login variant
 
-- `clihub auth login` PKCE/loopback variant for providers without device flow
-- `auth login --refresh` using a stored refresh_token
+- `clihub auth login` PKCE/loopback variant for providers without a device flow
 - Managed **clihub Cloud** team backend remains optional (Phase-2 monetisation — see [`13-MONETIZATION.md`](13-MONETIZATION.md)); git-repo team sharing shipped in v1.2
 
 ### v1.6 📋 — more reach + IDE
