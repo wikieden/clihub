@@ -142,6 +142,7 @@ clihub lock                                pin resolved versions to clihub.lock.
 clihub install [--frozen]                  install from clihub.yaml (or lockfile)
 clihub status [--json] [--strict]          check this machine vs clihub.lock.json (CI gate)
 clihub diff <a> [b]                        diff two clihub.lock.json (added/removed/upgraded)
+clihub mcp <list|add|remove> [id]          manage MCP servers across CLIs (Claude Code / Gemini)
 clihub schema [--out FILE]                  emit clihub.yaml JSON Schema (editor autocomplete)
 clihub ci [github|gitlab] [--out FILE]       generate a CI workflow that validates clihub.yaml
 clihub team <add|list|pull|use|push|rm>      share clihub config across a team via a git repo

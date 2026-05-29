@@ -154,11 +154,11 @@ enterprise line later (see "Enterprise line" below).
 
 - `clihub diff <a> [b]` — diffs two `clihub.lock.json` (added / removed / upgraded / downgraded tools + skills/mcp/plugins presence); `--json`. Read-only
 
+### v1.13.0 ✅ — unified MCP management
+
+- `clihub mcp <list|add|remove> [id]` across the JSON-`mcpServers` CLIs (Claude Code, Gemini CLI); catalog or inline `--command`/`--url`. Orchestrates JsonMcpAdapter
+
 ## Planned (individual + newcomer — buildable now)
-
-### v1.13.0 📋 — unified MCP management
-
-- `clihub mcp <list|add|remove>` across every installed CLI (gap-check vs current `apply` MCP support first)
 
 ### v1.14.0 📋 — grow the catalog
 

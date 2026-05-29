@@ -1813,6 +1813,49 @@ cli
     }
   });
 
+// ─── mcp <action> [id] ────────────────────────────────────────────────
+cli
+  .command('mcp <action> [id]', 'Manage MCP servers across CLIs (list | add | remove)')
+  .option('--command <cmd>', 'add: stdio command (for an MCP not in the catalog)')
+  .option('--url <url>', 'add: http/sse endpoint')
+  .option('--transport <t>', 'add: stdio | http | sse')
+  .action(async (action: string, id: string | undefined, opts: { command?: string; url?: string; transport?: string }) => {
+    await ensureProviders();
+    const { listMcp, addMcp, removeMcp } = await import('@clihub/core');
+    switch (action) {
+      case 'list': {
+        const rows = await listMcp();
+        if (rows.length === 0) { info('no JSON-MCP CLI installed (Claude Code / Gemini CLI).'); return; }
+        for (const r of rows) {
+          console.log(kleur.bold(r.tool) + (r.servers.length === 0 ? kleur.dim('  (none)') : ''));
+          for (const s of r.servers) console.log(`  ${kleur.cyan(s.id)}${s.command ? kleur.dim(`  ${s.command}`) : ''}`);
+        }
+        return;
+      }
+      case 'add': {
+        if (!id) { err('usage: clihub mcp add <id> [--command <cmd> | --url <url>] [--transport <t>]'); process.exit(1); }
+        const res = await addMcp(id, { command: opts.command, url: opts.url, transport: opts.transport as never });
+        for (const d of res.done) ok(d);
+        for (const f of res.failed) err(`${f.tool}: ${f.error}`);
+        if (res.done.length === 0 && res.failed.length === 0) info('no installed JSON-MCP CLI to add to.');
+        if (res.failed.length > 0) process.exit(1);
+        return;
+      }
+      case 'remove':
+      case 'rm': {
+        if (!id) { err('usage: clihub mcp remove <id>'); process.exit(1); }
+        const res = await removeMcp(id);
+        for (const d of res.done) ok(`removed ${d}`);
+        for (const f of res.failed) err(`${f.tool}: ${f.error}`);
+        if (res.failed.length > 0) process.exit(1);
+        return;
+      }
+      default:
+        err(`Unknown mcp action: ${action}. Valid: list | add | remove`);
+        process.exit(1);
+    }
+  });
+
 // ─── diff ─────────────────────────────────────────────────────────────
 cli
   .command('diff <a> [b]', 'Diff two clihub.lock.json files (b defaults to ./clihub.lock.json)')

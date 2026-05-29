@@ -4,6 +4,14 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.13.0] — clihub mcp
+
+- `clihub mcp <list|add|remove> [id]` manages MCP servers across the
+  JSON-`mcpServers` CLIs (Claude Code, Gemini CLI) in one command. `add`
+  resolves from the catalog or takes inline `--command` / `--url`
+  (`--transport`); `list` shows installed servers per CLI; `remove` clears
+  them. Orchestrates the same JsonMcpAdapter `clihub apply` uses.
+
 ## [1.12.0] — clihub diff
 
 - `clihub diff <a> [b]` diffs two `clihub.lock.json` files (b defaults to

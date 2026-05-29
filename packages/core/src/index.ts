@@ -59,6 +59,15 @@ export {
   type JsonMcpAdapterOpts,
 } from './mcp/index.js';
 export {
+  listMcp,
+  addMcp,
+  removeMcp,
+  type McpListRow,
+  type McpManageResult,
+  type McpManageOpts,
+  type AddMcpOpts,
+} from './mcp/manage.js';
+export {
   GitClonePluginAdapter,
   ClaudeCodePluginAdapter,
   type PluginAdapter,
