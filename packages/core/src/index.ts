@@ -143,6 +143,22 @@ export {
   parseTopLevelYaml,
   type ClihubYamlMeta,
 } from './clihubyaml/index.js';
+export {
+  recordVersion,
+  readHistory,
+  previousVersion,
+  defaultHistoryDir,
+  type VersionRecord,
+  type VersionHistory,
+  type HistoryIoOpts,
+} from './version/index.js';
+export {
+  auditSkills,
+  auditSkill,
+  type SkillRisk,
+  type SkillAuditEntry,
+  type SkillAuditOpts,
+} from './skill-audit/index.js';
 export { CatalogLoader, type Catalog } from './catalog/index.js';
 export {
   syncCatalog,

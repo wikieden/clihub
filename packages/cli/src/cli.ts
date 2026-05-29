@@ -144,20 +144,69 @@ cli
         return;
       }
       case 'install': {
-        if (!id) { err('id required: clihub tool install <id>'); process.exit(1); }
-        const provider = getProvider(id);
-        if (!provider) { err(t('cli.unknownCommand', { cmd: `tool install ${id}` })); process.exit(1); }
-        info(t('tool.install.start', { tool: id }));
+        if (!id) { err('id required: clihub tool install <id>[@version]'); process.exit(1); }
+        // Support `id@version` (e.g. claude-code@2.1.140). Scoped npm
+        // names have no leading @ here since `id` is a clihub tool id.
+        const at = id.lastIndexOf('@');
+        const toolId = at > 0 ? id.slice(0, at) : id;
+        const pinnedVersion = at > 0 ? id.slice(at + 1) : undefined;
+        const provider = getProvider(toolId);
+        if (!provider) { err(t('cli.unknownCommand', { cmd: `tool install ${toolId}` })); process.exit(1); }
+        info(t('tool.install.start', { tool: toolId }) + (pinnedVersion ? ` @${pinnedVersion}` : ''));
         if (opts.dryRun) {
-          info(t('tool.install.dryRun', { cmd: `${opts.method ?? 'npm'} install -g ${id}` }));
+          info(t('tool.install.dryRun', { cmd: `${opts.method ?? 'npm'} install -g ${toolId}${pinnedVersion ? `@${pinnedVersion}` : ''}` }));
           return;
         }
         try {
-          await provider.install({ method: opts.method as never, dryRun: false });
-          ok(t('tool.install.done', { tool: id }));
+          await provider.install({ method: opts.method as never, version: pinnedVersion, dryRun: false });
+          ok(t('tool.install.done', { tool: toolId }));
+          const { recordVersion, appendAudit } = await import('@clihub/core');
+          const det = await provider.detect();
+          const recorded = pinnedVersion ?? det.version ?? 'latest';
+          await recordVersion(toolId, { version: recorded, method: opts.method ?? 'npm' });
+          await appendAudit({ actor: 'cli', action: 'tool.install', tool: toolId, version: recorded });
         } catch (e) {
-          err(t('tool.install.failed', { tool: id, reason: String(e) }));
+          err(t('tool.install.failed', { tool: toolId, reason: String(e) }));
           process.exit(1);
+        }
+        return;
+      }
+      case 'rollback': {
+        if (!id) { err('id required: clihub tool rollback <id>'); process.exit(1); }
+        const provider = getProvider(id);
+        if (!provider) { err(t('cli.unknownCommand', { cmd: `tool rollback ${id}` })); process.exit(1); }
+        const { readHistory, previousVersion, recordVersion, appendAudit } = await import('@clihub/core');
+        const det = await provider.detect();
+        const history = await readHistory(id);
+        const target = previousVersion(history, det.version);
+        if (!target) {
+          err(`No prior version recorded for ${id}. clihub only knows versions it installed.`);
+          process.exit(1);
+        }
+        info(`Rolling ${id} back: ${det.version ?? '?'} → ${target}`);
+        try {
+          await provider.install({ method: opts.method as never, version: target, dryRun: false });
+          await recordVersion(id, { version: target, method: opts.method ?? 'npm', rolledBack: true });
+          await appendAudit({ actor: 'cli', action: 'tool.rollback', tool: id, from: det.version ?? null, to: target });
+          ok(`${id} rolled back to ${target}`);
+        } catch (e) {
+          err(`rollback failed: ${String(e)}`);
+          process.exit(1);
+        }
+        return;
+      }
+      case 'history': {
+        if (!id) { err('id required: clihub tool history <id>'); process.exit(1); }
+        const { readHistory } = await import('@clihub/core');
+        const history = await readHistory(id);
+        if (history.records.length === 0) {
+          info(`No version history for ${id}.`);
+          return;
+        }
+        console.log(kleur.bold(`${id} version history:`));
+        for (const r of history.records) {
+          const tag = r.rolledBack ? kleur.yellow(' (rollback)') : '';
+          console.log(`  ${r.version}  ${kleur.dim(r.at)}${tag}`);
         }
         return;
       }
@@ -181,7 +230,7 @@ cli
         return;
       }
       default:
-        err(`Unknown tool action: ${action}. Valid: list | install | uninstall | update`);
+        err(`Unknown tool action: ${action}. Valid: list | install | uninstall | update | rollback | history`);
         process.exit(1);
     }
   });
@@ -284,9 +333,13 @@ cli
 
 // ─── skill <action> [id] ──────────────────────────────────────────────
 cli
-  .command('skill <action> [id]', 'Manage skills  (list | install | uninstall)')
+  .command('skill <action> [id]', 'Manage skills  (list | install | uninstall | audit)')
   .option('--tool <tool>', 'Limit to a specific tool')
-  .action(async (action: string, id: string | undefined, opts: { tool?: string }) => {
+  .option('--loaded', 'For `list`: show skills actually on disk (default behaviour)')
+  .option('--by-cli', 'For `list`: group by CLI (default behaviour)')
+  .option('--permissions', 'For `list`/`audit`: flag shell / hooks / network / symlink risks')
+  .option('--json', 'For `audit`: machine-readable output')
+  .action(async (action: string, id: string | undefined, opts: { tool?: string; loaded?: boolean; byCli?: boolean; permissions?: boolean; json?: boolean }) => {
     switch (action) {
       case 'list': {
         const toolIds = opts.tool ? [opts.tool] : Object.keys(ADAPTERS);
@@ -302,11 +355,47 @@ cli
           if (installed.length === 0) continue;
           any = true;
           console.log(kleur.bold(`[${toolId}] ${t('skill.list.header')}`));
+          let riskMap: Record<string, string[]> = {};
+          if (opts.permissions) {
+            const { auditSkills } = await import('@clihub/core');
+            const audited = await auditSkills({ toolId });
+            riskMap = Object.fromEntries(audited.map((a) => [a.id, a.risks]));
+          }
           for (const s of installed) {
-            console.log(`  ${kleur.bold(s.id)}  ${s.name}  ${kleur.dim(s.version)}`);
+            const risks = riskMap[s.id];
+            const riskTag = risks && risks.length > 0 ? `  ${kleur.yellow(`⚠ ${risks.join(',')}`)}` : '';
+            console.log(`  ${kleur.bold(s.id)}  ${s.name}  ${kleur.dim(s.version)}${riskTag}`);
           }
         }
         if (!any) info(t('skill.list.empty'));
+        return;
+      }
+      case 'audit': {
+        const { auditSkills, auditSkill } = await import('@clihub/core');
+        if (id) {
+          const entry = await auditSkill(id, { toolId: opts.tool });
+          if (!entry) { err(`skill not found among installed: ${id}`); process.exit(1); }
+          if (opts.json) { console.log(JSON.stringify(entry, null, 2)); return; }
+          console.log(kleur.bold(`${entry.id} (${entry.toolId})`));
+          console.log(`  dir: ${kleur.dim(entry.dir)}`);
+          if (entry.risks.length === 0) { console.log(`  ${kleur.green('no flagged risks')}`); return; }
+          for (const r of entry.risks) {
+            console.log(`  ${kleur.yellow('⚠')} ${r}: ${kleur.dim(entry.evidence[r] ?? '')}`);
+          }
+          return;
+        }
+        const all = await auditSkills({ toolId: opts.tool });
+        if (opts.json) { console.log(JSON.stringify(all, null, 2)); return; }
+        const flagged = all.filter((a) => a.risks.length > 0);
+        if (all.length === 0) { info('no installed skills found'); return; }
+        console.log(kleur.bold(`Audited ${all.length} skill(s); ${flagged.length} flagged:`));
+        for (const a of flagged) {
+          console.log(`  ${kleur.bold(a.id)} ${kleur.dim(`[${a.toolId}]`)}  ${kleur.yellow(a.risks.join(', '))}`);
+          for (const r of a.risks) {
+            if (a.evidence[r]) console.log(`      ${kleur.dim(`${r}: ${a.evidence[r]}`)}`);
+          }
+        }
+        if (flagged.length === 0) console.log(`  ${kleur.green('nothing flagged')}`);
         return;
       }
       case 'install': {
@@ -347,7 +436,7 @@ cli
         return;
       }
       default:
-        err(`Unknown skill action: ${action}. Valid: list | install | uninstall`);
+        err(`Unknown skill action: ${action}. Valid: list | install | uninstall | audit`);
         process.exit(1);
     }
   });
