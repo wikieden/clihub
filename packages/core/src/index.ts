@@ -228,6 +228,31 @@ export {
   type SourcesIoOpts,
 } from './catalog/sources.js';
 export {
+  generateCatalogKeypair,
+  keyIdFor,
+  canonicalPayload,
+  signCatalogPayload,
+  verifyCatalogPayload,
+  type CatalogKeypair,
+  type SignablePayload,
+} from './catalog/signing.js';
+export {
+  defaultTrustPath,
+  readTrustStore,
+  addTrustedKey,
+  removeTrustedKey,
+  listTrustedKeys,
+  findTrustedKey,
+  type TrustedKey,
+  type TrustStore,
+  type TrustIoOpts,
+} from './catalog/trust.js';
+export {
+  signCatalogDir,
+  verifyCatalogSignature,
+  type CatalogSigStatus,
+} from './catalog/sync.js';
+export {
   syncCatalog,
   readCatalogManifest,
   verifyCatalog,

@@ -559,12 +559,19 @@ cli
 
 // ─── catalog <action> [arg1] [arg2] ───────────────────────────────────
 cli
-  .command('catalog <action> [arg1] [arg2]', 'Manage catalogs (sync | status | verify | add | remove | list | priority | sync-all)')
-  .action(async (action: string, arg1: string | undefined, arg2: string | undefined) => {
+  .command('catalog <action> [arg1] [arg2] [arg3]', 'Manage catalogs (sync | status | verify | add | remove | list | priority | sync-all | keygen | sign | trust)')
+  .option('--source <url>', 'trust add: bind the key to a catalog source URL prefix')
+  .action(async (action: string, arg1: string | undefined, arg2: string | undefined, arg3: string | undefined, opts: { source?: string }) => {
     const {
       syncCatalog,
       readCatalogManifest,
       verifyCatalog,
+      verifyCatalogSignature,
+      signCatalogDir,
+      generateCatalogKeypair,
+      addTrustedKey,
+      removeTrustedKey,
+      listTrustedKeys,
       defaultCatalogDir,
       DEFAULT_CATALOG_URL,
       addCatalogSource,
@@ -673,15 +680,80 @@ cli
       }
       case 'verify': {
         const bad = await verifyCatalog(dir);
-        if (bad.length === 0) {
-          ok('catalog checksums match manifest');
-          return;
-        }
-        err(`checksum mismatch: ${bad.join(', ')}`);
+        if (bad.length > 0) { err(`checksum mismatch: ${bad.join(', ')}`); process.exit(1); }
+        ok('catalog checksums match manifest');
+        const sig = await verifyCatalogSignature(dir);
+        if (!sig.signed) { warn(`signature: ${sig.reason}`); return; }
+        if (sig.valid) { ok(`signature valid (key ${sig.keyId})`); return; }
+        if (!sig.trusted) { warn(`signature: ${sig.reason}${sig.keyId ? ` (key ${sig.keyId})` : ''}`); return; }
+        err(`signature INVALID: ${sig.reason}${sig.keyId ? ` (key ${sig.keyId})` : ''}`);
         process.exit(1);
       }
+      // ── signing / trust ──
+      case 'keygen': {
+        const fsp = await import('node:fs/promises');
+        const out = arg1 ?? process.cwd();
+        const { publicKey, privateKey } = generateCatalogKeypair();
+        const priv = path.join(out, 'clihub-catalog.key');
+        const pub = path.join(out, 'clihub-catalog.pub');
+        await fsp.writeFile(priv, privateKey, { mode: 0o600 });
+        await fsp.writeFile(pub, publicKey, 'utf8');
+        ok(`private key → ${priv}  ${kleur.red('(keep secret, never commit)')}`);
+        ok(`public key  → ${pub}  (share + publish for users to trust)`);
+        return;
+      }
+      case 'sign': {
+        const keyFile = arg1;
+        if (!keyFile) { err('usage: clihub catalog sign <private-key.pem> [public-key.pem]'); process.exit(1); }
+        const fsp = await import('node:fs/promises');
+        const priv = await fsp.readFile(keyFile, 'utf8');
+        const pubFile = arg2 ?? keyFile.replace(/\.key$/, '.pub');
+        const pub = await fsp.readFile(pubFile, 'utf8').catch(() => priv);
+        try {
+          const { keyId } = await signCatalogDir(dir, priv, pub);
+          ok(`signed ${dir}/manifest.json (key ${keyId})`);
+        } catch (e) {
+          err(`sign failed: ${e instanceof Error ? e.message : String(e)}`);
+          process.exit(1);
+        }
+        return;
+      }
+      case 'trust': {
+        const sub = arg1;
+        if (sub === 'list') {
+          const keys = await listTrustedKeys();
+          if (keys.length === 0) { info('no trusted catalog keys. `catalog trust add <name> <pubkey> [source-url]`'); return; }
+          console.log(kleur.bold('Trusted catalog keys:'));
+          for (const k of keys) console.log(`  ${k.keyId}  ${kleur.bold(k.name)}${k.source ? kleur.dim(`  ${k.source}`) : ''}`);
+          return;
+        }
+        if (sub === 'rm' || sub === 'remove') {
+          if (!arg2) { err('usage: clihub catalog trust rm <name>'); process.exit(1); }
+          ok(await removeTrustedKey(arg2) ? `removed trusted key "${arg2}"` : `no trusted key named "${arg2}"`);
+          return;
+        }
+        if (sub === 'add') {
+          const name = arg2;
+          const pubFile = arg3;
+          if (!name || !pubFile) { err('usage: clihub catalog trust add <name> <pubkey.pem> [source-url]'); process.exit(1); }
+          const fsp = await import('node:fs/promises');
+          const pub = await fsp.readFile(pubFile, 'utf8');
+          try {
+            const entry = await addTrustedKey(name, pub, { source: opts.source });
+            ok(`trusted "${entry.name}" (key ${entry.keyId})${entry.source ? kleur.dim(` for ${entry.source}`) : ''}`);
+            if (!entry.source) info('tip: bind to a source with --source <url> so `catalog verify` matches it automatically.');
+          } catch (e) {
+            err(`trust failed: ${e instanceof Error ? e.message : String(e)}`);
+            process.exit(1);
+          }
+          return;
+        }
+        err('usage: clihub catalog trust <add|list|rm> ...');
+        process.exit(1);
+        return;
+      }
       default:
-        err(`Unknown catalog action: ${action}. Valid: sync | status | verify`);
+        err(`Unknown catalog action: ${action}. Valid: sync | status | verify | add | remove | list | priority | sync-all | keygen | sign | trust`);
         process.exit(1);
     }
   });

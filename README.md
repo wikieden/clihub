@@ -40,6 +40,7 @@ clihub solves all three:
 | Skill security audit | ✅ | ❌ | ❌ | ❌ | ❌ |
 | One memory source → every CLI's file | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Cross-machine E2E-encrypted config sync | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Signed catalogs (ed25519 supply-chain trust) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Interactive TUI onboarding | ✅ | ❌ | partial | ❌ | ❌ |
 | Single-binary distribution | npm | shell | npm | npm | CC plugin |
 
@@ -111,6 +112,10 @@ clihub preset apply <id>
 clihub catalog <sync|status|verify>
 clihub catalog add <name> <url>     federate an extra catalog source
 clihub catalog list|priority|sync-all
+clihub catalog keygen [dir]         ed25519 keypair for signing a catalog (publisher)
+clihub catalog sign <key> [pub]     sign the synced catalog manifest
+clihub catalog trust add <name> <pubkey> --source <url>   pin a publisher key
+clihub catalog trust list|rm        manage trusted publisher keys
 clihub profile <create|use|list|current|rm|clone|show>
 clihub profile baseurl <set|unset|show>   point a profile at LiteLLM/Nyro
 clihub auth <set|get|list|rm|backend>      per-profile keychain secrets
@@ -180,8 +185,9 @@ bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't
 - **v0.6** ✅ — multi-source **catalog federation** (`catalog add`), **Cursor + Goose** providers (6 CLIs total), **HTTP/SSE MCP** transport.
 - **v0.6.1** ✅ — `clihub apply --plan` / `lock` / `install --frozen` (full `clihub.yaml` schema + `clihub.lock.json`).
 - **v0.7** ✅ — **`clihub memory generate`**: one source (`clihub.memory.md` → `AGENTS.md` → `CLAUDE.md`) fans out to `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` / `.cursor/rules/*.mdc` / `.goosehints` / `.kiro/steering/*.md`, managed-block markers preserve hand-edits, `--check` for CI.
-- **v0.8** ✅ (current, `@wikieden/clihub@0.8.0` on npm) — **`clihub sync`**: cross-machine, end-to-end-encrypted config bundle (global config + catalog sources + profile metadata). scrypt + AES-256-GCM, passphrase-only, zero backend — move the bundle however you like.
-- **v0.9+** — sigstore-cosign catalog signing, provider SDK, OAuth unified flow.
+- **v0.8** ✅ — **`clihub sync`**: cross-machine, end-to-end-encrypted config bundle (global config + catalog sources + profile metadata). scrypt + AES-256-GCM, passphrase-only, zero backend — move the bundle however you like.
+- **v0.9** ✅ (current, `@wikieden/clihub@0.9.0` on npm) — **signed catalogs**: ed25519 `catalog keygen` / `sign` + a local trust store (`catalog trust add --source`). `catalog verify` checks both the sha256 checksums (integrity) and the publisher signature (authenticity) — a forged manifest can't be re-signed without the private key. Pure `node:crypto`, no cosign dependency.
+- **v0.10+** — provider SDK, OAuth unified flow, team lockfile push/pull.
 
 See [`docs/11-ROADMAP.md`](docs/11-ROADMAP.md) and [`docs/20-MARKET-RESEARCH.md`](docs/20-MARKET-RESEARCH.md).
 

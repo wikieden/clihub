@@ -20,6 +20,13 @@ import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import {
+  canonicalPayload,
+  signCatalogPayload,
+  verifyCatalogPayload,
+  keyIdFor,
+} from './signing.js';
+import { findTrustedKey, type TrustIoOpts } from './trust.js';
 
 /** Default remote URL — points at this repo's main branch raw catalog. */
 export const DEFAULT_CATALOG_URL =
@@ -49,6 +56,10 @@ export interface CatalogManifest {
   checksums: Partial<Record<CatalogFile, string>>;
   /** Optional version stamp from the upstream (commit SHA / tag). */
   version?: string;
+  /** Optional base64 ed25519 signature over the canonical payload. */
+  signature?: string;
+  /** Short id of the public key that produced `signature`. */
+  keyId?: string;
 }
 
 export interface SyncCatalogOpts {
@@ -150,4 +161,53 @@ export async function verifyCatalog(dir: string): Promise<string[]> {
 
 function ensureTrailingSlash(s: string): string {
   return s.endsWith('/') ? s : s + '/';
+}
+
+// ─── signing / authenticity ───────────────────────────────────────────
+
+/**
+ * Sign the manifest at `dir` with an ed25519 private key (publisher side).
+ * Writes `signature` + `keyId` back into manifest.json and returns the keyId.
+ */
+export async function signCatalogDir(
+  dir: string,
+  privateKeyPem: string,
+  publicKeyPem: string,
+): Promise<{ keyId: string; signature: string }> {
+  const manifest = await readCatalogManifest(dir);
+  if (!manifest) throw new Error(`no manifest.json in ${dir} (run \`clihub catalog sync\` first)`);
+  const payload = canonicalPayload(manifest);
+  const signature = signCatalogPayload(payload, privateKeyPem);
+  const keyId = keyIdFor(publicKeyPem);
+  const signed: CatalogManifest = { ...manifest, signature, keyId };
+  await fs.writeFile(path.join(dir, 'manifest.json'), JSON.stringify(signed, null, 2) + '\n', 'utf8');
+  return { keyId, signature };
+}
+
+export interface CatalogSigStatus {
+  /** Manifest carries a signature. */
+  signed: boolean;
+  /** A trusted key was found for this source/keyId. */
+  trusted: boolean;
+  /** Signature verified against the trusted key. */
+  valid: boolean;
+  keyId?: string;
+  reason?: string;
+}
+
+/**
+ * Verify the manifest signature at `dir` against the local trust store.
+ * Pure read — never mutates the catalog or trust store.
+ */
+export async function verifyCatalogSignature(dir: string, opts: TrustIoOpts = {}): Promise<CatalogSigStatus> {
+  const manifest = await readCatalogManifest(dir);
+  if (!manifest) return { signed: false, trusted: false, valid: false, reason: 'no manifest' };
+  if (!manifest.signature) return { signed: false, trusted: false, valid: false, reason: 'catalog is unsigned' };
+  const key = await findTrustedKey({ source: manifest.source, keyId: manifest.keyId }, opts);
+  if (!key) {
+    return { signed: true, trusted: false, valid: false, keyId: manifest.keyId, reason: 'no trusted key for this source — run `clihub catalog trust add`' };
+  }
+  const payload = canonicalPayload(manifest);
+  const valid = verifyCatalogPayload(payload, manifest.signature, key.publicKey);
+  return { signed: true, trusted: true, valid, keyId: manifest.keyId, reason: valid ? undefined : 'signature does not match the trusted key' };
 }
