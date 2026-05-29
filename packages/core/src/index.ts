@@ -91,6 +91,28 @@ export {
   type ClihubError,
   type ClihubErrorCode,
 } from './errors/index.js';
+export {
+  createProfile,
+  useProfile,
+  listProfiles,
+  currentProfile,
+  removeProfile,
+  cloneProfile,
+  readProfileMeta,
+  writeProfileMeta,
+  profileEnvVector,
+  validateProfileName,
+  defaultProfilesRoot,
+  currentProfileLink,
+  PROFILE_VENDORS,
+  type ProfileMeta,
+  type ProfileBaseUrls,
+  type CreateProfileOpts,
+  type UseProfileOpts,
+  type UseProfileResult,
+  type ProfileRootOpts,
+  type VendorId,
+} from './profile/index.js';
 export { CatalogLoader, type Catalog } from './catalog/index.js';
 export {
   syncCatalog,

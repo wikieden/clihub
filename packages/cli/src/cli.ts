@@ -638,6 +638,122 @@ cli
     }
   });
 
+// ─── profile ──────────────────────────────────────────────────────────
+cli
+  .command(
+    'profile <action> [arg1] [arg2]',
+    'Manage profiles (list | current | create | use | rm | clone | show)',
+  )
+  .option('--empty', 'For `create`: skip snapshotting host state, start blank')
+  .option('--from <name>', 'For `create`: clone from another profile')
+  .option('--force', 'For `use`: also archive existing real vendor dirs')
+  .action(async (
+    action: string,
+    arg1: string | undefined,
+    arg2: string | undefined,
+    opts: { empty?: boolean; from?: string; force?: boolean },
+  ) => {
+    const {
+      createProfile,
+      useProfile,
+      listProfiles,
+      currentProfile,
+      removeProfile,
+      cloneProfile,
+      readProfileMeta,
+    } = await import('@clihub/core');
+
+    switch (action) {
+      case 'list': {
+        const names = await listProfiles();
+        const active = await currentProfile();
+        if (names.length === 0) {
+          info('No profiles. Run `clihub profile create <name>` to start.');
+          return;
+        }
+        for (const n of names) {
+          const marker = n === active ? kleur.green('●') : kleur.dim('○');
+          console.log(`  ${marker} ${n}${n === active ? kleur.dim(' (active)') : ''}`);
+        }
+        return;
+      }
+      case 'current': {
+        const active = await currentProfile();
+        if (!active) {
+          info('No profile active.');
+          return;
+        }
+        console.log(active);
+        return;
+      }
+      case 'create': {
+        if (!arg1) { err('usage: clihub profile create <name> [--from <name>] [--empty]'); process.exit(1); }
+        try {
+          const meta = await createProfile(arg1, {
+            cloneFrom: opts.from,
+            empty: opts.empty,
+          });
+          ok(`profile "${meta.name}" created`);
+        } catch (e) {
+          err(String(e));
+          process.exit(1);
+        }
+        return;
+      }
+      case 'use': {
+        if (!arg1) { err('usage: clihub profile use <name>'); process.exit(1); }
+        try {
+          const result = await useProfile(arg1, { force: opts.force });
+          ok(`profile "${result.profile.name}" activated`);
+          if (result.archived.length > 0) {
+            info('archived (pre-existing) vendor dirs:');
+            for (const a of result.archived) console.log(`    ${a}`);
+          }
+        } catch (e) {
+          err(String(e));
+          process.exit(1);
+        }
+        return;
+      }
+      case 'rm': {
+        if (!arg1) { err('usage: clihub profile rm <name>'); process.exit(1); }
+        try {
+          await removeProfile(arg1);
+          ok(`profile "${arg1}" removed`);
+        } catch (e) {
+          err(String(e));
+          process.exit(1);
+        }
+        return;
+      }
+      case 'clone': {
+        if (!arg1 || !arg2) { err('usage: clihub profile clone <src> <dest>'); process.exit(1); }
+        try {
+          const meta = await cloneProfile(arg1, arg2);
+          ok(`profile "${arg1}" cloned → "${meta.name}"`);
+        } catch (e) {
+          err(String(e));
+          process.exit(1);
+        }
+        return;
+      }
+      case 'show': {
+        if (!arg1) { err('usage: clihub profile show <name>'); process.exit(1); }
+        try {
+          const meta = await readProfileMeta(arg1);
+          console.log(JSON.stringify(meta, null, 2));
+        } catch (e) {
+          err(String(e));
+          process.exit(1);
+        }
+        return;
+      }
+      default:
+        err(`Unknown profile action: ${action}. Valid: list | current | create | use | rm | clone | show`);
+        process.exit(1);
+    }
+  });
+
 // ─── proxy ────────────────────────────────────────────────────────────
 cli
   .command('proxy <action> [url]', 'Manage proxy + CA bundle  (set | unset | show | test)')
