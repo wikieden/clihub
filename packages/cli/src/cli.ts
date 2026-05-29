@@ -1684,6 +1684,23 @@ cli
     }
   });
 
+// ─── schema ───────────────────────────────────────────────────────────
+cli
+  .command('schema', 'Emit the clihub.yaml JSON Schema (for editor autocomplete + validation)')
+  .option('--out <file>', 'Write to a file instead of stdout (e.g. clihub.schema.json)')
+  .action(async (opts: { out?: string }) => {
+    const { clihubYamlSchemaJson } = await import('@clihub/core');
+    const json = clihubYamlSchemaJson();
+    if (opts.out) {
+      const fsp = await import('node:fs/promises');
+      await fsp.writeFile(opts.out, json, 'utf8');
+      ok(`wrote ${opts.out}`);
+      info('add to clihub.yaml line 1:  # yaml-language-server: $schema=./' + path.basename(opts.out));
+    } else {
+      process.stdout.write(json);
+    }
+  });
+
 // ─── default → TUI ────────────────────────────────────────────────────
 cli.command('', t('cli.title')).action(async () => {
   const { runTui } = await import('./tui/index.js');

@@ -214,6 +214,11 @@ export {
   type ApplyRestoreOpts,
 } from './sync/index.js';
 export {
+  clihubYamlSchema,
+  clihubYamlSchemaJson,
+  CLIHUB_YAML_SCHEMA_ID,
+} from './schema/index.js';
+export {
   computeStatus,
   type ComplianceState,
   type StatusItem,

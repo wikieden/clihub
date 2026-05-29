@@ -133,6 +133,7 @@ clihub apply [--plan]                      converge this machine to clihub.yaml
 clihub lock                                pin resolved versions to clihub.lock.json
 clihub install [--frozen]                  install from clihub.yaml (or lockfile)
 clihub status [--json] [--strict]          check this machine vs clihub.lock.json (CI gate)
+clihub schema [--out FILE]                  emit clihub.yaml JSON Schema (editor autocomplete)
 clihub memory <generate|plan> [--user] [--all] [--check]   one source → every CLI's memory file
 clihub sync export [--out FILE]            E2E-encrypted config bundle (profiles + sources + config)
 clihub sync import <FILE> [--plan]         restore on another machine (passphrase-protected)
@@ -195,7 +196,8 @@ bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't
 - **v0.9** ✅ — **signed catalogs**: ed25519 `catalog keygen` / `sign` + a local trust store (`catalog trust add --source`). `catalog verify` checks both the sha256 checksums (integrity) and the publisher signature (authenticity) — a forged manifest can't be re-signed without the private key. Pure `node:crypto`, no cosign dependency.
 - **v0.10** ✅ — **declarative provider SDK**: teach clihub a new AI CLI with a JSON spec (`~/.clihub/providers.json` or a catalog's `providers.json`) — detection + npm/bun/brew install with no code or fork. `provider list|add|remove`. Shell-command installs are gated behind `--allow-scripts`; built-in providers can't be shadowed.
 - **v0.11** ✅ (current, `@wikieden/clihub@0.11.0` on npm) — **`clihub status`**: compliance gate that diffs this machine against the pinned `clihub.lock.json` (ok / drift / missing / unlocked). `--json` for dashboards, `--strict` to fail CI when a teammate drifts off the agreed toolchain.
-- **v0.12+** — OAuth unified flow, team lockfile push/pull.
+- **v0.12** ✅ (current, `@wikieden/clihub@0.12.0` on npm) — **`clihub schema`**: emit a draft-07 JSON Schema for `clihub.yaml` so editors (yaml-language-server) give autocomplete + inline validation. `--out clihub.schema.json`, then `# yaml-language-server: $schema=./clihub.schema.json`.
+- **v0.13+** — OAuth unified flow, team lockfile push/pull.
 
 See [`docs/11-ROADMAP.md`](docs/11-ROADMAP.md) and [`docs/20-MARKET-RESEARCH.md`](docs/20-MARKET-RESEARCH.md).
 
