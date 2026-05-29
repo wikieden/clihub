@@ -9,7 +9,8 @@
   "scripts": {
     "build": "bun run --filter '*' build",
     "typecheck": "bun run --filter '*' typecheck",
-    "test": "bash scripts/test-install.sh",
+    "test": "bun test packages/core/test",
+    "test:install": "bash scripts/test-install.sh",
     "cli": "bun packages/cli/src/cli.ts"
   },
   "devDependencies": {

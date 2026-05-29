@@ -20,6 +20,17 @@ jobs:
       - run: bun run --filter '@clihub/core' typecheck
       - run: bun run --filter '@wikieden/clihub' typecheck
 
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun test packages/core/test
+
   build:
     name: Build dist
     runs-on: ubuntu-latest
