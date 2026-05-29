@@ -148,6 +148,13 @@ export {
   type KeychainInfo,
 } from './auth/keychain.js';
 export {
+  inspectCredentials,
+  CREDENTIAL_SOURCES,
+  type CredentialSource,
+  type CredentialStatus,
+  type InspectOpts,
+} from './auth/credentials.js';
+export {
   appendAudit,
   defaultAuditPath,
   setAuditBestEffort,

@@ -90,22 +90,25 @@ schema v1, `clihub.lock.json` v1, the `@clihub/core` public API, and the
 
 - `clihub team <add|list|pull|use|push|rm>` shares a reproducible toolchain through a plain git repo (cloned into `~/.clihub/team/<name>`). `push` commits `clihub.yaml` / `clihub.lock.json` / `clihub.memory.md` / `clihub.schema.json`; `use` pulls them into a project. No clihub-specific backend
 
+### v1.3.0 ✅ — auth status (Pillar IX, first slice)
+
+- `clihub auth status [--json]` — cross-CLI login + token-expiry visibility (best-effort, read-only read of each CLI's credential file; never prints token contents). Addresses GH #33811 / #34306 visibility
+
 ## Next
 
-### v1.3 📋 — unified auth
+### v1.4 📋 — full unified auth
 
-- Unified OAuth flow → token routed into each CLI's native credentials file
-- OAuth token-expiry recovery: detect expired tokens, surface re-auth UX (GH #33811 / #34306)
-- `clihub auth login` across providers; keychain-backed refresh
-- Managed **clihub Cloud** team backend remains optional (Phase-2 monetisation — see [`13-MONETIZATION.md`](13-MONETIZATION.md)); git-repo team sharing already shipped in v1.2
+- `clihub auth login` → OAuth flow writing tokens into each CLI's native credentials file
+- Token-expiry recovery: re-auth UX on expired tokens
+- Managed **clihub Cloud** team backend remains optional (Phase-2 monetisation — see [`13-MONETIZATION.md`](13-MONETIZATION.md)); git-repo team sharing shipped in v1.2
 
-### v1.4 📋 — reach + IDE
+### v1.5 📋 — reach + IDE
 
 - `winget` / `scoop` packaging; Docker image
 - VS Code / JetBrains thin clients hitting `@clihub/core`
 - `docs/spec/*` RFC drafts (SKILL.md, MCP-MANIFEST, PLUGIN.json, LockFile, Catalog)
 
-### v1.5 📋 — registry beta (Pillar VII)
+### v1.6 📋 — registry beta (Pillar VII)
 
 - `clihub.dev` registry beta (npm-style publish, no PR)
 - `clihub-compatible` badge + automated compat test suite

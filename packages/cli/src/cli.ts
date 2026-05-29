@@ -1294,9 +1294,10 @@ cli
 
 // ─── auth ─────────────────────────────────────────────────────────────
 cli
-  .command('auth <action> [key]', 'Manage per-profile secrets (set | get | list | rm | backend)')
+  .command('auth <action> [key]', 'Manage per-profile secrets (set | get | list | rm | backend | status)')
   .option('--reveal', 'For `get`: print the secret in plaintext (default: masked)')
-  .action(async (action: string, key: string | undefined, opts: { reveal?: boolean }) => {
+  .option('--json', 'For `status`: output as JSON')
+  .action(async (action: string, key: string | undefined, opts: { reveal?: boolean; json?: boolean }) => {
     const {
       setSecret,
       getSecret,
@@ -1305,11 +1306,27 @@ cli
       currentKeychain,
       currentProfile: currentProfileFn,
       appendAudit,
+      inspectCredentials,
     } = await import('@clihub/core');
 
     if (action === 'backend') {
       const info = await currentKeychain();
       console.log(`${info.backend}  ${kleur.dim(info.detail)}`);
+      return;
+    }
+
+    if (action === 'status') {
+      const rows = await inspectCredentials();
+      if (opts.json) { console.log(JSON.stringify(rows, null, 2)); return; }
+      for (const r of rows) {
+        if (!r.found) { console.log(`  ${kleur.dim('·')} ${r.label} ${kleur.dim('— no credential file found')}`); continue; }
+        const mark = r.expired ? kleur.red('✗') : kleur.green('✓');
+        const exp = r.expiresAt
+          ? (r.expired ? kleur.red(`expired ${r.expiresAt}`) : kleur.dim(`expires ${r.expiresAt}`))
+          : kleur.dim(`logged in (since ${r.modified})`);
+        console.log(`  ${mark} ${r.label}  ${exp}`);
+      }
+      info('best-effort read of each CLI\'s credential file; "no file" ≠ logged out. Re-auth with that CLI\'s own login.');
       return;
     }
 
@@ -1365,7 +1382,7 @@ cli
         return;
       }
       default:
-        err(`Unknown auth action: ${action}. Valid: set | get | list | rm | backend`);
+        err(`Unknown auth action: ${action}. Valid: set | get | list | rm | backend | status`);
         process.exit(1);
     }
   });

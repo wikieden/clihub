@@ -4,6 +4,14 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.3.0] — clihub auth status
+
+- `clihub auth status [--json]` reports cross-CLI login + token-expiry
+  visibility — a best-effort, read-only inspection of each CLI's
+  credential file (Claude Code / Codex / Gemini), showing logged-in /
+  expiring / expired without printing token contents. First slice of
+  unified auth (GH #33811 / #34306); a full OAuth login flow follows.
+
 ## [1.2.0] — clihub team
 
 - `clihub team <add|list|pull|use|push|rm>` shares a reproducible

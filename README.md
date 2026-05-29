@@ -121,6 +121,7 @@ clihub catalog trust list|rm        manage trusted publisher keys
 clihub profile <create|use|list|current|rm|clone|show>
 clihub profile baseurl <set|unset|show>   point a profile at LiteLLM/Nyro
 clihub auth <set|get|list|rm|backend>      per-profile keychain secrets
+clihub auth status [--json]                cross-CLI login + token-expiry visibility
 clihub proxy <set|unset|show|test>         HTTP/HTTPS/SOCKS5 + CA bundle
 clihub doctor [id] [--fix] [--check-network]
 clihub search <query>
@@ -201,8 +202,9 @@ bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't
 - **v0.12** ✅ — **`clihub schema`**: emit a draft-07 JSON Schema for `clihub.yaml` so editors (yaml-language-server) give autocomplete + inline validation.
 - **v1.0.0** ✅ — **stable**. Frozen surface: `clihub.yaml` schema v1, `clihub.lock.json` v1, `@clihub/core` public API, and the `clihub` command set. See [`CHANGELOG.md`](CHANGELOG.md).
 - **v1.1.0** ✅ — **`clihub ci`**: generate a GitHub Actions / GitLab workflow that validates `clihub.yaml` on every push (with commented opt-ins for memory `--check` and `status --strict`).
-- **v1.2.0** ✅ (current, `@wikieden/clihub@1.2.0` on npm) — **`clihub team`**: share a reproducible toolchain through a plain git repo. `team add <name> <git-url>` clones it; `team push` commits your `clihub.yaml` / lock / memory / schema; `team use` pulls them into a project. No clihub backend — sign the catalog for authenticity, keep secrets in the keychain.
-- **post-1.2** — unified OAuth flow, winget/scoop/Docker reach, registry beta.
+- **v1.2.0** ✅ — **`clihub team`**: share a reproducible toolchain through a plain git repo. `team add <name> <git-url>` clones it; `team push` commits your `clihub.yaml` / lock / memory / schema; `team use` pulls them into a project. No clihub backend.
+- **v1.3.0** ✅ (current, `@wikieden/clihub@1.3.0` on npm) — **`clihub auth status`**: cross-CLI login + token-expiry visibility. Best-effort read of each CLI's credential file (Claude Code / Codex / Gemini) — shows logged-in / expiring / expired at a glance, never prints token contents. (First slice of unified auth; a full OAuth login flow follows.)
+- **post-1.3** — full OAuth login flow, winget/scoop/Docker reach, registry beta.
 
 See [`docs/11-ROADMAP.md`](docs/11-ROADMAP.md) and [`docs/20-MARKET-RESEARCH.md`](docs/20-MARKET-RESEARCH.md).
 
