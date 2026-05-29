@@ -1452,6 +1452,7 @@ cli
 cli
   .command('lock', 'Generate clihub.lock.json from clihub.yaml')
   .action(async () => {
+    await ensureProviders();
     const { findClihubYaml, parseClihubYaml, generateLockfile, writeLockfile, formatErrorMessage } = await import('@clihub/core');
     const fsp = await import('node:fs/promises');
     const file = await findClihubYaml();
@@ -1592,6 +1593,40 @@ cli
     }
     for (const f of result.failed) err(`${f.tool} ${f.path}: ${f.error}`);
     if (result.failed.length > 0) process.exit(1);
+  });
+
+// ─── status ───────────────────────────────────────────────────────────
+cli
+  .command('status', 'Check this machine against clihub.lock.json (CI compliance gate)')
+  .option('--json', 'Output the report as JSON')
+  .option('--strict', 'Exit non-zero if not compliant (drift or missing)')
+  .action(async (opts: { json?: boolean; strict?: boolean }) => {
+    await ensureProviders();
+    const { findClihubYaml, parseClihubYaml, readLockfile, computeStatus, formatErrorMessage } = await import('@clihub/core');
+    const fsp = await import('node:fs/promises');
+    const file = await findClihubYaml();
+    if (!file) { err(formatErrorMessage('CLIHUB-E-600')); process.exit(1); }
+    const cfg = parseClihubYaml(await fsp.readFile(file, 'utf8'));
+    const lock = await readLockfile(path.join(path.dirname(file), 'clihub.lock.json'));
+    const report = await computeStatus(cfg, lock);
+
+    if (opts.json) {
+      console.log(JSON.stringify(report, null, 2));
+    } else {
+      if (!report.lockfile) warn('no clihub.lock.json — run `clihub lock` to pin versions for precise checks');
+      for (const it of report.items) {
+        const mark = it.state === 'ok' ? kleur.green('✓')
+          : it.state === 'drift' ? kleur.yellow('~')
+          : it.state === 'missing' ? kleur.red('✗')
+          : kleur.dim('·');
+        const ver = it.state === 'drift' ? kleur.dim(`  ${it.actual} → ${it.locked}`)
+          : it.locked || it.actual ? kleur.dim(`  ${it.locked ?? it.actual}`) : '';
+        console.log(`  ${mark} ${it.kind} ${kleur.bold(it.id)}${ver}${it.detail ? kleur.dim(`  (${it.detail})`) : ''}`);
+      }
+      info(`${report.ok} ok, ${report.drift} drift, ${report.missing} missing, ${report.unlocked} unlocked`);
+      if (report.compliant) ok('compliant with clihub.lock.json'); else warn('NOT compliant — run `clihub install --frozen` to converge');
+    }
+    if (opts.strict && !report.compliant) process.exit(1);
   });
 
 // ─── provider <action> [arg] ──────────────────────────────────────────

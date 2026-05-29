@@ -214,6 +214,12 @@ export {
   type ApplyRestoreOpts,
 } from './sync/index.js';
 export {
+  computeStatus,
+  type ComplianceState,
+  type StatusItem,
+  type StatusReport,
+} from './status/index.js';
+export {
   recordVersion,
   readHistory,
   previousVersion,
