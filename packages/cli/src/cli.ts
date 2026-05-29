@@ -891,7 +891,7 @@ cli
 cli
   .command(
     'profile <action> [arg1] [arg2]',
-    'Manage profiles (list | current | create | use | rm | clone | show)',
+    'Manage profiles (list | current | create | use | rm | clone | show | baseurl | hook)',
   )
   .option('--empty', 'For `create`: skip snapshotting host state, start blank')
   .option('--from <name>', 'For `create`: clone from another profile')
@@ -945,6 +945,17 @@ cli
           ok(`profile "${meta.name}" created`);
         } catch (e) {
           err(String(e));
+          process.exit(1);
+        }
+        return;
+      }
+      case 'hook': {
+        if (!arg1) { err('usage: clihub profile hook <bash|zsh|fish>'); process.exit(1); }
+        const { profileHook } = await import('@clihub/core');
+        try {
+          process.stdout.write(profileHook(arg1 as 'bash' | 'zsh' | 'fish'));
+        } catch (e) {
+          err(e instanceof Error ? e.message : String(e));
           process.exit(1);
         }
         return;

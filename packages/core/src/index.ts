@@ -138,6 +138,10 @@ export {
   type ApplyBaseUrlsOpts,
 } from './profile/baseurls.js';
 export {
+  profileHook,
+  type HookShell,
+} from './profile/hook.js';
+export {
   setSecret,
   getSecret,
   removeSecret,

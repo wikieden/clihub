@@ -4,6 +4,14 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.11.0] — profile shell hook
+
+- `clihub profile hook <bash|zsh|fish>` emits a shell hook that auto-runs
+  `clihub profile use <name>` when you `cd` into a directory whose
+  `clihub.yaml` names a `profile:` (tracked via `CLIHUB_ACTIVE_PROFILE`,
+  read with sed — no clihub spawn per prompt). Completes the v0.5.2
+  deferred per-project auto-switch.
+
 ## [1.10.0] — clihub recommend
 
 - `clihub recommend [--json]` suggests skills / presets / MCP from two

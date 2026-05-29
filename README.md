@@ -124,6 +124,7 @@ clihub catalog trust add <name> <pubkey> --source <url>   pin a publisher key
 clihub catalog trust list|rm        manage trusted publisher keys
 clihub profile <create|use|list|current|rm|clone|show>
 clihub profile baseurl <set|unset|show>   point a profile at LiteLLM/Nyro
+clihub profile hook <bash|zsh|fish>        auto-switch profile per dir's clihub.yaml on cd
 clihub auth <set|get|list|rm|backend>      per-profile keychain secrets
 clihub auth status [--json]                cross-CLI login + token-expiry visibility
 clihub auth login <provider> [--browser|--refresh]   OAuth login (device grant / PKCE browser / refresh)

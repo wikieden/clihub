@@ -146,11 +146,11 @@ enterprise line later (see "Enterprise line" below).
 
 - `clihub recommend [--json]` — suggests skills / presets / MCP from installed CLIs + project signals (cwd files → tags); each with a reason + ready command. Read-only/advisory
 
+### v1.11.0 ✅ — profile shell hook
+
+- `clihub profile hook <bash|zsh|fish>` — auto-activates the profile named in a directory's `clihub.yaml` on `cd` (completes the v0.5.2 deferred auto-switch)
+
 ## Planned (individual + newcomer — buildable now)
-
-### v1.11.0 📋 — personal multi-account ergonomics
-
-- `clihub profile hook <bash|zsh|fish>` — auto-activate the profile named in a directory's `clihub.yaml` on `cd` (completes the v0.5.2 deferred auto-switch)
 
 ### v1.12.0 📋 — quality of life
 
