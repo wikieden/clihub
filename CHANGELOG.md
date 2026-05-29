@@ -4,6 +4,15 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.10.0] — clihub recommend
+
+- `clihub recommend [--json]` suggests skills / presets / MCP from two
+  read-only signals: which CLIs are installed + what the current project
+  looks like (cwd files → tags: frontend / python / docker / git / ...).
+  Each suggestion carries a reason and a ready-to-run command. Advisory
+  and non-writing. (MCP items point at the TUI until `clihub mcp install`
+  lands in v1.12.)
+
 ## [1.9.0] — onboarding polish + quality pass
 
 Individual/newcomer-focused line.

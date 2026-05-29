@@ -278,6 +278,13 @@ export {
   type ConformanceReport,
 } from './conformance/index.js';
 export {
+  recommend,
+  detectProjectSignals,
+  type Recommendation,
+  type RecommendKind,
+  type RecommendOptions,
+} from './recommend/index.js';
+export {
   computeStatus,
   type ComplianceState,
   type StatusItem,

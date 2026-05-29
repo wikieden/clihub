@@ -128,6 +128,7 @@ clihub auth <set|get|list|rm|backend>      per-profile keychain secrets
 clihub auth status [--json]                cross-CLI login + token-expiry visibility
 clihub auth login <provider> [--browser|--refresh]   OAuth login (device grant / PKCE browser / refresh)
 clihub proxy <set|unset|show|test>         HTTP/HTTPS/SOCKS5 + CA bundle
+clihub recommend [--json]                  suggest skills/presets from installed CLIs + project
 clihub doctor [id] [--fix] [--check-network]
 clihub search <query>
 clihub watch

@@ -1784,6 +1784,24 @@ cli
     }
   });
 
+// ─── recommend ────────────────────────────────────────────────────────
+cli
+  .command('recommend', 'Suggest skills / presets / MCP from your installed CLIs + this project')
+  .option('--json', 'Output as JSON')
+  .action(async (opts: { json?: boolean }) => {
+    await ensureProviders();
+    const { recommend } = await import('@clihub/core');
+    const recs = await recommend({ cwd: process.cwd() });
+    if (opts.json) { console.log(JSON.stringify(recs, null, 2)); return; }
+    if (recs.length === 0) { info('nothing to recommend right now — try `clihub catalog sync` for a fuller catalog.'); return; }
+    const ICON: Record<string, string> = { preset: kleur.green('preset'), skill: kleur.cyan('skill '), mcp: kleur.yellow('mcp   ') };
+    console.log(kleur.bold('Recommended for you:'));
+    for (const r of recs) {
+      console.log(`  ${ICON[r.kind] ?? r.kind}  ${kleur.bold(r.id)}${kleur.dim(`  — ${r.reason}`)}`);
+      console.log(`         ${kleur.dim(r.command)}`);
+    }
+  });
+
 // ─── schema ───────────────────────────────────────────────────────────
 cli
   .command('schema', 'Emit the clihub.yaml JSON Schema (for editor autocomplete + validation)')

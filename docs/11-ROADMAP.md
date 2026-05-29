@@ -142,12 +142,11 @@ team/enterprise surface that already shipped (`team` / `ci` / `status` /
 **not** the active investment area — it will spin off into a separate
 enterprise line later (see "Enterprise line" below).
 
+### v1.10.0 ✅ — clihub recommend (discovery)
+
+- `clihub recommend [--json]` — suggests skills / presets / MCP from installed CLIs + project signals (cwd files → tags); each with a reason + ready command. Read-only/advisory
+
 ## Planned (individual + newcomer — buildable now)
-
-### v1.10.0 📋 — discovery
-
-- `clihub recommend` — suggest skills / presets / MCP from what's installed and the current project ("what should I add?")
-- Grow the catalog + presets (more batteries-included bundles)
 
 ### v1.11.0 📋 — personal multi-account ergonomics
 
@@ -157,6 +156,10 @@ enterprise line later (see "Enterprise line" below).
 
 - `clihub diff <lockA> <lockB>` (or lock vs live): added / removed / upgraded / downgraded
 - `clihub mcp <list|add|remove>` unified MCP management across CLIs (gap-check vs current `apply` MCP support first)
+
+### v1.13.0 📋 — grow the catalog
+
+- More batteries-included presets + catalog skills / MCP
 
 ## Enterprise line (future spin-off)
 
