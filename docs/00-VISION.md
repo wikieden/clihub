@@ -32,10 +32,13 @@ clihub fixes all three with a single binary.
 
 ## Target users (priority order)
 
-1. **Multi-CLI power users** — running 2+ CLIs, deepest pain, seed users.
-2. **Enterprise dev-tooling teams** — standardise the team's AI CLI stack, lock versions, audit backups.
+Near-term focus is **individuals and newcomers**; the enterprise control
+plane is a later, separately-packaged line (see [`11-ROADMAP.md`](11-ROADMAP.md) → "Enterprise line").
+
+1. **Newcomers** — TUI onboarding, one-shot presets, native language, no-fear backup/rollback. Zero → working in minutes.
+2. **Multi-CLI power users (individual)** — running 2+ CLIs; cross-CLI skill/MCP/memory sync, version pin/rollback, multi-account profiles, cross-machine sync. Deepest daily pain, seed users.
 3. **Skill / plugin authors** — clihub becomes the distribution channel (oh-my-zsh : zsh).
-4. **Newcomers** — TUI onboarding, one-shot presets.
+4. **Teams & enterprises** — reproducibility (lock/status/CI), signed catalogs, audit. Already usable at team scale via git; the SSO/registry/console layer spins off into a separate enterprise product later.
 
 ## Competitive moat
 

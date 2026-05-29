@@ -128,41 +128,50 @@ infra-blocked items): [Unified OAuth](spec/03-OAUTH-FLOW.md),
 
 - `bun test` unit suite for `@clihub/core` (signing, memory, sync, clihubyaml, generators, auth) + a CI `unit` job on push/PR
 
-## Planned (buildable now — no new infrastructure)
+## Direction
 
-### v1.9.0 📋 — quality pass (debt budget)
+**Near-term focus: individual developers + newcomers.** Polish the
+zero-to-working, multi-CLI-in-sync, no-fear-upgrade experience. The
+team/enterprise surface that already shipped (`team` / `ci` / `status` /
+`conformance` / signed catalogs / profiles / proxy) stays maintained but is
+**not** the active investment area — it will spin off into a separate
+enterprise line later (see "Enterprise line" below).
 
-- Expand test coverage to the IO modules (apply / status / conformance / team / memory) via tmp-dir fixtures, toward the ≥ 70 % bar
-- i18n key parity (en / zh-CN / ja / ko / es) for every command added since v0.6
+## Planned (individual + newcomer — buildable now)
 
-### v1.10.0 📋 — clihub diff + more specs
+### v1.9.0 📋 — language + onboarding polish
 
-- `clihub diff <lockA> <lockB>` (or lock vs live): added / removed / upgraded / downgraded tools + skills
-- Remaining Pillar-I spec drafts: SKILL.md, MCP-MANIFEST.json, PLUGIN.json
+- i18n key parity (en / zh-CN / ja / ko / es) for every command since v0.6 — newcomers see their own language everywhere
+- First-run wizard + `doctor` copy polish; wider `doctor --fix` coverage
+- Expand test coverage to the IO modules (toward the ≥ 70 % debt bar)
 
-### v1.11.0 📋 — profile shell hook
+### v1.10.0 📋 — discovery
 
-- `clihub profile hook <bash|zsh|fish>` emits a shell hook that auto-activates the profile named in a directory's `clihub.yaml` on `cd` (completes the v0.5.2 deferred auto-switch)
+- `clihub recommend` — suggest skills / presets / MCP from what's installed and the current project ("what should I add?")
+- Grow the catalog + presets (more batteries-included bundles)
 
-### v1.12.0 📋 — MCP management depth
+### v1.11.0 📋 — personal multi-account ergonomics
 
-- `clihub mcp <list|add|remove>` unified MCP-server management across every installed CLI (gap-check against current `apply` MCP support first)
+- `clihub profile hook <bash|zsh|fish>` — auto-activate the profile named in a directory's `clihub.yaml` on `cd` (completes the v0.5.2 deferred auto-switch)
 
-## Blocked on external infrastructure
+### v1.12.0 📋 — quality of life
 
-Each has a fixed-contract design spec; implementation is gated on infra a local, backend-free tool can't provide:
+- `clihub diff <lockA> <lockB>` (or lock vs live): added / removed / upgraded / downgraded
+- `clihub mcp <list|add|remove>` unified MCP management across CLIs (gap-check vs current `apply` MCP support first)
+
+## Enterprise line (future spin-off)
+
+The shipped team primitives — `team`, `ci`, `status`, `conformance`, signed
+catalogs, profiles/proxy — form the base. The control plane on top is
+**deferred and will be packaged separately** (its own product / pricing),
+not on the personal main line. Each item is also blocked on external
+infrastructure; the specs fix the contracts:
 
 - **Registry server** (`clihub.dev`) — hosted publish/search backend. [`spec/04-REGISTRY.md`](spec/04-REGISTRY.md)
 - **clihub Cloud** — managed team backend (Phase-2 monetisation, [`13-MONETIZATION.md`](13-MONETIZATION.md)); git-repo team sharing already ships (v1.2)
-- **winget** — needs an MSI/exe installer (clihub is npm-only; `pack brew`/`scoop`/`docker` cover real package managers)
-- **VS Code / JetBrains clients** — marketplace publisher accounts; extension source is scaffoldable pre-publish
-
-## v2.0 — platform leap (gated on the above)
-
-- Public registry GA + `clihub-compatible` badge program
-- Enterprise tier: SSO, private catalog, audit log, license-compliance scan
-- Polyglot thin clients (Rust / Go) on the same registry
-- CNCF Sandbox proposal
+- **SSO + central admin console + license-compliance scan + usage dashboards**
+- **Distribution gaps:** winget (needs an MSI/exe), VS Code / JetBrains marketplace clients
+- Polyglot thin clients (Rust / Go); CNCF Sandbox proposal
 
 ## Technical-debt budget (per release)
 
