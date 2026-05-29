@@ -94,21 +94,25 @@ schema v1, `clihub.lock.json` v1, the `@clihub/core` public API, and the
 
 - `clihub auth status [--json]` — cross-CLI login + token-expiry visibility (best-effort, read-only read of each CLI's credential file; never prints token contents). Addresses GH #33811 / #34306 visibility
 
+### v1.4.0 ✅ — clihub pack (Pillar VI — reach)
+
+- `clihub pack <docker|brew|scoop> [--out file]` generates distribution manifests (Dockerfile / Homebrew formula / Scoop manifest). A richer multi-arch `Dockerfile` + `docker.yml` workflow already ship in-repo
+
 ## Next
 
-### v1.4 📋 — full unified auth
+### v1.5 📋 — full unified auth
 
 - `clihub auth login` → OAuth flow writing tokens into each CLI's native credentials file
 - Token-expiry recovery: re-auth UX on expired tokens
 - Managed **clihub Cloud** team backend remains optional (Phase-2 monetisation — see [`13-MONETIZATION.md`](13-MONETIZATION.md)); git-repo team sharing shipped in v1.2
 
-### v1.5 📋 — reach + IDE
+### v1.6 📋 — more reach + IDE
 
 - `winget` / `scoop` packaging; Docker image
 - VS Code / JetBrains thin clients hitting `@clihub/core`
 - `docs/spec/*` RFC drafts (SKILL.md, MCP-MANIFEST, PLUGIN.json, LockFile, Catalog)
 
-### v1.6 📋 — registry beta (Pillar VII)
+### v1.7 📋 — registry beta (Pillar VII)
 
 - `clihub.dev` registry beta (npm-style publish, no PR)
 - `clihub-compatible` badge + automated compat test suite

@@ -1802,6 +1802,25 @@ cli
     }
   });
 
+// ─── pack ─────────────────────────────────────────────────────────────
+cli
+  .command('pack <target>', 'Emit a distribution manifest (docker | brew | scoop)')
+  .option('--out <file>', 'Write to a file instead of stdout')
+  .option('--node <version>', 'Docker base node version (default 20)')
+  .action(async (target: string, opts: { out?: string; node?: string }) => {
+    const { packManifest, PACK_TARGETS } = await import('@clihub/core');
+    if (!PACK_TARGETS.includes(target as never)) { err(`unknown target "${target}". Valid: ${PACK_TARGETS.join(' | ')}`); process.exit(1); }
+    const out = packManifest(target as never, { version: pkg.version, nodeVersion: opts.node });
+    if (opts.out) {
+      const fsp = await import('node:fs/promises');
+      await fsp.writeFile(opts.out, out, 'utf8');
+      ok(`wrote ${opts.out}`);
+      if (target === 'brew') info('fill __FILL_SHA256__ from the published npm tarball before publishing.');
+    } else {
+      process.stdout.write(out);
+    }
+  });
+
 // ─── default → TUI ────────────────────────────────────────────────────
 cli.command('', t('cli.title')).action(async () => {
   const { runTui } = await import('./tui/index.js');

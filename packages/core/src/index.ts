@@ -233,6 +233,12 @@ export {
   type CiOpts,
 } from './ci/index.js';
 export {
+  packManifest,
+  PACK_TARGETS,
+  type PackTarget,
+  type PackOpts,
+} from './pack/index.js';
+export {
   addTeam,
   listTeams,
   removeTeam,

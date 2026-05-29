@@ -137,6 +137,7 @@ clihub status [--json] [--strict]          check this machine vs clihub.lock.jso
 clihub schema [--out FILE]                  emit clihub.yaml JSON Schema (editor autocomplete)
 clihub ci [github|gitlab] [--out FILE]       generate a CI workflow that validates clihub.yaml
 clihub team <add|list|pull|use|push|rm>      share clihub config across a team via a git repo
+clihub pack <docker|brew|scoop> [--out FILE] generate a distribution manifest
 clihub memory <generate|plan> [--user] [--all] [--check]   one source → every CLI's memory file
 clihub sync export [--out FILE]            E2E-encrypted config bundle (profiles + sources + config)
 clihub sync import <FILE> [--plan]         restore on another machine (passphrase-protected)
@@ -203,8 +204,9 @@ bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't
 - **v1.0.0** ✅ — **stable**. Frozen surface: `clihub.yaml` schema v1, `clihub.lock.json` v1, `@clihub/core` public API, and the `clihub` command set. See [`CHANGELOG.md`](CHANGELOG.md).
 - **v1.1.0** ✅ — **`clihub ci`**: generate a GitHub Actions / GitLab workflow that validates `clihub.yaml` on every push (with commented opt-ins for memory `--check` and `status --strict`).
 - **v1.2.0** ✅ — **`clihub team`**: share a reproducible toolchain through a plain git repo. `team add <name> <git-url>` clones it; `team push` commits your `clihub.yaml` / lock / memory / schema; `team use` pulls them into a project. No clihub backend.
-- **v1.3.0** ✅ (current, `@wikieden/clihub@1.3.0` on npm) — **`clihub auth status`**: cross-CLI login + token-expiry visibility. Best-effort read of each CLI's credential file (Claude Code / Codex / Gemini) — shows logged-in / expiring / expired at a glance, never prints token contents. (First slice of unified auth; a full OAuth login flow follows.)
-- **post-1.3** — full OAuth login flow, winget/scoop/Docker reach, registry beta.
+- **v1.3.0** ✅ — **`clihub auth status`**: cross-CLI login + token-expiry visibility (best-effort, read-only; never prints token contents).
+- **v1.4.0** ✅ (current, `@wikieden/clihub@1.4.0` on npm) — **`clihub pack`**: generate distribution manifests — `pack docker` (Dockerfile), `pack brew` (Homebrew formula), `pack scoop` (Windows). Reach beyond npm.
+- **post-1.4** — full OAuth login flow, registry beta (`clihub.dev`), IDE thin clients.
 
 See [`docs/11-ROADMAP.md`](docs/11-ROADMAP.md) and [`docs/20-MARKET-RESEARCH.md`](docs/20-MARKET-RESEARCH.md).
 

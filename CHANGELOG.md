@@ -4,6 +4,13 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.4.0] — clihub pack
+
+- `clihub pack <docker|brew|scoop> [--out file]` generates distribution
+  manifests (Dockerfile / Homebrew formula / Scoop manifest) for the
+  current version. Reach beyond npm; pure generation, no new deps.
+  (brew carries a `__FILL_SHA256__` placeholder for the tap maintainer.)
+
 ## [1.3.0] — clihub auth status
 
 - `clihub auth status [--json]` reports cross-CLI login + token-expiry
