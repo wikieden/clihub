@@ -4,6 +4,16 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.8.0] — auth login --browser (PKCE)
+
+- `clihub auth login <provider> --browser` implements OAuth Authorization
+  Code + PKCE (RFC 7636) over a 127.0.0.1 loopback redirect, for providers
+  without a device flow. CSPRNG `state` (CSRF protection, verified on
+  redirect), S256 code challenge, loopback bound to localhost and closed
+  in `finally`. Security-reviewed (1 HIGH fixed: state now uses
+  `crypto.randomBytes`). Completes the three login modes:
+  device grant / PKCE browser / refresh.
+
 ## [1.7.0] — clihub conformance
 
 - `clihub conformance [dir] [--json]` validates a catalog against the

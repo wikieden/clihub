@@ -122,7 +122,7 @@ clihub profile <create|use|list|current|rm|clone|show>
 clihub profile baseurl <set|unset|show>   point a profile at LiteLLM/Nyro
 clihub auth <set|get|list|rm|backend>      per-profile keychain secrets
 clihub auth status [--json]                cross-CLI login + token-expiry visibility
-clihub auth login <provider> [--refresh]   OAuth device-grant login / refresh stored token
+clihub auth login <provider> [--browser|--refresh]   OAuth login (device grant / PKCE browser / refresh)
 clihub proxy <set|unset|show|test>         HTTP/HTTPS/SOCKS5 + CA bundle
 clihub doctor [id] [--fix] [--check-network]
 clihub search <query>
@@ -210,8 +210,9 @@ bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't
 - **v1.4.0** ✅ — **`clihub pack`**: generate distribution manifests — `pack docker` / `pack brew` / `pack scoop`. Reach beyond npm.
 - **v1.5.0** ✅ — **`clihub auth login`**: OAuth 2.0 device-grant login (RFC 8628, headless/CI-friendly). Vendor-neutral BYO config; token written to the CLI's native credential file (0600). Security-reviewed.
 - **v1.6.0** ✅ — **`clihub auth login --refresh`**: token-expiry recovery via the RFC 6749 refresh-token grant — re-mint an access token from the stored `refresh_token`, no browser. Completes the auth pillar.
-- **v1.7.0** ✅ (current, `@wikieden/clihub@1.7.0` on npm) — **`clihub conformance`**: validate a catalog against the published clihub specs (manifest + sha256 integrity, JSON, provider specs, signature, lockfile). The machine-checkable basis for a `clihub-compatible` badge — any client's catalog can run it. `--json` for CI.
-- **post-1.7 (external-infra blocked)** — registry *server* (`clihub.dev`), VS Code/JetBrains marketplace clients, browser/PKCE login variant. See [`docs/spec/`](docs/spec/).
+- **v1.7.0** ✅ — **`clihub conformance`**: validate a catalog against the published clihub specs. The machine-checkable basis for a `clihub-compatible` badge.
+- **v1.8.0** ✅ (current, `@wikieden/clihub@1.8.0` on npm) — **`clihub auth login --browser`**: OAuth Authorization Code + PKCE (RFC 7636) via a 127.0.0.1 loopback redirect, for providers without a device flow. CSPRNG `state` (CSRF), S256 challenge; security-reviewed. Completes the three login modes (device / browser / refresh).
+- **post-1.8 (external-infra blocked)** — registry *server* (`clihub.dev`) + VS Code/JetBrains marketplace clients. See [`docs/spec/`](docs/spec/).
 
 See [`docs/11-ROADMAP.md`](docs/11-ROADMAP.md) and [`docs/20-MARKET-RESEARCH.md`](docs/20-MARKET-RESEARCH.md).
 

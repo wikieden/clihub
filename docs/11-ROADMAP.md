@@ -122,11 +122,14 @@ infra-blocked items): [Unified OAuth](spec/03-OAUTH-FLOW.md),
 
 - `clihub auth login <provider> --refresh` — RFC 6749 refresh-token grant; re-mints an access token from the stored `refresh_token` (rotated if returned), no browser. Token-expiry recovery
 
-## Later
+### v1.8.0 ✅ — PKCE browser login (Pillar IX)
 
-### 📋 — browser/PKCE login variant
+- `clihub auth login <provider> --browser` — OAuth Authorization Code + PKCE (RFC 7636), 127.0.0.1 loopback redirect, CSPRNG state, S256 challenge. Security-reviewed. Three login modes now complete: device / browser / refresh
 
-- `clihub auth login` PKCE/loopback variant for providers without a device flow
+## Later (external-infra blocked)
+
+### 📋 — managed backends
+
 - Managed **clihub Cloud** team backend remains optional (Phase-2 monetisation — see [`13-MONETIZATION.md`](13-MONETIZATION.md)); git-repo team sharing shipped in v1.2
 
 ### v1.6 📋 — more reach + IDE

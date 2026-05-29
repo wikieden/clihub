@@ -1298,7 +1298,8 @@ cli
   .option('--reveal', 'For `get`: print the secret in plaintext (default: masked)')
   .option('--json', 'For `status`: output as JSON')
   .option('--refresh', 'For `login`: refresh using the stored refresh_token (no browser)')
-  .action(async (action: string, key: string | undefined, opts: { reveal?: boolean; json?: boolean; refresh?: boolean }) => {
+  .option('--browser', 'For `login`: use the PKCE browser flow (loopback redirect) instead of device grant')
+  .action(async (action: string, key: string | undefined, opts: { reveal?: boolean; json?: boolean; refresh?: boolean; browser?: boolean }) => {
     const {
       setSecret,
       getSecret,
@@ -1314,6 +1315,11 @@ cli
       writeNativeCredential,
       refreshToken,
       readNativeRefreshToken,
+      generatePkce,
+      randomState,
+      buildAuthorizeUrl,
+      captureLoopbackCode,
+      exchangeAuthorizationCode,
       defaultAuthProvidersPath,
     } = await import('@clihub/core');
 
@@ -1335,6 +1341,27 @@ cli
         } catch (e) {
           err(e instanceof Error ? e.message : String(e));
           process.exit(1);
+        }
+        return;
+      }
+      if (opts.browser) {
+        const pkce = generatePkce();
+        const state = randomState();
+        const cap = await captureLoopbackCode(state, cfg.redirectPort ?? 0);
+        try {
+          const url = buildAuthorizeUrl(cfg, { redirectUri: cap.redirectUri, challenge: pkce.challenge, state });
+          console.log(`\n  Open this URL in your browser to authorize:\n  ${kleur.cyan(url)}`);
+          info('waiting for the browser redirect…');
+          const code = await cap.code;
+          const token = await exchangeAuthorizationCode(cfg, { code, verifier: pkce.verifier, redirectUri: cap.redirectUri });
+          const file = await writeNativeCredential(key, token);
+          ok(`logged in — wrote ${file}`);
+          await appendAudit({ actor: 'cli', action: 'auth.login', key }).catch(() => {});
+        } catch (e) {
+          err(e instanceof Error ? e.message : String(e));
+          process.exit(1);
+        } finally {
+          cap.close();
         }
         return;
       }

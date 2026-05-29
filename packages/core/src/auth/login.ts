@@ -16,6 +16,8 @@
  * Secrets are never logged. `fetch` is injectable for testing.
  */
 import { promises as fs } from 'node:fs';
+import http from 'node:http';
+import crypto from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { CREDENTIAL_SOURCES } from './credentials.js';
@@ -23,11 +25,15 @@ import { CREDENTIAL_SOURCES } from './credentials.js';
 export interface AuthProviderConfig {
   /** Tool/provider id (matches the registry + CREDENTIAL_SOURCES). */
   id: string;
-  /** RFC 8628 device authorization endpoint. */
-  deviceCodeUrl: string;
+  /** RFC 8628 device authorization endpoint (device flow). */
+  deviceCodeUrl?: string;
+  /** Authorization endpoint (PKCE/browser flow). */
+  authorizeUrl?: string;
+  /** Fixed loopback redirect port (PKCE); ephemeral if omitted. */
+  redirectPort?: number;
   /** Token endpoint. */
   tokenUrl: string;
-  /** OAuth client id (public; device-flow clients are public). */
+  /** OAuth client id (public; device/PKCE clients are public). */
   clientId: string;
   /** Space-delimited scopes. */
   scope?: string;
@@ -86,6 +92,7 @@ const FORM_HEADERS = { 'content-type': 'application/x-www-form-urlencoded', acce
 /** Request a device + user code from the provider. */
 export async function startDeviceLogin(cfg: AuthProviderConfig, opts: AuthIoOpts = {}): Promise<DeviceCodeResponse> {
   const doFetch = opts.fetchImpl ?? fetch;
+  if (!cfg.deviceCodeUrl) throw new Error(`provider ${cfg.id} has no deviceCodeUrl (device flow unavailable)`);
   const res = await doFetch(cfg.deviceCodeUrl, {
     method: 'POST',
     headers: FORM_HEADERS,
@@ -178,6 +185,127 @@ export async function refreshToken(
     access_token: json.access_token,
     // providers may rotate refresh tokens; keep the old one if none returned
     refresh_token: typeof json.refresh_token === 'string' ? json.refresh_token : refreshTokenValue,
+    expires_at: expiresIn ? now + expiresIn * 1000 : undefined,
+    token_type: typeof json.token_type === 'string' ? json.token_type : undefined,
+    scope: typeof json.scope === 'string' ? json.scope : undefined,
+  };
+}
+
+// ─── PKCE / browser flow (RFC 7636) ───────────────────────────────────
+
+export interface Pkce {
+  verifier: string;
+  challenge: string;
+}
+
+function base64url(buf: Buffer): string {
+  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/** Cryptographically-random `state` for CSRF protection (RFC 6749 §10.12). */
+export function randomState(): string {
+  return base64url(crypto.randomBytes(24));
+}
+
+/** Generate a PKCE verifier + S256 challenge. */
+export function generatePkce(): Pkce {
+  const verifier = base64url(crypto.randomBytes(32));
+  const challenge = base64url(crypto.createHash('sha256').update(verifier).digest());
+  return { verifier, challenge };
+}
+
+/** Build the authorization URL for a PKCE flow. */
+export function buildAuthorizeUrl(
+  cfg: AuthProviderConfig,
+  params: { redirectUri: string; challenge: string; state: string },
+): string {
+  if (!cfg.authorizeUrl) throw new Error(`provider ${cfg.id} has no authorizeUrl (PKCE flow unavailable)`);
+  const u = new URL(cfg.authorizeUrl);
+  u.searchParams.set('response_type', 'code');
+  u.searchParams.set('client_id', cfg.clientId);
+  u.searchParams.set('redirect_uri', params.redirectUri);
+  u.searchParams.set('code_challenge', params.challenge);
+  u.searchParams.set('code_challenge_method', 'S256');
+  u.searchParams.set('state', params.state);
+  if (cfg.scope) u.searchParams.set('scope', cfg.scope);
+  return u.toString();
+}
+
+export interface LoopbackCapture {
+  /** The redirect URI the server listens on. */
+  redirectUri: string;
+  /** Resolves with the authorization code once the browser redirects back. */
+  code: Promise<string>;
+  /** Stop the server (call after `code` resolves or on abort). */
+  close: () => void;
+}
+
+/**
+ * Start a localhost loopback server to capture the OAuth redirect. Returns
+ * the redirect URI to register + a promise for the code. The expected
+ * `state` is verified; mismatched/erroring redirects reject.
+ */
+export function captureLoopbackCode(expectedState: string, port = 0): Promise<LoopbackCapture> {
+  return new Promise((resolveSetup, rejectSetup) => {
+    let resolveCode!: (c: string) => void;
+    let rejectCode!: (e: Error) => void;
+    const code = new Promise<string>((res, rej) => { resolveCode = res; rejectCode = rej; });
+
+    const server = http.createServer((req, res) => {
+      const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+      if (url.pathname !== '/callback') { res.statusCode = 404; res.end('not found'); return; }
+      const err = url.searchParams.get('error');
+      const got = url.searchParams.get('code');
+      const state = url.searchParams.get('state');
+      res.setHeader('content-type', 'text/plain');
+      if (err) { res.end(`login failed: ${err}. You may close this window.`); rejectCode(new Error(`authorization failed: ${err}`)); return; }
+      if (state !== expectedState) { res.statusCode = 400; res.end('state mismatch. You may close this window.'); rejectCode(new Error('state mismatch (possible CSRF)')); return; }
+      if (!got) { res.statusCode = 400; res.end('no code. You may close this window.'); rejectCode(new Error('no authorization code in redirect')); return; }
+      res.end('clihub: login complete. You may close this window.');
+      resolveCode(got);
+    });
+
+    server.on('error', rejectSetup);
+    server.listen(port, '127.0.0.1', () => {
+      const addr = server.address();
+      const boundPort = typeof addr === 'object' && addr ? addr.port : port;
+      resolveSetup({
+        redirectUri: `http://127.0.0.1:${boundPort}/callback`,
+        code,
+        close: () => server.close(),
+      });
+    });
+  });
+}
+
+/** Exchange an authorization code (+ PKCE verifier) for tokens. */
+export async function exchangeAuthorizationCode(
+  cfg: AuthProviderConfig,
+  params: { code: string; verifier: string; redirectUri: string },
+  opts: AuthIoOpts = {},
+): Promise<TokenResult> {
+  const doFetch = opts.fetchImpl ?? fetch;
+  const now = opts.now ?? Date.now();
+  const res = await doFetch(cfg.tokenUrl, {
+    method: 'POST',
+    headers: FORM_HEADERS,
+    body: form({
+      grant_type: 'authorization_code',
+      code: params.code,
+      code_verifier: params.verifier,
+      redirect_uri: params.redirectUri,
+      client_id: cfg.clientId,
+    }),
+  });
+  const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok || typeof json.access_token !== 'string') {
+    const error = typeof json.error === 'string' ? json.error : `HTTP ${res.status}`;
+    throw new Error(`code exchange failed: ${error}`);
+  }
+  const expiresIn = typeof json.expires_in === 'number' ? json.expires_in : undefined;
+  return {
+    access_token: json.access_token,
+    refresh_token: typeof json.refresh_token === 'string' ? json.refresh_token : undefined,
     expires_at: expiresIn ? now + expiresIn * 1000 : undefined,
     token_type: typeof json.token_type === 'string' ? json.token_type : undefined,
     scope: typeof json.scope === 'string' ? json.scope : undefined,
