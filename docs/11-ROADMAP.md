@@ -158,11 +158,15 @@ enterprise line later (see "Enterprise line" below).
 
 - `clihub mcp <list|add|remove> [id]` across the JSON-`mcpServers` CLIs (Claude Code, Gemini CLI); catalog or inline `--command`/`--url`. Orchestrates JsonMcpAdapter
 
+### v1.14.0 ✅ — grow the catalog
+
+- Five new presets (`python` / `go` / `rust` / `research` / `devops`) — 8 total; + a catalog-integrity test (preset skill/tool ids must resolve)
+
 ## Planned (individual + newcomer — buildable now)
 
-### v1.14.0 📋 — grow the catalog
+### v1.15.0 📋 — more catalog + DX
 
-- More batteries-included presets + catalog skills / MCP
+- Grow catalog skills / MCP entries; ongoing newcomer-experience polish
 
 ## Enterprise line (future spin-off)
 

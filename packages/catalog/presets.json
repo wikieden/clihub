@@ -48,5 +48,79 @@
       "plan",
       "review"
     ]
+  },
+  {
+    "id": "python",
+    "name": "Python",
+    "description": "Claude Code + Python dev skills (review, tdd, security, docs)",
+    "tools": ["claude-code"],
+    "skills": [
+      "superpowers",
+      "oh-my-claudecode",
+      "codegraph",
+      "tdd",
+      "python-review",
+      "security-review",
+      "git-workflow",
+      "docs"
+    ]
+  },
+  {
+    "id": "go",
+    "name": "Go",
+    "description": "Claude Code + Go dev skills (review, tdd, security)",
+    "tools": ["claude-code"],
+    "skills": [
+      "superpowers",
+      "oh-my-claudecode",
+      "codegraph",
+      "tdd",
+      "go-review",
+      "security-review",
+      "git-workflow"
+    ]
+  },
+  {
+    "id": "rust",
+    "name": "Rust",
+    "description": "Claude Code + Rust dev skills (review, security)",
+    "tools": ["claude-code"],
+    "skills": [
+      "superpowers",
+      "oh-my-claudecode",
+      "codegraph",
+      "rust-review",
+      "security-review",
+      "git-workflow"
+    ]
+  },
+  {
+    "id": "research",
+    "name": "Research",
+    "description": "Claude Code + research skills (web search, synthesis, planning, docs)",
+    "tools": ["claude-code"],
+    "skills": [
+      "superpowers",
+      "oh-my-claudecode",
+      "tavily-research",
+      "deep-research",
+      "plan",
+      "docs"
+    ]
+  },
+  {
+    "id": "devops",
+    "name": "DevOps",
+    "description": "Claude Code + ship/deploy skills (deploy, security, performance, git)",
+    "tools": ["claude-code"],
+    "skills": [
+      "superpowers",
+      "oh-my-claudecode",
+      "deploy",
+      "git-workflow",
+      "security-review",
+      "performance-optimizer",
+      "review"
+    ]
   }
 ]

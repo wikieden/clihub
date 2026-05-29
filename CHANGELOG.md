@@ -4,6 +4,15 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.14.0] — grow the catalog
+
+- Five new batteries-included presets: `python`, `go`, `rust` (language
+  dev bundles), `research` (web search + synthesis + planning), `devops`
+  (deploy/security/performance/git). 8 presets total.
+- New catalog-integrity test: every preset's skill ids must exist in
+  `skills.json` and tool ids must be known providers — guards against
+  dangling references.
+
 ## [1.13.0] — clihub mcp
 
 - `clihub mcp <list|add|remove> [id]` manages MCP servers across the

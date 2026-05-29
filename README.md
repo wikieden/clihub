@@ -91,10 +91,13 @@ clihub rollback                        # restore the most recent snapshot
 
 **Skills**: 30 in the catalog — `superpowers`, `oh-my-claudecode`, `codegraph`, `tdd`, `review`, `frontend-design`, `api-design`, `database-migrations`, `caveman`, `lark-im`, `lark-doc`, `lark-wiki`, ... ([full list](packages/catalog/skills.json)).
 
-**Presets**:
+**Presets** (8):
 - `starter` — Claude Code + 5 core skills (1-min setup).
-- `fullstack` — Claude Code + full-stack skills (frontend, backend, DB, review, security, git).
-- `lark-office` — Claude Code + Lark / Feishu collaboration suite.
+- `fullstack` — full-stack skills (frontend, backend, DB, review, security, git).
+- `python` / `go` / `rust` — language dev bundles (review, tdd, security).
+- `research` — web search + synthesis + planning + docs.
+- `devops` — deploy, security, performance, git.
+- `lark-office` — Lark / Feishu collaboration suite.
 
 **Languages**: English, 简体中文, 日本語, 한국어, Español (auto-detected from `$LANG`, override via `CLIHUB_LANG`).
 
