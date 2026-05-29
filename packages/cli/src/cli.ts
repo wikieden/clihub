@@ -1701,6 +1701,28 @@ cli
     }
   });
 
+// ─── ci ───────────────────────────────────────────────────────────────
+cli
+  .command('ci [provider]', 'Generate a CI workflow that validates clihub.yaml (github | gitlab)')
+  .option('--out <file>', 'Write to a file (default: stdout). github default path: .github/workflows/clihub.yml')
+  .option('--node <version>', 'Node version for the runner (default 20)')
+  .action(async (provider: string | undefined, opts: { out?: string; node?: string }) => {
+    const { ciWorkflow, defaultCiPath, CI_PROVIDERS } = await import('@clihub/core');
+    const prov = (provider ?? 'github') as 'github' | 'gitlab';
+    if (!CI_PROVIDERS.includes(prov)) { err(`unknown provider "${prov}". Valid: ${CI_PROVIDERS.join(' | ')}`); process.exit(1); }
+    const yaml = ciWorkflow(prov, { nodeVersion: opts.node });
+    if (opts.out) {
+      const fsp = await import('node:fs/promises');
+      const out = opts.out;
+      await fsp.mkdir(path.dirname(out), { recursive: true });
+      await fsp.writeFile(out, yaml, 'utf8');
+      ok(`wrote ${out}`);
+      info(`conventional path: ${defaultCiPath(prov)}`);
+    } else {
+      process.stdout.write(yaml);
+    }
+  });
+
 // ─── default → TUI ────────────────────────────────────────────────────
 cli.command('', t('cli.title')).action(async () => {
   const { runTui } = await import('./tui/index.js');

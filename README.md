@@ -134,6 +134,7 @@ clihub lock                                pin resolved versions to clihub.lock.
 clihub install [--frozen]                  install from clihub.yaml (or lockfile)
 clihub status [--json] [--strict]          check this machine vs clihub.lock.json (CI gate)
 clihub schema [--out FILE]                  emit clihub.yaml JSON Schema (editor autocomplete)
+clihub ci [github|gitlab] [--out FILE]       generate a CI workflow that validates clihub.yaml
 clihub memory <generate|plan> [--user] [--all] [--check]   one source → every CLI's memory file
 clihub sync export [--out FILE]            E2E-encrypted config bundle (profiles + sources + config)
 clihub sync import <FILE> [--plan]         restore on another machine (passphrase-protected)
@@ -197,8 +198,9 @@ bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't
 - **v0.10** ✅ — **declarative provider SDK**: teach clihub a new AI CLI with a JSON spec (`~/.clihub/providers.json` or a catalog's `providers.json`) — detection + npm/bun/brew install with no code or fork. `provider list|add|remove`. Shell-command installs are gated behind `--allow-scripts`; built-in providers can't be shadowed.
 - **v0.11** ✅ (current, `@wikieden/clihub@0.11.0` on npm) — **`clihub status`**: compliance gate that diffs this machine against the pinned `clihub.lock.json` (ok / drift / missing / unlocked). `--json` for dashboards, `--strict` to fail CI when a teammate drifts off the agreed toolchain.
 - **v0.12** ✅ — **`clihub schema`**: emit a draft-07 JSON Schema for `clihub.yaml` so editors (yaml-language-server) give autocomplete + inline validation.
-- **v1.0.0** ✅ (current, `@wikieden/clihub@1.0.0` on npm) — **stable**. Frozen surface: `clihub.yaml` schema v1, `clihub.lock.json` v1, `@clihub/core` public API, and the `clihub` command set. See [`CHANGELOG.md`](CHANGELOG.md).
-- **post-1.0** — OAuth unified flow, team lockfile push/pull.
+- **v1.0.0** ✅ — **stable**. Frozen surface: `clihub.yaml` schema v1, `clihub.lock.json` v1, `@clihub/core` public API, and the `clihub` command set. See [`CHANGELOG.md`](CHANGELOG.md).
+- **v1.1.0** ✅ (current, `@wikieden/clihub@1.1.0` on npm) — **`clihub ci`**: generate a GitHub Actions / GitLab workflow that validates `clihub.yaml` on every push (with commented opt-ins for memory `--check` and `status --strict`).
+- **post-1.1** — OAuth unified flow, team lockfile push/pull.
 
 See [`docs/11-ROADMAP.md`](docs/11-ROADMAP.md) and [`docs/20-MARKET-RESEARCH.md`](docs/20-MARKET-RESEARCH.md).
 

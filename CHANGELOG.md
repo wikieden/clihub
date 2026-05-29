@@ -4,6 +4,13 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.1.0] — clihub ci
+
+- `clihub ci [github|gitlab] [--out file] [--node]` generates a CI
+  workflow that validates `clihub.yaml` (`apply --plan`) on every push,
+  with commented opt-ins for `memory generate --check` and
+  `status --strict`. Pure generation, no new dependencies.
+
 ## [1.0.0] — 2026-05-29
 
 First stable release. clihub is now a complete, vendor-neutral manager for

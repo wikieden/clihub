@@ -219,6 +219,13 @@ export {
   CLIHUB_YAML_SCHEMA_ID,
 } from './schema/index.js';
 export {
+  ciWorkflow,
+  defaultCiPath,
+  CI_PROVIDERS,
+  type CiProvider,
+  type CiOpts,
+} from './ci/index.js';
+export {
   computeStatus,
   type ComplianceState,
   type StatusItem,
