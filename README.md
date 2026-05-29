@@ -34,6 +34,10 @@ clihub solves all three:
 | Cross-CLI skill fan-out | ✅ | ✅ | partial | ❌ (CC only) | ❌ |
 | Presets that bundle tools + skills + MCP | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Backup / one-command rollback of `~/.claude` & siblings | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Per-tool version pin + rollback | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Multi-account profile switching | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Multi-source catalog federation | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Skill security audit | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Interactive TUI onboarding | ✅ | ❌ | partial | ❌ | ❌ |
 | Single-binary distribution | npm | shell | npm | npm | CC plugin |
 
@@ -74,7 +78,7 @@ clihub rollback                        # restore the most recent snapshot
 
 ## Currently supported
 
-**CLIs**: Claude Code, OpenAI Codex CLI, Kiro CLI, Gemini CLI.
+**CLIs**: Claude Code, OpenAI Codex CLI, Kiro CLI, Gemini CLI, Cursor CLI, Block Goose.
 
 **Skills**: 30 in the catalog — `superpowers`, `oh-my-claudecode`, `codegraph`, `tdd`, `review`, `frontend-design`, `api-design`, `database-migrations`, `caveman`, `lark-im`, `lark-doc`, `lark-wiki`, ... ([full list](packages/catalog/skills.json)).
 
@@ -88,22 +92,34 @@ clihub rollback                        # restore the most recent snapshot
 ## Commands
 
 ```
-clihub                          TUI main menu
+clihub                              TUI main menu
 clihub tool list
-clihub tool install <id>
+clihub tool install <id>[@version]  pin a specific build
+clihub tool rollback <id>           restore the previous installed version
+clihub tool history <id>
 clihub tool uninstall <id>
 clihub tool update [id]
-clihub skill list
-clihub skill install <id> [--tool <cli>]
+clihub skill list [--permissions]
+clihub skill install <id|git-url|path> [--tool <cli>]
 clihub skill uninstall <id> [--tool <cli>]
+clihub skill audit [id] [--json]    flag shell/hooks/network/symlink risks
+clihub plugin <list|install|uninstall|update> [id] [--tool <cli>]
 clihub preset list
 clihub preset apply <id>
-clihub doctor [id]
-clihub backup
-clihub backup list
-clihub restore <id>
-clihub rollback
-clihub config show [tool]
+clihub catalog <sync|status|verify>
+clihub catalog add <name> <url>     federate an extra catalog source
+clihub catalog list|priority|sync-all
+clihub profile <create|use|list|current|rm|clone|show>
+clihub profile baseurl <set|unset|show>   point a profile at LiteLLM/Nyro
+clihub auth <set|get|list|rm|backend>      per-profile keychain secrets
+clihub proxy <set|unset|show|test>         HTTP/HTTPS/SOCKS5 + CA bundle
+clihub doctor [id] [--fix] [--check-network]
+clihub search <query>
+clihub watch
+clihub completion <bash|zsh|fish|powershell|man>
+clihub backup | backup list | restore <id> | rollback
+clihub config <show|get|set|unset> [key] [value]
+clihub yaml
 clihub self-update
 ```
 
@@ -150,12 +166,15 @@ bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't
 
 ## Roadmap
 
-- **v0.1** ✅ — Claude Code provider, 5 core skills, backup/restore.
-- **v0.2** ✅ — Codex + Kiro + Gemini providers, 30 skills, 3 presets, cross-tool skill fan-out, i18n (en/zh/ja/ko/es), TUI with preset preview + back navigation, single-binary npm tarball with zero install-time deps.
-- **v0.3** ✅ (current, `@wikieden/clihub@0.3.0` on npm) — TUI restructured per-CLI: pick a CLI → install / skills / plugins / MCP / config / doctor in one place. New MCP catalog + `JsonMcpAdapter` patches `~/.claude/settings.json` and `~/.gemini/settings.json` with `mcpServers` entries (filesystem, github, sequential-thinking, memory, fetch, context7, playwright). Cross-tool actions (presets, fan-out, doctor-all) live under their own branch. Plugin install is stubbed pending v0.3.x.
-- **v0.4+** — `agentskills.io` SKILL.md catalog format, doctor with quota signals, plugin install (Claude Code marketplace), Codex MCP via TOML, remote catalog sync, Windows support.
+- **v0.1–0.3** ✅ — providers (Claude Code / Codex / Kiro / Gemini), 30 skills, presets, cross-tool fan-out, i18n, per-CLI TUI, MCP catalog.
+- **v0.4** ✅ — agentskills.io SKILL.md installer (`clihub skill install <git-url>`), plugin install (Claude Code), remote catalog sync with sha256, Codex TOML, Windows-safe paths.
+- **v0.5** ✅ — `watch` / `search` / shell completion / man; proxy + CA bundle; `doctor --fix` + error codes; **multi-account profiles** + keychain vault + per-profile `BASE_URL` injection; `clihub.yaml` + audit log; per-tool **version pin/rollback**; **skill audit**.
+- **v0.6** ✅ (current, `@wikieden/clihub@0.6.0` on npm) — multi-source **catalog federation** (`catalog add`), **Cursor + Goose** providers (6 CLIs total), **HTTP/SSE MCP** transport.
+- **v0.6.1** 🚧 — sigstore-cosign catalog signing, `clihub apply --plan/--frozen` (full `clihub.yaml` schema), team lockfile.
+- **v0.7+** — provider SDK, `clihub memory generate` (one CONTEXT.md → CLAUDE.md/AGENTS.md/GEMINI.md/.kiro), RFC specs.
+- **v0.8** — cross-machine E2E-encrypted sync.
 
-See [`docs/11-ROADMAP.md`](docs/11-ROADMAP.md).
+See [`docs/11-ROADMAP.md`](docs/11-ROADMAP.md) and [`docs/20-MARKET-RESEARCH.md`](docs/20-MARKET-RESEARCH.md).
 
 ## License
 
