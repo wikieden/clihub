@@ -14,6 +14,22 @@ export { kiroProvider } from './tools/providers/kiro.js';
 export { geminiProvider } from './tools/providers/gemini.js';
 export { cursorProvider } from './tools/providers/cursor.js';
 export { gooseProvider } from './tools/providers/goose.js';
+export {
+  makeProvider,
+  validateProviderSpec,
+  parseProvidersJson,
+  defaultProvidersPath,
+  readProviderSpecsFile,
+  addProviderSpec,
+  removeProviderSpec,
+  loadExternalProviders,
+  type DeclarativeProviderSpec,
+  type DeclarativeInstall,
+  type ProviderSpecsFile,
+  type MakeProviderOpts,
+  type LoadExternalProvidersOpts,
+  type LoadExternalProvidersResult,
+} from './tools/declarative.js';
 export { JsonSettingsAdapter } from './settings/index.js';
 export { TomlSettingsAdapter, type TomlSettingsAdapterOpts } from './settings/toml.js';
 export {

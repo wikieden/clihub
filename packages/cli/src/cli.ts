@@ -29,6 +29,16 @@ const cli = cac('clihub');
 const catalog = new CatalogLoader();
 const backups = new BackupManager();
 
+/** Register declarative providers from ~/.clihub/providers.json + synced catalog. */
+async function ensureProviders(allowScripts = false): Promise<void> {
+  const { loadExternalProviders, defaultCatalogDir } = await import('@clihub/core');
+  try {
+    await loadExternalProviders({ catalogDir: defaultCatalogDir(), allowScripts });
+  } catch {
+    /* spec file errors shouldn't block built-in tools */
+  }
+}
+
 const ADAPTERS: Record<string, () => SkillSyncAdapter> = {
   'claude-code': () => new ClaudeCodeSkillAdapter(),
   'codex': () => new CodexSkillAdapter(),
@@ -130,7 +140,9 @@ cli
   .command('tool <action> [id]', 'Manage tools  (list | install | uninstall | update)')
   .option('--method <m>', 'Install method: npm | bun | brew')
   .option('--dry-run', 'Preview only')
-  .action(async (action: string, id: string | undefined, opts: { method?: string; dryRun?: boolean }) => {
+  .option('--allow-scripts', 'Permit declarative providers that install via a shell command')
+  .action(async (action: string, id: string | undefined, opts: { method?: string; dryRun?: boolean; allowScripts?: boolean }) => {
+    await ensureProviders(opts.allowScripts);
     switch (action) {
       case 'list': {
         console.log(kleur.bold(t('tool.list.header')));
@@ -245,6 +257,7 @@ cli
     id: string | undefined,
     opts: { json?: boolean; fix?: boolean; checkNetwork?: boolean },
   ) => {
+    await ensureProviders();
     const {
       runHealthMatrix,
       attemptAutoRepair,
@@ -1407,6 +1420,7 @@ cli
   .option('--plan', 'Show the diff without applying')
   .option('--dry-run', 'Alias of --plan')
   .action(async (opts: { plan?: boolean; dryRun?: boolean }) => {
+    await ensureProviders();
     const { findClihubYaml, parseClihubYaml, planApply, runApply, formatErrorMessage } = await import('@clihub/core');
     const fsp = await import('node:fs/promises');
     const file = await findClihubYaml();
@@ -1455,6 +1469,7 @@ cli
   .command('install', 'Install from clihub.yaml (or clihub.lock.json with --frozen)')
   .option('--frozen', 'Require clihub.lock.json and refuse drift')
   .action(async (opts: { frozen?: boolean }) => {
+    await ensureProviders();
     const { findClihubYaml, parseClihubYaml, runApply, readLockfile, formatErrorMessage } = await import('@clihub/core');
     const fsp = await import('node:fs/promises');
     const file = await findClihubYaml();
@@ -1577,6 +1592,61 @@ cli
     }
     for (const f of result.failed) err(`${f.tool} ${f.path}: ${f.error}`);
     if (result.failed.length > 0) process.exit(1);
+  });
+
+// ─── provider <action> [arg] ──────────────────────────────────────────
+cli
+  .command('provider <action> [arg]', 'Manage declarative providers (list | add <spec.json> | remove <id>)')
+  .action(async (action: string, arg: string | undefined) => {
+    const {
+      loadExternalProviders,
+      readProviderSpecsFile,
+      parseProvidersJson,
+      addProviderSpec,
+      removeProviderSpec,
+      defaultProvidersPath,
+      defaultCatalogDir,
+    } = await import('@clihub/core');
+
+    switch (action) {
+      case 'list': {
+        const userSpecs = await readProviderSpecsFile();
+        const res = await loadExternalProviders({ catalogDir: defaultCatalogDir() });
+        if (res.registered.length === 0 && res.skipped.length === 0) {
+          info(`no declarative providers. Add one: clihub provider add <spec.json>  (file: ${defaultProvidersPath()})`);
+          return;
+        }
+        console.log(kleur.bold('Declarative providers:'));
+        for (const id of res.registered) {
+          const fromUser = userSpecs.some((s) => s.id === id);
+          console.log(`  ${kleur.green('✓')} ${kleur.bold(id)}${kleur.dim(fromUser ? '  (user)' : '  (catalog)')}`);
+        }
+        for (const s of res.skipped) console.log(`  ${kleur.yellow('·')} ${s.id} ${kleur.dim(`— ${s.reason}`)}`);
+        return;
+      }
+      case 'add': {
+        if (!arg) { err('usage: clihub provider add <spec.json>'); process.exit(1); }
+        const fsp = await import('node:fs/promises');
+        let specs;
+        try {
+          specs = parseProvidersJson(await fsp.readFile(arg, 'utf8'));
+        } catch (e) {
+          err(`invalid spec: ${e instanceof Error ? e.message : String(e)}`);
+          process.exit(1);
+        }
+        for (const s of specs) { await addProviderSpec(s); ok(`added provider "${s.id}" (${s.name})`); }
+        info(`saved to ${defaultProvidersPath()} — verify with: clihub tool list`);
+        return;
+      }
+      case 'remove': case 'rm': {
+        if (!arg) { err('usage: clihub provider remove <id>'); process.exit(1); }
+        ok(await removeProviderSpec(arg) ? `removed provider "${arg}"` : `no declarative provider "${arg}"`);
+        return;
+      }
+      default:
+        err(`Unknown provider action: ${action}. Valid: list | add | remove`);
+        process.exit(1);
+    }
   });
 
 // ─── default → TUI ────────────────────────────────────────────────────

@@ -43,6 +43,7 @@ export const CATALOG_FILES = [
   'presets.json',
   'mcp.json',
   'plugins.json',
+  'providers.json',
 ] as const;
 
 export type CatalogFile = (typeof CATALOG_FILES)[number];
