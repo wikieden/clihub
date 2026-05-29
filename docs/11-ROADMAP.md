@@ -2,148 +2,121 @@
 
 > Tactical sprint view (day-by-day, 4-week sprints + 3-month outlook): [`14-SPRINT.md`](14-SPRINT.md).
 > Business model & monetisation phases: [`13-MONETIZATION.md`](13-MONETIZATION.md).
+> Per-release change history: [`../CHANGELOG.md`](../CHANGELOG.md).
 
 Status anchors: ✅ shipped · 🚧 in progress · 📋 planned
+
+**Current: `@wikieden/clihub@1.1.0` — stable.** Frozen surface: `clihub.yaml`
+schema v1, `clihub.lock.json` v1, the `@clihub/core` public API, and the
+`clihub` CLI command set.
 
 ## Released
 
 ### v0.1 ✅ — MVP
 
-- monorepo skeleton (bun workspaces)
-- `@clihub/core` (settings, backup, i18n)
-- `clihub` CLI (cac + clack TUI)
-- i18n: en + zh-CN
-- ToolProvider: `claude-code`
-- 5 core skills, `starter` preset
+- monorepo skeleton (bun workspaces), `@clihub/core` (settings, backup, i18n)
+- `clihub` CLI (cac + clack TUI), i18n en + zh-CN
+- ToolProvider `claude-code`, 5 core skills, `starter` preset
 - doctor / backup / restore / rollback
 
 ### v0.2 ✅ — multi-CLI
 
-- Codex + Kiro + Gemini providers
-- Cross-tool `SkillSyncAdapter`s
-- Catalog: 30 skills, 3 presets
-- i18n: + ja / ko / es
-- npm publish as `@wikieden/clihub`
-- single-binary 148 KB tarball, zero install-time deps
+- Codex + Kiro + Gemini providers, cross-tool `SkillSyncAdapter`s
+- Catalog: 30 skills, 3 presets; i18n + ja / ko / es
+- npm publish as `@wikieden/clihub`, single-binary tarball, zero install-time deps
 
 ### v0.3 ✅ — UX & health
 
-- TUI: per-CLI guided menus, preset preview, back navigation
-- MCP catalog (`packages/catalog/mcp.json`) + `JsonMcpAdapter`
-- Cross-CLI doctor matrix (CLI / STATUS / VERSION / SETTINGS / SKILLS / MCP) with `--json`
-- Kiro install fix (broken `kiro.dev/install.sh` → `brew install --cask kiro`)
-- Codex TOML settings adapter (`~/.codex/config.toml` reads now work)
+- TUI per-CLI guided menus, preset preview, back navigation
+- MCP catalog + `JsonMcpAdapter`; cross-CLI doctor matrix with `--json`
+- Kiro install fix; Codex TOML settings adapter
 
-## In progress
+### v0.4 ✅ — open standard + sync
 
-### v0.4 🚧 — open standard + sync
+- agentskills.io SKILL.md installer (`clihub skill install <git-url>`)
+- Plugin install for Claude Code (`clihub plugin`, git clone into `~/.claude/plugins/`)
+- Remote catalog sync (`clihub catalog sync`) with sha256 + manifest
+- Windows-safe paths
 
-Sub-tasks:
+### v0.5.x ✅ — Windows + config + multi-account
 
-- 🚧 **Step A — agentskills.io SKILL.md format**: parse YAML frontmatter (`name`, `description`); allow catalog to load from `skills/<id>/SKILL.md` directories. Make clihub an installer for the open standard.
-- ✅ **Step B — Codex TOML settings** (shipped in v0.3.2).
-- 🚧 **Step C — Plugin install (Claude Code)**: `PluginManifest` catalog + `ClaudeCodePluginAdapter` (git clone into `~/.claude/plugins/<id>/`). `clihub plugin <action> [id]` CLI + TUI lane.
-- 🚧 **Step D — Remote catalog sync**: `clihub catalog sync [url]` downloads JSON files to `~/.clihub/catalog/`; `CatalogLoader` prefers user dir when present.
+- **v0.5.0** — Windows portability, `clihub watch`, `clihub search`, shell completion, man page
+- **v0.5.1** — proxy (HTTP/HTTPS/SOCKS5) + CA bundle, live quota in `doctor`, `doctor --fix`, `CLIHUB-E-NNN` error codes, first-run wizard
+- **v0.5.2** — multi-account profile switching (`clihub profile`)
+- **v0.5.3** — system-keychain credential vault, per-profile `BASE_URL` injection, `clihub.yaml profile:` auto-switch, audit log
 
-### Acceptance
+### v0.6.x ✅ — federation + reproducibility
 
-```bash
-clihub catalog sync                                    # pulls latest catalog
-clihub plugin install <id> --tool claude-code          # git clone into ~/.claude/plugins/<id>
-clihub skill install <skill-md-path> --tool codex      # SKILL.md → codex adapter
-clihub config show codex                                # parses TOML
-```
+- **v0.6.0** — multi-source catalog federation (`catalog add`), Cursor + Goose providers (6 CLIs), HTTP/SSE MCP transport; per-tool version pin/rollback; skill audit
+- **v0.6.1** — `clihub apply [--plan]`, `clihub lock`, `clihub install --frozen`; full `clihub.yaml` + `clihub.lock.json`
 
-## Planned
+### v0.7.0 ✅ — clihub memory
 
-### v0.5 — Windows + config + ease of use + multi-account
+- `clihub memory generate`: one source (`clihub.memory.md` → `AGENTS.md` → `CLAUDE.md`) fans out to `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` / `.cursor/rules/*.mdc` / `.goosehints` / `.kiro/steering/*.md`; managed-block markers; `--check` for CI
 
-Expanded scope after the infra-vision review **and** re-prioritised after the 2026-05 demand audit (see [`20-MARKET-RESEARCH.md`](20-MARKET-RESEARCH.md)). v0.5 covers Pillars IX (Config), X (Ease of Use) and lays groundwork for Pillar XI (Cross-machine sync). Splits into four shippable tranches.
+### v0.8.0 ✅ — cross-machine sync (Pillar XI)
 
-#### v0.5.0 ✅ — Windows + watch + search (shipped 2026-05-28)
+- `clihub sync export|import`: E2E-encrypted config bundle (global config + catalog sources + profile metadata; API keys stay in the OS keychain). scrypt + AES-256-GCM, passphrase-only, zero backend
 
-- Windows-safe `whichCmd` + regex-based version parsing
-- `clihub watch` — file-watcher + auto-backup
-- `clihub search <query>` — fuzzy across catalog
-- Tab completion (bash / zsh / fish / PowerShell)
-- man page (`clihub completion man`)
+### v0.9.0 ✅ — signed catalogs (Pillar IV)
 
-#### v0.5.1 🚧 — Proxy + CA + ease wins + live quota (Sprint 6)
+- ed25519 `catalog keygen` / `sign` + local trust store (`catalog trust add --source`)
+- `catalog verify` checks sha256 integrity **and** publisher authenticity; pure `node:crypto`, no cosign dependency
 
-- Recognise `HTTPS_PROXY` / `HTTP_PROXY` / `ALL_PROXY` / `NO_PROXY`
-- Bearer-auth and SOCKS5 proxy URLs (`socks5://user:pass@host:port`)
-- `clihub config set proxy.http <url>` persistent override
-- Custom CA bundle (`clihub config set ca-bundle <path>`) for corp MITM
-- Inject proxy env into Claude Code / Codex / Gemini / Kiro settings
-- **New** — live quota meter in `clihub doctor`: 5-hour + weekly burn across Claude Code / Codex / Gemini where vendor APIs expose usage (addresses HN demand for rate-limit visibility)
-- `clihub doctor --fix` auto-remediation pass
-- Error code system (`CLIHUB-E-NNN`) with linked docs
-- First-run TUI wizard (≤ 5 steps, ≤ 60 s to first working CLI)
+### v0.10.0 ✅ — declarative provider SDK (Pillar V)
 
-#### v0.5.2 🚧 — **Headline: multi-account profile switching** (Sprint 7)
+- Teach clihub a new AI CLI with a JSON spec (`~/.clihub/providers.json` or a catalog `providers.json`) — detection + npm/bun/brew install, no code or fork. `clihub provider list|add|remove`
+- Shell-command installs gated behind `--allow-scripts`; built-in providers can't be shadowed
 
-Direct answer to the cc-switch (75K stars) / V2EX demand cluster — see research §3.
+### v0.11.0 ✅ — clihub status (Pillar II)
 
-- `clihub profile <create|use|list|switch|rm|clone|current>` for multi-account workflows
-- Profile storage at `~/.clihub/profiles/<name>/` with HOME / XDG override on activate
-- System-keychain credential vault (macOS Keychain / libsecret / Windows Credential Manager)
-- `clihub.yaml profile:` per-project override (auto-switch on directory entry)
-- Cross-profile share rules (skills shared, API keys not)
-- Unified OAuth flow → token routed to each CLI's native credentials file
-- **OAuth token-expiry recovery**: detect expired tokens, surface re-auth UX (addresses GH #33811 / #34306)
-- **Per-profile `BASE_URL` injection** — write `ANTHROPIC_BASE_URL` / `OPENAI_BASE_URL` / `GOOGLE_API_BASE` into each CLI's settings when the profile points at a self-hosted gateway (LiteLLM / Nyro). Config-adapter only; no data-plane routing.
+- `clihub status [--json] [--strict]` checks the machine against the pinned `clihub.lock.json` (ok / drift / missing / unlocked); `--strict` exits non-zero for CI gates
+- `clihub lock` resolves declarative providers too
 
-#### v0.5.3 🚧 — `clihub.yaml` + lockfile + version pin/rollback (Sprint 8)
+### v0.12.0 ✅ — clihub schema
 
-- `clihub.yaml` declarative project config (see [`19-CLIHUBYAML.md`](19-CLIHUBYAML.md))
-- `clihub init` interactive scaffold
-- `clihub apply --plan` / `--dry-run` (Terraform-style)
-- `clihub.lock.json` generation + `clihub install --frozen`
-- Structured audit log at `~/.clihub/audit.log`
-- **New** — `clihub install <tool>@<version>` and `clihub rollback <tool>` (per-tool, nvm-style). Addresses "Claude Code is getting worse" / auto-update-broken pain (research §2 #7 / #8)
+- `clihub schema [--out file]` emits a draft-07 JSON Schema for `clihub.yaml` (editor autocomplete + inline validation via the YAML language server)
 
-### v0.6 🚧 — federation + signing + skill audit
+### v1.0.0 ✅ — stable
 
-- sigstore-cosign signing of catalog manifests
-- `clihub catalog add <url>` multi-source federation (apt-style sources)
-- Regional mirror support (`CLIHUB_CATALOG_MIRROR=`)
-- HTTP transport for MCP servers (currently stdio-only)
-- New providers: Cursor, OpenCode, Goose, Junie
-- `clihub team init` group lockfile + push/pull to private team catalog
-- **New** — `clihub skill list --loaded --by-cli --permissions` audit dashboard. Shows what's actually installed across each CLI, with hook / symlink permissions called out. Addresses skill-sprawl + CVE-2026-39861 supply-chain concerns (research §2 #9 / #10)
+- Public API freeze + semver guarantee. Frozen surface: `clihub.yaml` schema v1, `clihub.lock.json` v1, `@clihub/core` API, `clihub` command set
+- `CHANGELOG.md` landed (0.1 → 1.0 history)
 
-### v0.7 — provider SDK + unified memory + spec drafts
+### v1.1.0 ✅ — clihub ci
 
-- Provider SDK alpha (third-party `clihub-plugin-cursor`-style packages)
-- Lifecycle hooks (pre-install / post-install / pre-rollback / post-apply)
-- RFC drafts at `docs/spec/*` for SKILL.md, MCP-MANIFEST.json, PLUGIN.json, LockFile, Catalog
-- `clihub completion` extended; `clihub help <topic>` long-form
-- `clihub/setup-action@v1` for GitHub Actions
-- **New** — `clihub memory generate` — one source `CONTEXT.md` emits `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` / `.kiro/steering/` simultaneously. Codifies the SKILL.md fragmentation pain (research §2 #1)
+- `clihub ci [github|gitlab] [--out file] [--node]` generates a CI workflow that validates `clihub.yaml` (`apply --plan`) on every push, with commented opt-ins for `memory generate --check` and `status --strict`
 
-### v0.8 — cross-machine sync (Pillar XI)
+## Next
 
-Direct answer to GH #36693 / #57678 (research §2 #2).
+### v1.2 📋 — unified auth
 
-- E2E-encrypted, key-derived-from-passphrase sync of: catalog selection, presets, profile metadata (not API keys — those stay in OS keychain), `clihub.yaml`, `clihub.lock.json`
-- Self-host first: backend is a single static-file blob store (S3 / R2 / minio); CLI handles the crypto
-- Optional **clihub Cloud** managed backend (Phase-2 monetisation lane — see [`13-MONETIZATION.md`](13-MONETIZATION.md))
-- `clihub sync push` / `clihub sync pull` / `clihub sync status`
+- Unified OAuth flow → token routed into each CLI's native credentials file
+- OAuth token-expiry recovery: detect expired tokens, surface re-auth UX (GH #33811 / #34306)
+- `clihub auth login` across providers; keychain-backed refresh
 
-### v1.0 — stable API + registry beta
+### v1.3 📋 — team lockfile push/pull (Pillar III + VII)
 
-- Public API freeze + semver guarantee
-- 100+ skills / 50+ MCP / 20+ plugins in the catalog
-- VS Code extension thin client
-- Documentation site (`clihub.dev`)
-- `clihub.dev` registry beta (npm-style publish, no PR needed)
+- `clihub team init` / `push` / `pull` — a shared, signed team lockfile over a git remote or static blob store (self-host first)
+- Optional managed **clihub Cloud** backend (Phase-2 monetisation — see [`13-MONETIZATION.md`](13-MONETIZATION.md))
+- Conflict arbitration across federated catalogs
+
+### v1.4 📋 — reach + IDE
+
+- `winget` / `scoop` packaging; Docker image
+- VS Code / JetBrains thin clients hitting `@clihub/core`
+- `docs/spec/*` RFC drafts (SKILL.md, MCP-MANIFEST, PLUGIN.json, LockFile, Catalog)
+
+### v1.5 📋 — registry beta (Pillar VII)
+
+- `clihub.dev` registry beta (npm-style publish, no PR)
 - `clihub-compatible` badge + automated compat test suite
+- Documentation site at `clihub.dev`
 
-### v2.0 — registry GA + enterprise
+### v2.0 📋 — registry GA + enterprise
 
 - Public registry GA
 - Enterprise tier: SSO, private catalog, audit log, license-compliance scan
-- Polyglot thin clients (Rust / Go) hitting the same registry
+- Polyglot thin clients (Rust / Go) on the same registry
 - CNCF Sandbox proposal
 
 ## Technical-debt budget (per release)
@@ -162,9 +135,9 @@ Direct answer to GH #36693 / #57678 (research §2 #2).
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Anthropic changes the skill format | high | adapter layer absorbs deltas |
-| alirezarezvani/claude-skills adds CLI install | high | get to npm + presets + rollback first |
+| alirezarezvani/claude-skills adds CLI install | high | shipped to npm + presets + rollback first |
 | AI CLI shake-out: a CLI dies | high | provider abstraction; drop the provider, no user impact |
-| nobody cares (silent fail) | medium | v0.4 launch on HN / Reddit / V2EX |
+| nobody cares (silent fail) | medium | HN / Reddit / V2EX launch on the 1.x stable line |
 | translation drift | low | LLM-assisted + native-speaker review on release |
 | Windows compat | medium | recruit Windows beta users early |
-| maintainer bandwidth | high | plugin SDK opens up provider development |
+| maintainer bandwidth | high | declarative provider SDK opens up provider development |

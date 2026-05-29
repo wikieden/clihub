@@ -2,7 +2,9 @@
 
 ## One-liner
 
-**The infrastructure layer for AI coding.** One control plane to install Claude Code, Codex, Gemini and Kiro side by side, keep their skills / MCP servers / plugins in sync, switch between accounts and proxies, and roll back when an upgrade breaks something.
+**The infrastructure layer for AI coding.** One control plane to install Claude Code, Codex, Gemini, Kiro, Cursor and Goose side by side, keep their skills / MCP servers / plugins / memory files in sync, switch between accounts and proxies, pin and roll back versions, sign and verify catalogs, sync config across machines, and gate CI on a shared lockfile — with any new CLI added via a declarative spec, no fork.
+
+Stable since `@wikieden/clihub@1.0.0`.
 
 ## Mission
 
@@ -45,11 +47,14 @@ clihub fixes all three with a single binary.
 | oh-my-claudecode | — | Claude Code plugin | cross-CLI |
 
 **Moat depth** (deepest first):
-1. CLI install matrix — others don't bother.
-2. Backup / one-command rollback of `~/.claude` (and siblings).
-3. Presets bundling tools + skills + MCP + plugin.
-4. Installer for the open `agentskills.io` SKILL.md standard.
-5. i18n (zh / ja / ko / es) — non-English market grab.
+1. CLI install matrix across 6 CLIs — others don't bother.
+2. Backup / one-command rollback + per-tool version pin/rollback of `~/.claude` (and siblings).
+3. Reproducibility: `clihub.yaml` → `clihub.lock.json` → `install --frozen` → `status` CI gate.
+4. Cross-CLI memory sync (one source → `CLAUDE.md`/`AGENTS.md`/`GEMINI.md`/...).
+5. Signed catalogs (ed25519 trust store) + cross-machine E2E-encrypted sync.
+6. Declarative provider SDK — add any CLI via JSON spec, no fork.
+7. Presets bundling tools + skills + MCP + plugin; installer for the open `agentskills.io` SKILL.md standard.
+8. i18n (zh / ja / ko / es) — non-English market grab.
 
 ## Engineering footprint
 
@@ -77,17 +82,17 @@ clihub graduates from "useful CLI" to "AI coding substrate" along eleven pillars
 
 | # | Pillar | What it means | Status |
 |---|---|---|---|
-| I | **Spec & standards** | clihub authors / endorses open specs for SKILL.md, MCP, PluginManifest, LockFile, Catalog. Other clients can implement against the spec without using clihub. | v0.4 partial (SKILL.md installer); RFC drafts in v0.7. |
-| II | **Reproducibility** | `clihub.lock.json`, `clihub install --frozen`, plan/apply (Terraform-style), structured audit log. Same lockfile → same world. | v0.5.3 (yaml + lockfile + version pin/rollback). |
-| III | **Federation** | Multiple catalogs (`clihub catalog add <url>`), regional mirrors, private team catalogs, conflict arbitration. | v0.5 partial (sync); multi-source v0.6. |
-| IV | **Trust** | sigstore-cosign signed catalog releases, SHA256 verified files, npm provenance, transparency log. | v0.6 (signing). |
-| V | **Composability** | Provider SDK + Adapter SDK + lifecycle hooks. Third-party `clihub-plugin-*` packages add CLIs we don't ship. | v0.7 (SDK alpha). |
-| VI | **Reach** | macOS / Linux / Windows; npm / brew / scoop / winget / apt / docker; CI action; VS Code / JetBrains thin clients. | v0.5.0 ✅ Windows portability, v0.6 winget/scoop, v0.7 IDE. |
-| VII | **Community** | Public registry, RFC process, compatibility test suite, `clihub-compatible` badge. | v1.0 (registry beta). |
-| VIII | **Adoption** | Vendor partnerships (Anthropic, OpenAI, Google, AWS), competitor inter-op, course / book inclusions. | continuous from v0.4. |
-| **IX** | **Config management** | Proxy support (HTTP/HTTPS/SOCKS5, MITM CA bundle), profile switching for multi-account (personal / work / client-X), system-keychain credential vault, unified OAuth across CLIs, per-profile `BASE_URL` injection. | v0.5.1 proxy + v0.5.2 profile/keychain. |
-| **X** | **Ease of use** | First-run wizard, in-TUI search, recent / favourites, tab completion, error codes with linked docs, `doctor --fix` autoremediation, man pages, live quota meter, smart defaults. | v0.5.0 ✅ search/completion/man; v0.5.1 wizard + quota. |
-| **XI** | **Cross-machine sync** | E2E-encrypted sync of catalog selection + presets + profile metadata + `clihub.yaml`/`clihub.lock.json` (not API keys — those stay in OS keychain). Self-host first; clihub Cloud optional. | v0.8 (self-host); Phase-2 monetisation: managed clihub Cloud. |
+| I | **Spec & standards** | clihub authors / endorses open specs for SKILL.md, MCP, PluginManifest, LockFile, Catalog. Other clients can implement against the spec without using clihub. | ✅ SKILL.md installer (v0.4) + `clihub.yaml` JSON Schema (v0.12); RFC drafts 📋 v1.4. |
+| II | **Reproducibility** | `clihub.lock.json`, `clihub install --frozen`, plan/apply (Terraform-style), structured audit log, compliance gate. Same lockfile → same world. | ✅ apply/lock/install --frozen (v0.6.1) + `clihub status` (v0.11). |
+| III | **Federation** | Multiple catalogs (`clihub catalog add <url>`), regional mirrors, private team catalogs, conflict arbitration. | ✅ multi-source federation (v0.6.0); team push/pull 📋 v1.3. |
+| IV | **Trust** | signed catalog releases, SHA256 verified files, npm provenance, local trust store. | ✅ ed25519 signing + trust store (v0.9); npm provenance ✅. |
+| V | **Composability** | Provider SDK + Adapter SDK + lifecycle hooks. Third-party specs add CLIs we don't ship. | ✅ declarative provider SDK (v0.10); lifecycle hooks 📋. |
+| VI | **Reach** | macOS / Linux / Windows; npm / brew / scoop / winget / apt / docker; CI action; VS Code / JetBrains thin clients. | ✅ Windows (v0.5.0) + `clihub ci` workflow gen (v1.1); winget/scoop/IDE 📋 v1.4. |
+| VII | **Community** | Public registry, RFC process, compatibility test suite, `clihub-compatible` badge. | 📋 registry beta v1.5. |
+| VIII | **Adoption** | Vendor partnerships (Anthropic, OpenAI, Google, AWS), competitor inter-op, course / book inclusions. | continuous; 1.x stable line is the launch surface. |
+| **IX** | **Config management** | Proxy support (HTTP/HTTPS/SOCKS5, MITM CA bundle), profile switching for multi-account, system-keychain credential vault, unified OAuth across CLIs, per-profile `BASE_URL` injection. | ✅ proxy (v0.5.1) + profiles/keychain/BASE_URL (v0.5.2–0.5.3); unified OAuth 📋 v1.2. |
+| **X** | **Ease of use** | First-run wizard, in-TUI search, recent / favourites, tab completion, error codes with linked docs, `doctor --fix` autoremediation, man pages, live quota meter, smart defaults. | ✅ search/completion/man (v0.5.0) + wizard/quota/`doctor --fix`/error codes (v0.5.1). |
+| **XI** | **Cross-machine sync** | E2E-encrypted sync of catalog selection + presets + profile metadata + `clihub.yaml`/`clihub.lock.json` (not API keys — those stay in OS keychain). Self-host first; clihub Cloud optional. | ✅ `clihub sync` export/import (v0.8); managed clihub Cloud 📋 (Phase-2 monetisation). |
 
 Each pillar feeds the others: Pillars I–IV make clihub credible as infra; V–VII make it self-sustaining; VIII gets it picked up; IX–X stop new users bouncing; XI keeps them across machines.
 
@@ -107,14 +112,17 @@ Each pillar feeds the others: Pillars I–IV make clihub credible as infra; V–
 
 ## Success metrics (per stage)
 
+Feature surface is built; v0.1 → v1.1 all shipped to npm. The metrics
+below are now the **adoption** targets for the stable 1.x line, not
+feature gates.
+
 | Stage | Weekly npm downloads | GitHub stars | Notes |
 |---|---|---|---|
-| v0.4 | 500 | 200 | HN / Reddit / V2EX launch |
-| v0.5 | 1.5k | 500 | Windows, watch, search, proxy + profiles |
-| v0.6 | 3k | 1k | catalog signing, multi-source federation |
-| v0.7 | 4k | 1.5k | provider SDK alpha, RFC spec draft |
-| v1.0 | 5k | 2k | stable API, plugin SDK, registry beta |
-| v2.0 | 50k/month | 10k | enterprise pilot ≥3 |
+| 1.0 launch | 500 | 200 | HN / Reddit / V2EX launch on the stable line |
+| 1.x | 1.5k | 500 | demo GIF, docs site, early adopters |
+| 1.x + unified auth (v1.2) | 3k | 1k | OAuth + team lockfile pull-in |
+| registry beta (v1.5) | 4k | 1.5k | community publish, `clihub-compatible` badge |
+| v2.0 | 50k/month | 10k | registry GA, enterprise pilot ≥3 |
 
 ## Related design docs
 
