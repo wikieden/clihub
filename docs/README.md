@@ -25,6 +25,7 @@
 | 18 | [CONFIG-PROXY-PROFILE](18-CONFIG-PROXY-PROFILE.md) | Pillar IX 设计 — proxy / CA bundle / 多账号 profile / 系统 keychain |
 | 19 | [CLIHUBYAML](19-CLIHUBYAML.md) | `clihub.yaml` + `clihub.lock.json` schema (Pillar II 可复现) |
 | 20 | [MARKET-RESEARCH](20-MARKET-RESEARCH.md) | HN / Reddit / V2EX 2026-05 痛点审计 + v0.5→v0.8 路线重排理据 |
+| 21 | [VALUE](21-VALUE.md) | 三类受众价值 — 小白 / 个人开发者 / 团队企业（痛点→能力→命令） |
 | -- | [REVIEW](REVIEW.md) | **总体目标 review** — 风险 / 决策点 / 最小切片 |
 
 ## 快速理解

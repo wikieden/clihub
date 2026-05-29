@@ -18,6 +18,8 @@ clihub preset apply starter
 
 That's it. Four CLIs installed, 5 core skills fanned out to all of them, your prior `~/.claude` snapshotted and recoverable.
 
+> **Who's it for?** Newcomers, individual developers, and teams/enterprises each get a different slice — see [`docs/21-VALUE.md`](docs/21-VALUE.md).
+
 ---
 
 ## Why clihub
