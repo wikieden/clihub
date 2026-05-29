@@ -1849,6 +1849,24 @@ cli
     }
   });
 
+// ─── conformance ──────────────────────────────────────────────────────
+cli
+  .command('conformance [dir]', 'Validate a catalog against the clihub specs (clihub-compatible suite)')
+  .option('--json', 'Output the report as JSON')
+  .action(async (dir: string | undefined, opts: { json?: boolean }) => {
+    const { checkConformance, defaultCatalogDir } = await import('@clihub/core');
+    const target = dir ?? defaultCatalogDir();
+    const report = await checkConformance(target);
+    if (opts.json) { console.log(JSON.stringify(report, null, 2)); return; }
+    console.log(kleur.bold(`conformance: ${target}`));
+    for (const c of report.checks) {
+      const mark = c.pass ? kleur.green('✓') : kleur.red('✗');
+      console.log(`  ${mark} ${c.name}${c.detail ? kleur.dim(`  — ${c.detail}`) : ''}`);
+    }
+    if (report.conformant) ok(`conformant (${report.passed} checks passed)`);
+    else { err(`NOT conformant (${report.failed} failed)`); process.exit(1); }
+  });
+
 // ─── pack ─────────────────────────────────────────────────────────────
 cli
   .command('pack <target>', 'Emit a distribution manifest (docker | brew | scoop)')

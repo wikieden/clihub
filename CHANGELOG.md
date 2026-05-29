@@ -4,6 +4,14 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.7.0] — clihub conformance
+
+- `clihub conformance [dir] [--json]` validates a catalog against the
+  published specs: manifest + sha256 integrity, JSON parse, declarative
+  provider specs, signature status (unsigned = soft warning), optional
+  `clihub.lock.json` v1. Read-only; the machine-checkable basis for a
+  `clihub-compatible` badge. Exits non-zero when not conformant.
+
 ## [1.6.0] — auth login --refresh
 
 - `clihub auth login <provider> --refresh` re-mints an access token from

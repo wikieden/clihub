@@ -137,10 +137,13 @@ infra-blocked items): [Unified OAuth](spec/03-OAUTH-FLOW.md),
 - `winget` packaging (needs an MSI/exe; `pack scoop`/`pack brew`/`pack docker` already ship)
 - VS Code / JetBrains thin clients hitting `@clihub/core`
 
-### v1.7 📋 — registry beta (Pillar VII)
+### v1.7.0 ✅ — conformance suite (Pillar VII, client side)
 
-- `clihub.dev` registry beta (npm-style publish, no PR)
-- `clihub-compatible` badge + automated compat test suite
+- `clihub conformance [dir] [--json]` validates a catalog against the specs (manifest + sha256, JSON, provider specs, signature, lockfile). The machine-checkable basis for the `clihub-compatible` badge
+
+### 📋 — registry beta (Pillar VII, server side — external-infra blocked)
+
+- `clihub.dev` registry beta (npm-style publish, no PR) — needs a hosted backend; see [`spec/04-REGISTRY.md`](spec/04-REGISTRY.md)
 - Documentation site at `clihub.dev`
 
 ### v2.0 📋 — registry GA + enterprise

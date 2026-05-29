@@ -266,6 +266,11 @@ export {
   type TeamSyncResult,
 } from './team/index.js';
 export {
+  checkConformance,
+  type ConformanceCheck,
+  type ConformanceReport,
+} from './conformance/index.js';
+export {
   computeStatus,
   type ComplianceState,
   type StatusItem,

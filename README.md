@@ -139,6 +139,7 @@ clihub schema [--out FILE]                  emit clihub.yaml JSON Schema (editor
 clihub ci [github|gitlab] [--out FILE]       generate a CI workflow that validates clihub.yaml
 clihub team <add|list|pull|use|push|rm>      share clihub config across a team via a git repo
 clihub pack <docker|brew|scoop> [--out FILE] generate a distribution manifest
+clihub conformance [dir] [--json]            validate a catalog against the clihub specs
 clihub memory <generate|plan> [--user] [--all] [--check]   one source → every CLI's memory file
 clihub sync export [--out FILE]            E2E-encrypted config bundle (profiles + sources + config)
 clihub sync import <FILE> [--plan]         restore on another machine (passphrase-protected)
@@ -208,8 +209,9 @@ bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't
 - **v1.3.0** ✅ — **`clihub auth status`**: cross-CLI login + token-expiry visibility (best-effort, read-only; never prints token contents).
 - **v1.4.0** ✅ — **`clihub pack`**: generate distribution manifests — `pack docker` / `pack brew` / `pack scoop`. Reach beyond npm.
 - **v1.5.0** ✅ — **`clihub auth login`**: OAuth 2.0 device-grant login (RFC 8628, headless/CI-friendly). Vendor-neutral BYO config; token written to the CLI's native credential file (0600). Security-reviewed.
-- **v1.6.0** ✅ (current, `@wikieden/clihub@1.6.0` on npm) — **`clihub auth login --refresh`**: token-expiry recovery via the RFC 6749 refresh-token grant — re-mint an access token from the stored `refresh_token` (rotated if the provider returns a new one), no browser. Completes the auth pillar.
-- **post-1.6** — browser/PKCE login variant, registry beta (`clihub.dev`), IDE thin clients.
+- **v1.6.0** ✅ — **`clihub auth login --refresh`**: token-expiry recovery via the RFC 6749 refresh-token grant — re-mint an access token from the stored `refresh_token`, no browser. Completes the auth pillar.
+- **v1.7.0** ✅ (current, `@wikieden/clihub@1.7.0` on npm) — **`clihub conformance`**: validate a catalog against the published clihub specs (manifest + sha256 integrity, JSON, provider specs, signature, lockfile). The machine-checkable basis for a `clihub-compatible` badge — any client's catalog can run it. `--json` for CI.
+- **post-1.7 (external-infra blocked)** — registry *server* (`clihub.dev`), VS Code/JetBrains marketplace clients, browser/PKCE login variant. See [`docs/spec/`](docs/spec/).
 
 See [`docs/11-ROADMAP.md`](docs/11-ROADMAP.md) and [`docs/20-MARKET-RESEARCH.md`](docs/20-MARKET-RESEARCH.md).
 
