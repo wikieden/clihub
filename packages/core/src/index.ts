@@ -184,6 +184,20 @@ export {
   type MemoryResult,
 } from './memory/index.js';
 export {
+  collectBundle,
+  encryptBundle,
+  decryptBundle,
+  planRestore,
+  applyRestore,
+  type SyncFile,
+  type SyncBundle,
+  type SyncIoOpts,
+  type RestoreVerb,
+  type RestoreItem,
+  type RestoreResult,
+  type ApplyRestoreOpts,
+} from './sync/index.js';
+export {
   recordVersion,
   readHistory,
   previousVersion,

@@ -39,6 +39,7 @@ clihub solves all three:
 | Multi-source catalog federation | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Skill security audit | ✅ | ❌ | ❌ | ❌ | ❌ |
 | One memory source → every CLI's file | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Cross-machine E2E-encrypted config sync | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Interactive TUI onboarding | ✅ | ❌ | partial | ❌ | ❌ |
 | Single-binary distribution | npm | shell | npm | npm | CC plugin |
 
@@ -125,6 +126,8 @@ clihub apply [--plan]                      converge this machine to clihub.yaml
 clihub lock                                pin resolved versions to clihub.lock.json
 clihub install [--frozen]                  install from clihub.yaml (or lockfile)
 clihub memory <generate|plan> [--user] [--all] [--check]   one source → every CLI's memory file
+clihub sync export [--out FILE]            E2E-encrypted config bundle (profiles + sources + config)
+clihub sync import <FILE> [--plan]         restore on another machine (passphrase-protected)
 clihub self-update
 ```
 
@@ -176,8 +179,9 @@ bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't
 - **v0.5** ✅ — `watch` / `search` / shell completion / man; proxy + CA bundle; `doctor --fix` + error codes; **multi-account profiles** + keychain vault + per-profile `BASE_URL` injection; `clihub.yaml` + audit log; per-tool **version pin/rollback**; **skill audit**.
 - **v0.6** ✅ — multi-source **catalog federation** (`catalog add`), **Cursor + Goose** providers (6 CLIs total), **HTTP/SSE MCP** transport.
 - **v0.6.1** ✅ — `clihub apply --plan` / `lock` / `install --frozen` (full `clihub.yaml` schema + `clihub.lock.json`).
-- **v0.7** ✅ (current, `@wikieden/clihub@0.7.0` on npm) — **`clihub memory generate`**: one source (`clihub.memory.md` → `AGENTS.md` → `CLAUDE.md`) fans out to `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` / `.cursor/rules/*.mdc` / `.goosehints` / `.kiro/steering/*.md`, managed-block markers preserve hand-edits, `--check` for CI.
-- **v0.8+** — sigstore-cosign catalog signing, provider SDK, cross-machine E2E-encrypted sync.
+- **v0.7** ✅ — **`clihub memory generate`**: one source (`clihub.memory.md` → `AGENTS.md` → `CLAUDE.md`) fans out to `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` / `.cursor/rules/*.mdc` / `.goosehints` / `.kiro/steering/*.md`, managed-block markers preserve hand-edits, `--check` for CI.
+- **v0.8** ✅ (current, `@wikieden/clihub@0.8.0` on npm) — **`clihub sync`**: cross-machine, end-to-end-encrypted config bundle (global config + catalog sources + profile metadata). scrypt + AES-256-GCM, passphrase-only, zero backend — move the bundle however you like.
+- **v0.9+** — sigstore-cosign catalog signing, provider SDK, OAuth unified flow.
 
 See [`docs/11-ROADMAP.md`](docs/11-ROADMAP.md) and [`docs/20-MARKET-RESEARCH.md`](docs/20-MARKET-RESEARCH.md).
 

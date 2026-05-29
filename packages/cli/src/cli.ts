@@ -1400,6 +1400,70 @@ cli
     if (result.failed.length > 0) process.exit(1);
   });
 
+// ─── sync ─────────────────────────────────────────────────────────────
+async function syncPassphrase(confirm: boolean): Promise<string> {
+  const env = process.env.CLIHUB_SYNC_PASSPHRASE;
+  if (env) return env;
+  const { password, isCancel } = await import('@clack/prompts');
+  const p = await password({ message: 'Sync passphrase' });
+  if (isCancel(p) || typeof p !== 'string' || !p) { err('passphrase required'); process.exit(1); }
+  if (confirm) {
+    const p2 = await password({ message: 'Confirm passphrase' });
+    if (isCancel(p2) || p2 !== p) { err('passphrases do not match'); process.exit(1); }
+  }
+  return p;
+}
+
+cli
+  .command('sync [action] [file]', 'Cross-machine encrypted config sync (export | import)')
+  .option('--out <file>', 'export: output file (default: clihub-sync.txt)')
+  .option('--plan', 'import: show the diff without writing')
+  .option('--no-overwrite', 'import: keep local files that differ')
+  .action(async (action: string | undefined, file: string | undefined, opts: { out?: string; plan?: boolean; overwrite?: boolean }) => {
+    const { collectBundle, encryptBundle, decryptBundle, planRestore, applyRestore } = await import('@clihub/core');
+    const fsp = await import('node:fs/promises');
+
+    if (action === 'export') {
+      const pass = await syncPassphrase(true);
+      const bundle = await collectBundle(pkg.version);
+      const out = opts.out ?? 'clihub-sync.txt';
+      await fsp.writeFile(out, encryptBundle(bundle, pass), 'utf8');
+      ok(`wrote ${out}  (${bundle.files.length} files${bundle.currentProfile ? `, profile ${bundle.currentProfile}` : ''})`);
+      info(`encrypted with your passphrase. Move it to another machine, then: clihub sync import ${out}`);
+      return;
+    }
+
+    if (action === 'import') {
+      if (!file) { err('usage: clihub sync import <file>'); process.exit(1); }
+      const pass = await syncPassphrase(false);
+      let bundle;
+      try {
+        bundle = decryptBundle(await fsp.readFile(file, 'utf8'), pass);
+      } catch (e) {
+        err(e instanceof Error ? e.message : String(e));
+        process.exit(1);
+      }
+      info(`bundle from clihub ${bundle.clihub}, generated ${bundle.generatedAt}`);
+      if (opts.plan) {
+        for (const it of await planRestore(bundle)) {
+          const mark = it.verb === 'new' ? kleur.green('+') : it.verb === 'overwrite' ? kleur.yellow('~') : kleur.dim('=');
+          console.log(`  ${mark} ${it.path}`);
+        }
+        return;
+      }
+      const res = await applyRestore(bundle, { noOverwrite: opts.overwrite === false });
+      for (const w of res.written) if (w.verb !== 'same') ok(w.path);
+      if (res.relinkedProfile) ok(`current profile → ${res.relinkedProfile}`);
+      for (const f of res.failed) err(`${f.path}: ${f.error}`);
+      if (res.failed.length > 0) process.exit(1);
+      info('run `clihub profile use <name>` to materialise a profile, `clihub catalog sync-all` to refresh sources.');
+      return;
+    }
+
+    err('usage: clihub sync <export|import> [file]');
+    process.exit(1);
+  });
+
 // ─── memory ───────────────────────────────────────────────────────────
 cli
   .command('memory [action]', 'Sync one memory source to every CLI (generate | plan)')
