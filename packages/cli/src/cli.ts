@@ -557,20 +557,86 @@ cli
     }
   });
 
-// ─── catalog <action> [url] ───────────────────────────────────────────
+// ─── catalog <action> [arg1] [arg2] ───────────────────────────────────
 cli
-  .command('catalog <action> [url]', 'Manage the local catalog  (sync | status | verify)')
-  .action(async (action: string, url: string | undefined) => {
+  .command('catalog <action> [arg1] [arg2]', 'Manage catalogs (sync | status | verify | add | remove | list | priority | sync-all)')
+  .action(async (action: string, arg1: string | undefined, arg2: string | undefined) => {
     const {
       syncCatalog,
       readCatalogManifest,
       verifyCatalog,
       defaultCatalogDir,
       DEFAULT_CATALOG_URL,
+      addCatalogSource,
+      removeCatalogSource,
+      setSourcePriority,
+      syncAllSources,
+      readSources,
     } = await import('@clihub/core');
     const dir = defaultCatalogDir();
+    const url = arg1;
 
     switch (action) {
+      // ── federation ──
+      case 'add': {
+        const name = arg1;
+        const srcUrl = arg2;
+        if (!name || !srcUrl) { err('usage: clihub catalog add <name> <url>'); process.exit(1); }
+        info(`Adding source "${name}" → ${srcUrl}`);
+        try {
+          const { source, sync } = await addCatalogSource(name, srcUrl);
+          ok(`source "${source.name}" added (priority ${source.priority}, ${sync.files.length} files)`);
+        } catch (e) {
+          err(`add failed: ${String(e)}`);
+          process.exit(1);
+        }
+        return;
+      }
+      case 'remove': {
+        if (!arg1) { err('usage: clihub catalog remove <name>'); process.exit(1); }
+        try {
+          await removeCatalogSource(arg1);
+          ok(`source "${arg1}" removed`);
+        } catch (e) {
+          err(String(e));
+          process.exit(1);
+        }
+        return;
+      }
+      case 'list': {
+        const data = await readSources();
+        if (data.sources.length === 0) {
+          info('No federated sources. `catalog add <name> <url>` to add one; otherwise the bundled/synced catalog is used.');
+          return;
+        }
+        console.log(kleur.bold('Catalog sources (priority ascending; higher wins):'));
+        for (const s of [...data.sources].sort((a, b) => a.priority - b.priority)) {
+          console.log(`  ${kleur.bold(String(s.priority).padStart(3))}  ${s.name}  ${kleur.dim(s.url)}`);
+        }
+        return;
+      }
+      case 'priority': {
+        const name = arg1;
+        const n = arg2 ? Number(arg2) : NaN;
+        if (!name || Number.isNaN(n)) { err('usage: clihub catalog priority <name> <number>'); process.exit(1); }
+        try {
+          await setSourcePriority(name, n);
+          ok(`source "${name}" priority → ${n}`);
+        } catch (e) {
+          err(String(e));
+          process.exit(1);
+        }
+        return;
+      }
+      case 'sync-all': {
+        const results = await syncAllSources();
+        if (results.length === 0) { info('No federated sources to sync.'); return; }
+        for (const r of results) {
+          if (r.ok) ok(`synced ${r.name}`);
+          else err(`${r.name}: ${r.detail}`);
+        }
+        return;
+      }
       case 'sync': {
         const src = url ?? DEFAULT_CATALOG_URL;
         info(`Syncing catalog from ${src} → ${dir}`);

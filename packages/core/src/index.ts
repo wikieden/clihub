@@ -12,6 +12,8 @@ export { claudeCodeProvider } from './tools/providers/claude-code.js';
 export { codexProvider } from './tools/providers/codex.js';
 export { kiroProvider } from './tools/providers/kiro.js';
 export { geminiProvider } from './tools/providers/gemini.js';
+export { cursorProvider } from './tools/providers/cursor.js';
+export { gooseProvider } from './tools/providers/goose.js';
 export { JsonSettingsAdapter } from './settings/index.js';
 export { TomlSettingsAdapter, type TomlSettingsAdapterOpts } from './settings/toml.js';
 export {
@@ -160,6 +162,19 @@ export {
   type SkillAuditOpts,
 } from './skill-audit/index.js';
 export { CatalogLoader, type Catalog } from './catalog/index.js';
+export {
+  addCatalogSource,
+  removeCatalogSource,
+  setSourcePriority,
+  syncAllSources,
+  readSources,
+  orderedSourceDirs,
+  defaultSourcesPath,
+  catalogSourcesRoot,
+  type CatalogSource,
+  type SourcesFile,
+  type SourcesIoOpts,
+} from './catalog/sources.js';
 export {
   syncCatalog,
   readCatalogManifest,

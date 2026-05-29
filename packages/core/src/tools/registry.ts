@@ -3,12 +3,16 @@ import { claudeCodeProvider } from './providers/claude-code.js';
 import { codexProvider } from './providers/codex.js';
 import { kiroProvider } from './providers/kiro.js';
 import { geminiProvider } from './providers/gemini.js';
+import { cursorProvider } from './providers/cursor.js';
+import { gooseProvider } from './providers/goose.js';
 
 const providers: Record<string, ToolProvider> = {
   [claudeCodeProvider.id]: claudeCodeProvider,
   [codexProvider.id]: codexProvider,
   [kiroProvider.id]: kiroProvider,
   [geminiProvider.id]: geminiProvider,
+  [cursorProvider.id]: cursorProvider,
+  [gooseProvider.id]: gooseProvider,
 };
 
 export function getProvider(id: string): ToolProvider | undefined {

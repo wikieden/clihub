@@ -71,5 +71,15 @@
     "args": ["-y", "@playwright/mcp"],
     "homepage": "https://github.com/microsoft/playwright-mcp",
     "tags": ["browser", "e2e", "qa"]
+  },
+  {
+    "id": "deepwiki",
+    "name": "DeepWiki (HTTP)",
+    "description": "Remote MCP server exposing up-to-date docs for public GitHub repos over HTTP.",
+    "supports": { "claude-code": true, "codex": true, "kiro-cli": true, "gemini-cli": true },
+    "transport": "http",
+    "url": "https://mcp.deepwiki.com/mcp",
+    "homepage": "https://deepwiki.com",
+    "tags": ["docs", "remote", "http"]
   }
 ]

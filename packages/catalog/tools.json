@@ -33,5 +33,21 @@
     "installMethods": ["npm", "bun"],
     "npmPackage": "@google/gemini-cli",
     "supportedPlatforms": ["macos", "linux"]
+  },
+  {
+    "id": "cursor",
+    "name": "Cursor CLI",
+    "description": "Cursor agent CLI — terminal coding agent by Anysphere",
+    "homepage": "https://cursor.com/cli",
+    "installMethods": ["curl"],
+    "supportedPlatforms": ["macos", "linux"]
+  },
+  {
+    "id": "goose",
+    "name": "Goose",
+    "description": "Block Goose — open-source, extensible AI agent",
+    "homepage": "https://block.github.io/goose/",
+    "installMethods": ["curl", "brew"],
+    "supportedPlatforms": ["macos", "linux"]
   }
 ]

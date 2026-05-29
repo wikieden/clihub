@@ -58,8 +58,23 @@ export class JsonMcpAdapter implements McpAdapter {
   async install(server: McpServerManifest): Promise<void> {
     const obj = await this.read();
     obj.mcpServers ??= {};
-    const entry: Record<string, unknown> = { command: server.command };
-    if (server.args && server.args.length > 0) entry.args = server.args;
+    const transport = server.transport ?? 'stdio';
+    let entry: Record<string, unknown>;
+    if (transport === 'http' || transport === 'sse') {
+      if (!server.url) {
+        throw new Error(`MCP server ${server.id} uses ${transport} transport but has no url`);
+      }
+      entry = { type: transport, url: server.url };
+      if (server.headers && Object.keys(server.headers).length > 0) {
+        entry.headers = { ...server.headers };
+      }
+    } else {
+      if (!server.command) {
+        throw new Error(`MCP server ${server.id} uses stdio transport but has no command`);
+      }
+      entry = { command: server.command };
+      if (server.args && server.args.length > 0) entry.args = server.args;
+    }
     if (server.env && Object.keys(server.env).length > 0) {
       entry.env = Object.fromEntries(
         Object.keys(server.env).map((k) => [k, process.env[k] ?? '']),

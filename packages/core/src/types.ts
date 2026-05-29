@@ -56,14 +56,22 @@ export interface SkillManifest {
  * Installing patches each CLI's settings file with a `mcpServers` entry
  * keyed by `id`.
  */
+export type McpTransport = 'stdio' | 'http' | 'sse';
+
 export interface McpServerManifest {
   id: string;
   name: string;
   description: string;
   supports: Supports;
+  /** Transport. Defaults to 'stdio' when omitted. */
+  transport?: McpTransport;
   /** Executable + args used to launch the server (stdio transport). */
-  command: string;
+  command?: string;
   args?: string[];
+  /** Endpoint URL (http / sse transports). */
+  url?: string;
+  /** Optional headers for http / sse (e.g. Authorization). */
+  headers?: Record<string, string>;
   /** Required env vars; user is prompted or instructed to set these. */
   env?: Record<string, string>;
   homepage?: string;

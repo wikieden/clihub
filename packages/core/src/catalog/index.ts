@@ -18,6 +18,7 @@ import _presets from '../../../catalog/presets.json' with { type: 'json' };
 import _mcp from '../../../catalog/mcp.json' with { type: 'json' };
 import _plugins from '../../../catalog/plugins.json' with { type: 'json' };
 import { defaultCatalogDir, readCatalogManifest } from './sync.js';
+import { orderedSourceDirs } from './sources.js';
 
 export interface Catalog {
   skills: SkillManifest[];
@@ -47,7 +48,18 @@ export class CatalogLoader {
       this.cache = await this.loadFromDir(this.dir);
       return this.cache;
     }
-    // 2. user-synced catalog at ~/.clihub/catalog/ (if a manifest exists)
+    // 2. federated sources at ~/.clihub/catalog-sources/* (if configured)
+    const sources = await orderedSourceDirs();
+    if (sources.length > 0) {
+      try {
+        const merged = await this.mergeSourceDirs(sources.map((s) => s.dir));
+        this.cache = merged;
+        return this.cache;
+      } catch {
+        // fall through if a source is corrupt
+      }
+    }
+    // 3. user-synced catalog at ~/.clihub/catalog/ (if a manifest exists)
     const userDir = defaultCatalogDir();
     const manifest = await readCatalogManifest(userDir);
     if (manifest) {
@@ -70,12 +82,51 @@ export class CatalogLoader {
   }
 
   /** Source the catalog is currently being read from. */
-  async source(): Promise<{ kind: 'bundled' | 'user' | 'override'; dir?: string }> {
+  async source(): Promise<{ kind: 'bundled' | 'user' | 'override' | 'federated'; dir?: string; sources?: string[] }> {
     if (this.dir) return { kind: 'override', dir: this.dir };
+    const sources = await orderedSourceDirs();
+    if (sources.length > 0) return { kind: 'federated', sources: sources.map((s) => s.name) };
     const userDir = defaultCatalogDir();
     const manifest = await readCatalogManifest(userDir);
     if (manifest) return { kind: 'user', dir: userDir };
     return { kind: 'bundled' };
+  }
+
+  /**
+   * Merge several source dirs into one catalog. Dirs are passed
+   * lowest-priority first; later dirs override earlier ones by `id`.
+   */
+  private async mergeSourceDirs(dirs: string[]): Promise<Catalog> {
+    const byId = {
+      skills: new Map<string, SkillManifest>(),
+      tools: new Map<string, ToolCatalogEntry>(),
+      presets: new Map<string, Preset>(),
+      mcpServers: new Map<string, McpServerManifest>(),
+      plugins: new Map<string, PluginManifest>(),
+    };
+    let loadedAny = false;
+    for (const dir of dirs) {
+      let cat: Catalog;
+      try {
+        cat = await this.loadFromDir(dir);
+      } catch {
+        continue;
+      }
+      loadedAny = true;
+      for (const s of cat.skills) byId.skills.set(s.id, s);
+      for (const t of cat.tools) byId.tools.set(t.id, t);
+      for (const p of cat.presets) byId.presets.set(p.id, p);
+      for (const m of cat.mcpServers) byId.mcpServers.set(m.id, m);
+      for (const pl of cat.plugins) byId.plugins.set(pl.id, pl);
+    }
+    if (!loadedAny) throw new Error('no source dir loaded');
+    return {
+      skills: [...byId.skills.values()],
+      tools: [...byId.tools.values()],
+      presets: [...byId.presets.values()],
+      mcpServers: [...byId.mcpServers.values()],
+      plugins: [...byId.plugins.values()],
+    };
   }
 
   private async loadFromDir(dir: string): Promise<Catalog> {
