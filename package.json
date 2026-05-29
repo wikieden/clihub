@@ -1,6 +1,6 @@
 {
   "name": "clihub-monorepo",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "clihub — install Claude Code, Codex, Gemini & Kiro and keep their skills in sync",
   "workspaces": [

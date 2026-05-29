@@ -86,19 +86,18 @@ schema v1, `clihub.lock.json` v1, the `@clihub/core` public API, and the
 
 - `clihub ci [github|gitlab] [--out file] [--node]` generates a CI workflow that validates `clihub.yaml` (`apply --plan`) on every push, with commented opt-ins for `memory generate --check` and `status --strict`
 
+### v1.2.0 ✅ — clihub team (Pillar III + VII)
+
+- `clihub team <add|list|pull|use|push|rm>` shares a reproducible toolchain through a plain git repo (cloned into `~/.clihub/team/<name>`). `push` commits `clihub.yaml` / `clihub.lock.json` / `clihub.memory.md` / `clihub.schema.json`; `use` pulls them into a project. No clihub-specific backend
+
 ## Next
 
-### v1.2 📋 — unified auth
+### v1.3 📋 — unified auth
 
 - Unified OAuth flow → token routed into each CLI's native credentials file
 - OAuth token-expiry recovery: detect expired tokens, surface re-auth UX (GH #33811 / #34306)
 - `clihub auth login` across providers; keychain-backed refresh
-
-### v1.3 📋 — team lockfile push/pull (Pillar III + VII)
-
-- `clihub team init` / `push` / `pull` — a shared, signed team lockfile over a git remote or static blob store (self-host first)
-- Optional managed **clihub Cloud** backend (Phase-2 monetisation — see [`13-MONETIZATION.md`](13-MONETIZATION.md))
-- Conflict arbitration across federated catalogs
+- Managed **clihub Cloud** team backend remains optional (Phase-2 monetisation — see [`13-MONETIZATION.md`](13-MONETIZATION.md)); git-repo team sharing already shipped in v1.2
 
 ### v1.4 📋 — reach + IDE
 

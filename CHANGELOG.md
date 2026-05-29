@@ -4,6 +4,14 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.2.0] — clihub team
+
+- `clihub team <add|list|pull|use|push|rm>` shares a reproducible
+  toolchain through a plain git repo (cloned into `~/.clihub/team/<name>`).
+  `push` commits `clihub.yaml` / `clihub.lock.json` / `clihub.memory.md` /
+  `clihub.schema.json`; `use` pulls them into a project. No clihub-specific
+  backend; team config is unencrypted (sign the catalog for authenticity).
+
 ## [1.1.0] — clihub ci
 
 - `clihub ci [github|gitlab] [--out file] [--node]` generates a CI

@@ -226,6 +226,18 @@ export {
   type CiOpts,
 } from './ci/index.js';
 export {
+  addTeam,
+  listTeams,
+  removeTeam,
+  pullTeam,
+  applyTeam,
+  pushTeam,
+  defaultTeamRoot,
+  TEAM_FILES,
+  type TeamIoOpts,
+  type TeamSyncResult,
+} from './team/index.js';
+export {
   computeStatus,
   type ComplianceState,
   type StatusItem,

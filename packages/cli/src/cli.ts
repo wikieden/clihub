@@ -1701,6 +1701,68 @@ cli
     }
   });
 
+// ─── team ─────────────────────────────────────────────────────────────
+cli
+  .command('team <action> [name] [arg]', 'Share clihub config via a git repo (add | list | pull | use | push | rm)')
+  .option('--message <msg>', 'push: commit message')
+  .action(async (action: string, name: string | undefined, arg: string | undefined, opts: { message?: string }) => {
+    const { addTeam, listTeams, removeTeam, pullTeam, applyTeam, pushTeam, TEAM_FILES } = await import('@clihub/core');
+    const cwd = process.cwd();
+    try {
+      switch (action) {
+        case 'add': {
+          if (!name || !arg) { err('usage: clihub team add <name> <git-url>'); process.exit(1); }
+          const dir = await addTeam(name, arg);
+          ok(`cloned team "${name}" → ${dir}`);
+          info(`pull it into a project with: clihub team use ${name}`);
+          return;
+        }
+        case 'list': {
+          const teams = await listTeams();
+          if (teams.length === 0) { info('no teams. `clihub team add <name> <git-url>`'); return; }
+          console.log(kleur.bold('Teams:'));
+          for (const t of teams) console.log(`  ${t}`);
+          return;
+        }
+        case 'pull': {
+          if (!name) { err('usage: clihub team pull <name>'); process.exit(1); }
+          await pullTeam(name);
+          ok(`pulled latest for "${name}"`);
+          info(`apply into this project with: clihub team use ${name}`);
+          return;
+        }
+        case 'use': {
+          if (!name) { err('usage: clihub team use <name>'); process.exit(1); }
+          await pullTeam(name).catch(() => {});
+          const res = await applyTeam(name, cwd);
+          if (res.files.length === 0) { warn(`team "${name}" has none of: ${TEAM_FILES.join(', ')}`); return; }
+          for (const f of res.files) ok(`← ${f}`);
+          info('run `clihub install --frozen` to converge to the team toolchain.');
+          return;
+        }
+        case 'push': {
+          if (!name) { err('usage: clihub team push <name> [--message <msg>]'); process.exit(1); }
+          const res = await pushTeam(name, cwd, opts.message ?? '');
+          for (const f of res.files) ok(`→ ${f}`);
+          ok(`pushed team "${name}"`);
+          return;
+        }
+        case 'rm':
+        case 'remove': {
+          if (!name) { err('usage: clihub team rm <name>'); process.exit(1); }
+          ok(await removeTeam(name) ? `removed team "${name}"` : `no team named "${name}"`);
+          return;
+        }
+        default:
+          err(`Unknown team action: ${action}. Valid: add | list | pull | use | push | rm`);
+          process.exit(1);
+      }
+    } catch (e) {
+      err(e instanceof Error ? e.message : String(e));
+      process.exit(1);
+    }
+  });
+
 // ─── ci ───────────────────────────────────────────────────────────────
 cli
   .command('ci [provider]', 'Generate a CI workflow that validates clihub.yaml (github | gitlab)')
