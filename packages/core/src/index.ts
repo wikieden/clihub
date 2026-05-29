@@ -166,6 +166,24 @@ export {
   type Lockfile,
 } from './apply/index.js';
 export {
+  resolveMemorySource,
+  planMemory,
+  generateMemory,
+  applyManagedBlock,
+  stripManagedBlock,
+  renderTarget,
+  MEMORY_TARGETS,
+  MEMORY_SOURCE_CANDIDATES,
+  MEMORY_START,
+  MEMORY_END,
+  type MemoryTarget,
+  type MemorySource,
+  type MemoryVerb,
+  type MemoryPlanItem,
+  type MemoryOptions,
+  type MemoryResult,
+} from './memory/index.js';
+export {
   recordVersion,
   readHistory,
   previousVersion,

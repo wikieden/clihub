@@ -1400,6 +1400,49 @@ cli
     if (result.failed.length > 0) process.exit(1);
   });
 
+// ─── memory ───────────────────────────────────────────────────────────
+cli
+  .command('memory [action]', 'Sync one memory source to every CLI (generate | plan)')
+  .option('--user', 'Write user-level files (~/.claude, ~/.codex, ...) instead of project files')
+  .option('--all', 'Include CLIs that are not installed')
+  .option('--source <file>', 'Source markdown (default: clihub.memory.md → AGENTS.md → CLAUDE.md)')
+  .option('--check', 'Exit non-zero if any file is out of date (CI); writes nothing')
+  .action(async (action: string | undefined, opts: { user?: boolean; all?: boolean; source?: string; check?: boolean }) => {
+    const { resolveMemorySource, planMemory, generateMemory } = await import('@clihub/core');
+    const scope = opts.user ? 'user' : 'project';
+    const src = await resolveMemorySource(process.cwd(), opts.source);
+    if (!src) {
+      err('no memory source found (looked for clihub.memory.md, AGENTS.md, CLAUDE.md)');
+      info('create clihub.memory.md with your shared agent instructions, then re-run.');
+      process.exit(1);
+    }
+    info(`source: ${src.file}`);
+    const memOpts = { scope, all: opts.all } as const;
+
+    if (action === 'plan' || opts.check) {
+      const plan = await planMemory(src.body, memOpts);
+      for (const it of plan) {
+        const mark = it.verb === 'create' ? kleur.green('+')
+          : it.verb === 'update' ? kleur.yellow('~')
+          : it.verb === 'skip' ? kleur.dim('·')
+          : kleur.dim('=');
+        console.log(`  ${mark} ${it.label} ${kleur.dim(it.path)}${it.detail ? kleur.dim(`  (${it.detail})`) : ''}`);
+      }
+      const drift = plan.filter((i) => i.verb === 'create' || i.verb === 'update').length;
+      info(`${drift} out of date, ${plan.filter((i) => i.verb === 'unchanged').length} current, ${plan.filter((i) => i.verb === 'skip').length} skipped`);
+      if (opts.check && drift > 0) { err('memory files are out of date (run `clihub memory generate`)'); process.exit(1); }
+      return;
+    }
+
+    const result = await generateMemory(src.body, memOpts);
+    for (const w of result.written) {
+      if (w.verb === 'skip') continue;
+      ok(`${w.label} ${kleur.dim(w.path)}${w.verb === 'unchanged' ? kleur.dim(' (unchanged)') : ''}`);
+    }
+    for (const f of result.failed) err(`${f.tool} ${f.path}: ${f.error}`);
+    if (result.failed.length > 0) process.exit(1);
+  });
+
 // ─── default → TUI ────────────────────────────────────────────────────
 cli.command('', t('cli.title')).action(async () => {
   const { runTui } = await import('./tui/index.js');
