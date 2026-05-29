@@ -176,13 +176,17 @@ enterprise line later (see "Enterprise line" below).
 
 ## Planned (individual + newcomer — buildable now)
 
-### v1.18.0 📋 — fill out the wizard skeleton
+### v1.18.0 ✅ — wizard in the menu + run a CLI
+
+- Setup wizard re-runnable from the TUI main menu (extracted to `wizard-flow.ts`); each installed CLI submenu gains a **▶ Run** entry to launch it
+
+### v1.19.0 📋 — fill out the wizard skeleton
 
 - Project scaffold files (AGENTS.md / .editorconfig / .gitignore / CI) from `wizard`
 - Multiple API keys per account profile (loop)
 - Per-CLI preset selection (not just a global preset)
 
-### v1.19.0 📋 — more catalog + DX
+### v1.20.0 📋 — more catalog + DX
 
 - Grow catalog skills / MCP entries; ongoing newcomer-experience polish
 

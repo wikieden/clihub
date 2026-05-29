@@ -4,6 +4,14 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.18.0] — wizard in the menu + run a CLI
+
+- The setup wizard is now re-runnable from the TUI main menu (🧙 Setup
+  wizard), not just `clihub wizard` — newcomers can revisit setup anytime.
+  Wizard flow extracted to `wizard-flow.ts` so command + menu share it.
+- Each installed CLI's submenu gains a **▶ Run** entry that launches the
+  CLI (stdio inherited; exit returns to clihub).
+
 ## [1.17.0] — clihub wizard (first-run setup)
 
 - `clihub wizard` — one guided flow for newcomers: select + install CLIs,

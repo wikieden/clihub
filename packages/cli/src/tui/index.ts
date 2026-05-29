@@ -22,6 +22,8 @@ import {
 import kleur from 'kleur';
 import os from 'node:os';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
+import { runWizard } from '../wizard-flow.js';
 
 import {
   BackupManager,
@@ -120,6 +122,7 @@ export async function runTui(): Promise<void> {
         ...(installedCount === 0
           ? [{ value: 'quickstart', label: `${kleur.green('🚀')} Quick start  ${kleur.dim('— install the starter preset (recommended)')}` }]
           : []),
+        { value: 'wizard', label: `${kleur.green('🧙')} Setup wizard  ${kleur.dim('— install + preset + proxy + accounts (re-runnable)')}` },
         ...SUPPORTED_TOOLS.map((id) => {
           const p = getProvider(id);
           const label = p ? p.name : id;
@@ -140,7 +143,9 @@ export async function runTui(): Promise<void> {
     if (choice === 'sep1' || choice === 'sep2') continue;
 
     try {
-      if (choice === 'quickstart') {
+      if (choice === 'wizard') {
+        await runWizard();
+      } else if (choice === 'quickstart') {
         await runPresetApply();
       } else if (typeof choice === 'string' && choice.startsWith('cli:')) {
         await cliMenu(choice.slice(4) as ToolId);
@@ -173,6 +178,9 @@ async function cliMenu(toolId: ToolId): Promise<void> {
     const choice = (await select({
       message: `${kleur.bold(provider.name)}  —  ${status}`,
       options: [
+        ...(det.installed
+          ? [{ value: 'tool.run', label: `${kleur.green('▶')} Run ${provider.name}  ${kleur.dim('(launch the CLI)')}` }, { value: 'sep0', label: kleur.dim('────────────────'), hint: '' }]
+          : []),
         det.installed
           ? { value: 'tool.update', label: 'Update CLI to latest' }
           : { value: 'tool.install', label: 'Install CLI' },
@@ -233,6 +241,17 @@ async function cliMenu(toolId: ToolId): Promise<void> {
 async function handleCliAction(toolId: ToolId, action: string): Promise<void> {
   const provider = getProvider(toolId)!;
   switch (action) {
+    case 'tool.run': {
+      const det = await provider.detect();
+      const bin = det.path || toolId;
+      log.info(`Launching ${provider.name} (${bin}). Exit it to return to clihub.`);
+      await new Promise<void>((resolve) => {
+        const child = spawn(bin, [], { stdio: 'inherit' });
+        child.on('error', (e) => { log.error(`could not launch ${bin}: ${e.message}`); resolve(); });
+        child.on('close', () => resolve());
+      });
+      return;
+    }
     case 'tool.install': {
       const s = spinner();
       s.start(t('tool.install.start', { tool: toolId }));
