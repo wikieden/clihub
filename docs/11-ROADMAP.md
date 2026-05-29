@@ -98,7 +98,21 @@ schema v1, `clihub.lock.json` v1, the `@clihub/core` public API, and the
 
 - `clihub pack <docker|brew|scoop> [--out file]` generates distribution manifests (Dockerfile / Homebrew formula / Scoop manifest). A richer multi-arch `Dockerfile` + `docker.yml` workflow already ship in-repo
 
+## Specifications (Pillar I)
+
+Open specs so other clients can implement the same formats — see
+[`spec/`](spec/). **Stable** (shipped): [Provider JSON](spec/01-PROVIDER-SPEC.md) (v0.10),
+[`clihub.lock.json` v1](spec/02-LOCKFILE.md) (v0.6.1). **Draft** (design for
+infra-blocked items): [Unified OAuth](spec/03-OAUTH-FLOW.md),
+[Registry API](spec/04-REGISTRY.md).
+
 ## Next
+
+> The remaining items are blocked on **external infrastructure** a local,
+> backend-free tool can't ship solo (vendor OAuth client ids, a hosted
+> registry, marketplace/winget submissions). Each has a design spec above
+> so the contract is fixed; implementation lands when the dependency is
+> available.
 
 ### v1.5 📋 — full unified auth
 
@@ -110,7 +124,9 @@ schema v1, `clihub.lock.json` v1, the `@clihub/core` public API, and the
 
 - `winget` / `scoop` packaging; Docker image
 - VS Code / JetBrains thin clients hitting `@clihub/core`
-- `docs/spec/*` RFC drafts (SKILL.md, MCP-MANIFEST, PLUGIN.json, LockFile, Catalog)
+- ✅ first `docs/spec/*` RFC drafts landed (Provider JSON, LockFile, OAuth, Registry); SKILL.md / MCP-MANIFEST / PLUGIN.json drafts still to write
+- `winget` packaging (needs an MSI/exe; `pack scoop`/`pack brew`/`pack docker` already ship)
+- VS Code / JetBrains thin clients hitting `@clihub/core`
 
 ### v1.7 📋 — registry beta (Pillar VII)
 
