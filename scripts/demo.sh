@@ -64,6 +64,25 @@ type_line "clihub backup"
 clihub backup || true
 sleep 1
 
+say "6. declarative config: one clihub.yaml, every machine"
+type_line "clihub init --preset starter"
+clihub init --preset starter || true
+sleep 1
+type_line "clihub apply --plan"
+clihub apply --plan || true
+sleep 1
+type_line "clihub lock && clihub status"
+clihub lock || true; clihub status || true
+sleep 2
+
+say "7. signed catalogs + JSON-schema editor support"
+type_line "clihub schema --out clihub.schema.json"
+clihub schema --out clihub.schema.json || true
+sleep 1
+type_line "clihub catalog trust list"
+clihub catalog trust list || true
+sleep 2
+
 echo
 echo "    For more: https://github.com/wikieden/clihub"
 echo

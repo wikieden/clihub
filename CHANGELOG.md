@@ -1,0 +1,80 @@
+# Changelog
+
+All notable changes to `@wikieden/clihub`. Format loosely follows
+[Keep a Changelog](https://keepachangelog.com/); versions are published to
+npm on each `vX.Y.Z` tag.
+
+## [1.0.0] — 2026-05-29
+
+First stable release. clihub is now a complete, vendor-neutral manager for
+multiple AI coding CLIs: install them, keep their skills/MCP/plugins in
+sync, pin and roll back versions, carry config across machines, and gate
+CI on a shared lockfile.
+
+Stable surface (no breaking changes planned without a major bump):
+`clihub.yaml` schema v1, `clihub.lock.json` v1, the `@clihub/core` public
+API, and the `clihub` CLI command set.
+
+## [0.12.0] — clihub schema
+
+- `clihub schema [--out file]` emits a draft-07 JSON Schema for
+  `clihub.yaml`, enabling autocomplete + inline validation via the YAML
+  language server (`# yaml-language-server: $schema=...`).
+
+## [0.11.0] — clihub status
+
+- `clihub status [--json] [--strict]` checks this machine against the
+  pinned `clihub.lock.json` (ok / drift / missing / unlocked). `--strict`
+  exits non-zero for CI drift gates.
+- `clihub lock` now also resolves declarative providers.
+
+## [0.10.0] — declarative provider SDK
+
+- Teach clihub a new AI CLI with a JSON spec (`~/.clihub/providers.json`
+  or a catalog `providers.json`) — detection + npm/bun/brew install, no
+  code or fork. `clihub provider list|add|remove`.
+- Shell-command installs gated behind `--allow-scripts`; built-in
+  providers cannot be shadowed.
+
+## [0.9.0] — signed catalogs
+
+- ed25519 catalog signing (`catalog keygen` / `sign`) + a local trust
+  store (`catalog trust add --source`). `catalog verify` now checks both
+  sha256 integrity and publisher authenticity. Pure `node:crypto`.
+
+## [0.8.0] — clihub sync
+
+- `clihub sync export|import`: cross-machine, end-to-end-encrypted config
+  bundle (global config + catalog sources + profile metadata). scrypt +
+  AES-256-GCM, passphrase-only, zero backend.
+
+## [0.7.0] — clihub memory
+
+- `clihub memory generate`: one source (`clihub.memory.md` → `AGENTS.md`
+  → `CLAUDE.md`) fans out to `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` /
+  `.cursor/rules/*.mdc` / `.goosehints` / `.kiro/steering/*.md`.
+  Managed-block markers preserve hand-edits; `--check` for CI.
+
+## [0.6.1] — clihub apply + lockfile
+
+- `clihub apply [--plan]`, `clihub lock`, `clihub install --frozen`:
+  converge a machine to `clihub.yaml`, pin to `clihub.lock.json`.
+
+## [0.6.0] — federation + more CLIs
+
+- Multi-source catalog federation (`catalog add`), Cursor + Goose
+  providers (6 CLIs total), HTTP/SSE MCP transport.
+
+## [0.5.x]
+
+- `watch` / `search` / shell completion / man; proxy + CA bundle;
+  `doctor --fix` + error codes; multi-account profiles + keychain vault +
+  per-profile `BASE_URL` injection; per-tool version pin/rollback; skill
+  audit.
+
+## [0.1.0 – 0.4.0]
+
+- Providers (Claude Code / Codex / Kiro / Gemini), 30 skills, presets,
+  cross-tool skill fan-out, i18n, per-CLI TUI, MCP catalog, agentskills.io
+  SKILL.md installer, plugin install, remote catalog sync with sha256,
+  Codex TOML, Windows-safe paths.
