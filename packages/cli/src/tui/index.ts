@@ -87,10 +87,39 @@ const BACK = '__back__';
 export async function runTui(): Promise<void> {
   intro(kleur.bold().cyan(t('cli.title')));
 
+  let welcomed = false;
+
   while (true) {
+    // How many CLIs are already installed? Drives the first-run guidance.
+    const installedCount = (
+      await Promise.all(
+        SUPPORTED_TOOLS.map(async (id) => {
+          const p = getProvider(id);
+          return p ? (await p.detect()).installed : false;
+        }),
+      )
+    ).filter(Boolean).length;
+
+    if (installedCount === 0 && !welcomed) {
+      note(
+        [
+          'No AI CLI detected yet. Fastest path:',
+          `  ${kleur.green('🚀 Quick start')} — installs Claude Code + 5 core skills in one step.`,
+          'Or pick a single CLI below to install just that one.',
+          '',
+          kleur.dim('`clihub doctor` checks health · every change is backed up and reversible.'),
+        ].join('\n'),
+        kleur.bold('Welcome to clihub'),
+      );
+      welcomed = true;
+    }
+
     const choice = (await select({
       message: 'What would you like to do? (ESC = exit)',
       options: [
+        ...(installedCount === 0
+          ? [{ value: 'quickstart', label: `${kleur.green('🚀')} Quick start  ${kleur.dim('— install the starter preset (recommended)')}` }]
+          : []),
         ...SUPPORTED_TOOLS.map((id) => {
           const p = getProvider(id);
           const label = p ? p.name : id;
@@ -111,7 +140,9 @@ export async function runTui(): Promise<void> {
     if (choice === 'sep1' || choice === 'sep2') continue;
 
     try {
-      if (typeof choice === 'string' && choice.startsWith('cli:')) {
+      if (choice === 'quickstart') {
+        await runPresetApply();
+      } else if (typeof choice === 'string' && choice.startsWith('cli:')) {
         await cliMenu(choice.slice(4) as ToolId);
       } else if (choice === 'cross') {
         await crossMenu();

@@ -341,6 +341,15 @@ cli
         problems += r.issues.length;
       }
     }
+
+    // Newcomer empty state: nothing installed → point at the fast path.
+    if (!id && !rows.some((r) => r.installed)) {
+      console.log();
+      info('No AI CLI installed yet. Get started:');
+      console.log(`  ${kleur.green('clihub preset apply starter')}   ${kleur.dim('# Claude Code + 5 core skills')}`);
+      console.log(`  ${kleur.cyan('clihub')}                          ${kleur.dim('# interactive menu')}`);
+    }
+
     if (problems > 0 && !opts.fix) process.exit(1);
   });
 

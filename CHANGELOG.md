@@ -4,6 +4,19 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.9.0] — onboarding polish + quality pass
+
+Individual/newcomer-focused line.
+
+- **First-run guidance:** `clihub` TUI now detects an empty machine and
+  shows a welcome note + a top-level "🚀 Quick start" option that applies
+  the `starter` preset (Claude Code + 5 core skills) in one step.
+- `clihub doctor` prints a get-started hint (`preset apply starter` /
+  `clihub`) when no CLI is installed.
+- **Quality (internal):** `bun test` suite expanded to 33 tests / 10 files
+  — i18n key-set parity guard (en/zh-CN/ja/ko/es), plus IO coverage for
+  status / conformance / memory. CI `unit` job runs them on push/PR.
+
 ## [1.8.0] — auth login --browser (PKCE)
 
 - `clihub auth login <provider> --browser` implements OAuth Authorization

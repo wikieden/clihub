@@ -128,6 +128,11 @@ infra-blocked items): [Unified OAuth](spec/03-OAUTH-FLOW.md),
 
 - `bun test` unit suite for `@clihub/core` (signing, memory, sync, clihubyaml, generators, auth) + a CI `unit` job on push/PR
 
+### v1.9.0 ✅ — onboarding polish + quality
+
+- First-run guidance: empty-machine welcome + "🚀 Quick start" (starter preset) in the TUI; `doctor` prints a get-started hint when nothing is installed
+- Quality: test suite → 33 tests / 10 files — i18n key-set parity guard (en/zh-CN/ja/ko/es) + IO coverage (status / conformance / memory)
+
 ## Direction
 
 **Near-term focus: individual developers + newcomers.** Polish the
@@ -138,12 +143,6 @@ team/enterprise surface that already shipped (`team` / `ci` / `status` /
 enterprise line later (see "Enterprise line" below).
 
 ## Planned (individual + newcomer — buildable now)
-
-### v1.9.0 📋 — language + onboarding polish
-
-- i18n key parity (en / zh-CN / ja / ko / es) for every command since v0.6 — newcomers see their own language everywhere
-- First-run wizard + `doctor` copy polish; wider `doctor --fix` coverage
-- Expand test coverage to the IO modules (toward the ≥ 70 % debt bar)
 
 ### v1.10.0 📋 — discovery
 
