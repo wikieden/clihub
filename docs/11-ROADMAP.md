@@ -170,9 +170,19 @@ enterprise line later (see "Enterprise line" below).
 
 - `clihub init --from-installed` (infer tools + skills from this machine/project) + `--schema` (schema header + write clihub.schema.json)
 
+### v1.17.0 ✅ — clihub wizard (first-run setup)
+
+- `clihub wizard` — guided flow: select/install CLIs → preset → proxy → multi-account profiles + apikey → emit clihub.yaml / schema / memory. `--dry-run`. Core `planWizard` (pure, tested). Addresses the newcomer feedback (no first-run wizard / no proxy entry / no multi-account+key in setup)
+
 ## Planned (individual + newcomer — buildable now)
 
-### v1.17.0 📋 — more catalog + DX
+### v1.18.0 📋 — fill out the wizard skeleton
+
+- Project scaffold files (AGENTS.md / .editorconfig / .gitignore / CI) from `wizard`
+- Multiple API keys per account profile (loop)
+- Per-CLI preset selection (not just a global preset)
+
+### v1.19.0 📋 — more catalog + DX
 
 - Grow catalog skills / MCP entries; ongoing newcomer-experience polish
 

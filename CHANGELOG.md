@@ -4,6 +4,18 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.17.0] — clihub wizard (first-run setup)
+
+- `clihub wizard` — one guided flow for newcomers: select + install CLIs,
+  pick a preset, configure a proxy (HTTP/HTTPS/SOCKS5), create multiple
+  account profiles each with an API key, and emit `clihub.yaml` +
+  `clihub.schema.json` + a `clihub.memory.md` template. `--dry-run` shows
+  the plan first.
+- core `planWizard` (pure, tested) turns answers into the clihub.yaml +
+  an ordered action list; `memoryTemplate`.
+- Skeleton: project scaffold files (AGENTS.md/.editorconfig/…) and
+  multiple keys per account are stubbed for a follow-up release.
+
 ## [1.16.0] — clihub init upgrade
 
 - `clihub init --from-installed` infers `tools` (the CLIs already on this

@@ -312,6 +312,13 @@ export {
   type Scaffold,
 } from './init/index.js';
 export {
+  planWizard,
+  memoryTemplate,
+  type WizardAnswers,
+  type WizardAccount,
+  type WizardPlan,
+} from './wizard/index.js';
+export {
   computeStatus,
   type ComplianceState,
   type StatusItem,

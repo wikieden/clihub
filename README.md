@@ -73,7 +73,8 @@ Requirements: Node ≥ 18 (or Bun). On Linux/macOS/WSL.
 ## Quickstart
 
 ```bash
-clihub                                 # interactive TUI (recommended for first run)
+clihub wizard                          # guided first-run setup (recommended)
+clihub                                 # interactive TUI main menu
 
 # or scripted:
 clihub tool install claude-code
@@ -142,6 +143,7 @@ clihub completion <bash|zsh|fish|powershell|man>
 clihub backup | backup list | restore <id> | rollback
 clihub config <show|get|set|unset> [key] [value]
 clihub yaml
+clihub wizard [--dry-run]                  guided first-run: CLIs + preset + proxy + accounts + config
 clihub init [--from-installed] [--schema]  scaffold clihub.yaml (infer tools+skills; add schema)
 clihub apply [--plan]                      converge this machine to clihub.yaml
 clihub lock                                pin resolved versions to clihub.lock.json
