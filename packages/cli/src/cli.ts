@@ -1317,7 +1317,8 @@ cli
       return;
     }
     if (hits.length === 0) {
-      info(`No matches for "${query}"`);
+      info(`No matches for "${query}" in the catalog (skills, plugins, MCP, presets, tools).`);
+      console.log(kleur.dim('  try a broader term, `clihub recommend` for suggestions, or `clihub --help` for commands.'));
       return;
     }
     const CAT_COLOR: Record<string, (s: string) => string> = {
@@ -1914,6 +1915,7 @@ cli
           console.log(kleur.bold(r.tool) + (r.servers.length === 0 ? kleur.dim('  (none)') : ''));
           for (const s of r.servers) console.log(`  ${kleur.cyan(s.id)}${s.command ? kleur.dim(`  ${s.command}`) : ''}`);
         }
+        console.log(kleur.dim('  (unified MCP management covers JSON-config CLIs — Claude Code & Gemini; others manage MCP in their own config)'));
         return;
       }
       case 'add': {

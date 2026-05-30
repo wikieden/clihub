@@ -4,6 +4,17 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.32.0] — no more dead-end output
+
+Container testing surfaced two spots where clihub gave a bare result with no
+next step:
+
+- **`search` with no hits** now explains the search scope and points to
+  `clihub recommend` / `clihub --help` instead of a lone "No matches".
+- **`mcp list`** prints a footer clarifying that unified MCP management covers
+  the JSON-config CLIs (Claude Code & Gemini) — so the absence of the others
+  isn't a silent mystery.
+
 ## [1.31.0] — auto-backup is now opt-in
 
 Following real-machine testing, config auto-backup no longer runs silently by
