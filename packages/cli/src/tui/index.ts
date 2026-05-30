@@ -169,8 +169,11 @@ async function cliMenu(toolId: ToolId): Promise<void> {
     return;
   }
 
+  const { getToolProxy } = await import('@clihub/core');
+
   while (true) {
     const det = await provider.detect();
+    const curProxy = await getToolProxy(toolId).catch(() => undefined);
     const status = det.installed
       ? kleur.green(`installed${det.version ? `  v${det.version}` : ''}`)
       : kleur.dim('not installed');
@@ -212,6 +215,7 @@ async function cliMenu(toolId: ToolId): Promise<void> {
           ? { value: 'mcp.uninstall', label: '  Uninstall an MCP server' }
           : { value: 'mcp.notyet3', label: kleur.dim('  ') },
         { value: 'sep4', label: kleur.dim('───────── Maintenance'), hint: '' },
+        { value: 'proxy', label: `Set proxy${curProxy ? `  ${kleur.dim(`(current: ${curProxy})`)}` : `  ${kleur.dim('(none)')}`}` },
         { value: 'doctor', label: 'Doctor (this CLI)' },
         { value: 'config', label: 'Show config file' },
         { value: 'sep5', label: kleur.dim('────────────────'), hint: '' },
@@ -241,6 +245,26 @@ async function cliMenu(toolId: ToolId): Promise<void> {
 async function handleCliAction(toolId: ToolId, action: string): Promise<void> {
   const provider = getProvider(toolId)!;
   switch (action) {
+    case 'proxy': {
+      const { getToolProxy, setToolProxy } = await import('@clihub/core');
+      const cur = await getToolProxy(toolId).catch(() => undefined);
+      const { text } = await import('@clack/prompts');
+      const url = await text({
+        message: `Proxy for ${provider.name} (blank = clear)`,
+        placeholder: 'http://proxy.corp:8080 or socks5://host:1080',
+        initialValue: cur ?? '',
+      });
+      if (isCancel(url)) return;
+      const v = (url as string).trim();
+      try {
+        await setToolProxy(toolId, v || undefined);
+        log.success(v ? `proxy set for ${toolId}: ${v}` : `proxy cleared for ${toolId}`);
+        log.info('Restart the CLI to pick up the new env.');
+      } catch (e) {
+        log.error(`proxy: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      return;
+    }
     case 'tool.run': {
       const det = await provider.detect();
       const bin = det.path || toolId;

@@ -4,6 +4,17 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.23.0] — per-CLI proxy
+
+- Each CLI's TUI submenu gets a **Set proxy** entry that shows the current
+  proxy and writes `HTTP_PROXY` / `HTTPS_PROXY` (+ `ALL_PROXY` for socks)
+  into that CLI's own settings `env` — so the CLI actually uses it. Blank
+  clears it.
+- `clihub proxy set <url> --tool <id>` now really injects per-CLI (was a
+  no-op label before); `proxy unset --tool <id>` clears it. Without
+  `--tool`, proxy stays global (clihub's own requests).
+- core `setToolProxy` / `getToolProxy` / `applyProxyEnv` (pure, tested).
+
 ## [1.22.0] — show preset contents
 
 - `clihub preset list` now prints each preset's tools + full skill list, and

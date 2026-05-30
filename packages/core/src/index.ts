@@ -147,6 +147,12 @@ export {
   type ApplyBaseUrlsOpts,
 } from './profile/baseurls.js';
 export {
+  setToolProxy,
+  getToolProxy,
+  applyProxyEnv,
+  readProxyFromEnv,
+} from './proxy/inject.js';
+export {
   profileHook,
   type HookShell,
 } from './profile/hook.js';

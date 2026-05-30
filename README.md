@@ -134,7 +134,7 @@ clihub profile hook <bash|zsh|fish>        auto-switch profile per dir's clihub.
 clihub auth <set|get|list|rm|backend>      per-profile keychain secrets
 clihub auth status [--json]                cross-CLI login + token-expiry visibility
 clihub auth login <provider> [--browser|--refresh]   OAuth login (device grant / PKCE browser / refresh)
-clihub proxy <set|unset|show|test>         HTTP/HTTPS/SOCKS5 + CA bundle
+clihub proxy <set|unset|show|test> [--tool <id>]   HTTP/HTTPS/SOCKS5 + CA bundle (per-CLI with --tool)
 clihub recommend [--json]                  suggest skills/presets from installed CLIs + project
 clihub doctor [id] [--fix] [--check-network]
 clihub search <query>

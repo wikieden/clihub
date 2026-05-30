@@ -1158,6 +1158,19 @@ cli
           err(formatErrorMessage('CLIHUB-E-100', url));
           process.exit(1);
         }
+        if (opts.tool) {
+          // per-CLI: inject into that CLI's own settings env
+          const { setToolProxy } = await import('@clihub/core');
+          try {
+            await setToolProxy(opts.tool, url);
+            ok(`proxy injected into ${opts.tool} settings → ${url}`);
+          } catch (e) {
+            err(`proxy --tool ${opts.tool}: ${e instanceof Error ? e.message : String(e)}`);
+            process.exit(1);
+          }
+          info(`Restart ${opts.tool} to pick up the new env.`);
+          return;
+        }
         const isHttps = url.toLowerCase().startsWith('https://');
         if (url.startsWith('socks')) {
           await setConfigKey('proxy.all', url);
@@ -1167,11 +1180,17 @@ cli
           await setConfigKey('proxy.http', url);
         }
         if (opts.caBundle) await setConfigKey('caBundle', opts.caBundle);
-        ok(`proxy set → ${url}${opts.tool ? ` (scope: ${opts.tool})` : ''}`);
-        info('Restart any running CLIs (claude, codex, gemini, kiro) to pick this up.');
+        ok(`proxy set → ${url} (global, used by clihub)`);
+        info('For a specific CLI, use `clihub proxy set <url> --tool <id>` to inject into its settings.');
         return;
       }
       case 'unset': {
+        if (opts.tool) {
+          const { setToolProxy } = await import('@clihub/core');
+          try { await setToolProxy(opts.tool, undefined); ok(`proxy cleared from ${opts.tool} settings`); }
+          catch (e) { err(`proxy unset --tool ${opts.tool}: ${e instanceof Error ? e.message : String(e)}`); process.exit(1); }
+          return;
+        }
         await setConfigKey('proxy', undefined);
         ok('proxy cleared from clihub config');
         return;
