@@ -4,6 +4,13 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.24.0] — proxy consistency
+
+- The setup wizard's proxy step now **injects into each selected CLI**
+  (per-CLI settings env), not just clihub's global config.
+- `clihub proxy show` now lists the per-CLI proxy for every provider
+  alongside the global setting.
+
 ## [1.23.0] — per-CLI proxy
 
 - Each CLI's TUI submenu gets a **Set proxy** entry that shows the current

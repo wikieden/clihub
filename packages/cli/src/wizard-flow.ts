@@ -144,7 +144,10 @@ export async function runWizard(opts: RunWizardOpts = {}): Promise<void> {
   if (proxy) {
     await setConfigKey('proxy.http', proxy);
     await setConfigKey('proxy.https', proxy);
-    p.log.success(`proxy set: ${proxy}`);
+    for (const id of toolIds) {
+      try { await core.setToolProxy(id, proxy); } catch { /* settings write may fail for some CLIs */ }
+    }
+    p.log.success(`proxy → ${proxy} (global + injected into ${toolIds.join(', ')})`);
   }
   for (const a of accounts) {
     try { await createProfile(a.profile, {}); } catch { /* exists */ }

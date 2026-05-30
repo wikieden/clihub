@@ -1139,11 +1139,18 @@ cli
     switch (action) {
       case 'show': {
         const cfg = await loadConfig();
-        console.log(kleur.bold(`proxy (from ${defaultConfigPath()}):`));
+        console.log(kleur.bold(`global proxy (from ${defaultConfigPath()}):`));
         console.log(JSON.stringify(cfg.proxy ?? {}, null, 2));
         if (cfg.caBundle) console.log(`ca-bundle: ${cfg.caBundle}`);
         const sample = resolveProxy('https://api.anthropic.com', cfg);
         if (sample) info(`effective proxy for https://api.anthropic.com → ${sample}`);
+
+        const { getToolProxy, listProviders } = await import('@clihub/core');
+        console.log(kleur.bold('\nper-CLI proxy (from each CLI\'s settings):'));
+        for (const pr of listProviders()) {
+          const cur = await getToolProxy(pr.id).catch(() => undefined);
+          console.log(`  ${pr.id.padEnd(14)} ${cur ? kleur.cyan(cur) : kleur.dim('(none)')}`);
+        }
         return;
       }
       case 'set': {
