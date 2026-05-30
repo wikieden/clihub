@@ -1222,6 +1222,13 @@ cli
             process.exit(1);
           }
           info(`Restart ${opts.tool} to pick up the new env.`);
+          if (opts.tool !== 'claude-code') {
+            console.log(kleur.dim(
+              `  note: Claude Code applies settings \`env\` directly; other CLIs (codex, gemini, …) usually\n` +
+              `  read the proxy from the shell environment. If it doesn't take effect, also run:\n` +
+              `    export HTTPS_PROXY=${url}; export HTTP_PROXY=${url}`,
+            ));
+          }
           return;
         }
         const isHttps = url.toLowerCase().startsWith('https://');

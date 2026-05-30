@@ -4,6 +4,19 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.35.0] — honest per-CLI proxy caveat
+
+Real-CLI testing of proxy injection: clihub writes the proxy into a CLI's
+settings `env`. That is applied directly by **Claude Code** (its `settings.json`
+`env` block feeds the session). **Codex** uses `shell_environment_policy` + the
+process's shell environment — its `config.toml` has no proxy-applying `env`
+table — and most other CLIs likewise read `HTTPS_PROXY` from the shell.
+
+- `proxy set --tool <x>` now prints a caveat for non-Claude-Code tools: the
+  proxy was written to the config, but if it doesn't take effect, also
+  `export HTTPS_PROXY=…` in the shell. No false promise that every CLI reads
+  its config `env`.
+
 ## [1.34.0] — fix Goose install hang; verify Cursor
 
 More real-install testing of every supported CLI in the container.
