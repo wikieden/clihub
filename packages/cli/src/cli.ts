@@ -262,9 +262,15 @@ cli
       runHealthMatrix,
       attemptAutoRepair,
       probeNetwork,
+      getToolProxy,
+      detectSystemProxy,
     } = await import('@clihub/core');
     let rows = await runHealthMatrix();
     if (id) rows = rows.filter((r) => r.id === id);
+
+    const sysProxy = await detectSystemProxy().catch(() => ({ source: 'none' as const, url: undefined as string | undefined }));
+    const proxyById = new Map<string, string | undefined>();
+    for (const r of rows) proxyById.set(r.id, await getToolProxy(r.id).catch(() => undefined));
 
     let repair: Awaited<ReturnType<typeof attemptAutoRepair>> | undefined;
     if (opts.fix) {
@@ -280,13 +286,16 @@ cli
     }
 
     if (opts.json) {
-      console.log(JSON.stringify({ rows, repair, probes }, null, 2));
+      const proxies = Object.fromEntries([...proxyById.entries()].map(([k, v]) => [k, v ?? null]));
+      console.log(JSON.stringify({ rows, repair, probes, systemProxy: sysProxy, proxies }, null, 2));
       const exitNonZero = rows.some((r) => r.installed && r.issues.length > 0);
       if (exitNonZero) process.exit(1);
       return;
     }
 
-    const headers = ['CLI', 'STATUS', 'VERSION', 'SETTINGS', 'SKILLS', 'MCP'];
+    if (sysProxy.url) info(`system/terminal proxy: ${kleur.cyan(sysProxy.url)} ${kleur.dim(`(${sysProxy.source})`)}`);
+
+    const headers = ['CLI', 'STATUS', 'VERSION', 'SETTINGS', 'SKILLS', 'MCP', 'PROXY'];
     const data = rows.map((r) => [
       r.name,
       r.installed ? kleur.green('✓ installed') : kleur.dim('✗ not installed'),
@@ -296,6 +305,7 @@ cli
         : kleur.dim('—'),
       r.installed && r.skillCount !== undefined ? String(r.skillCount) : kleur.dim('—'),
       r.installed && r.mcpCount !== undefined ? String(r.mcpCount) : kleur.dim('—'),
+      proxyById.get(r.id) ? kleur.cyan(proxyById.get(r.id)!) : kleur.dim('—'),
     ]);
 
     const stripAnsi = (s: string) => s.replace(/\x1B\[[0-9;]*m/g, '');

@@ -4,6 +4,13 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.27.0] — doctor shows proxy
+
+- `clihub doctor` now has a **PROXY column** (each CLI's injected proxy)
+  and prints the **detected system/terminal proxy** above the table.
+  `--json` includes `systemProxy` + per-CLI `proxies`. One place to see
+  health + network. Caps the proxy work (v1.23–v1.27).
+
 ## [1.26.0] — GitHub star nudge
 
 - On TUI exit / after the wizard, clihub occasionally (20%) asks you to
