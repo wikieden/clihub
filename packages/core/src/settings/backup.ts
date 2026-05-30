@@ -12,6 +12,7 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { timestamp } from '../backup/index.js';
+import { loadConfig, getConfigKey } from '../config/index.js';
 
 export interface SettingsBackupOpts {
   /** Override storage root. Defaults to ~/.clihub/settings-backups. */
@@ -20,6 +21,35 @@ export interface SettingsBackupOpts {
   keep?: number;
   /** Deterministic clock for tests. */
   now?: Date;
+  /** Force on/off, bypassing env + config resolution (used by tests/callers). */
+  enabled?: boolean;
+}
+
+/** Coerce a config/env value to a boolean opt-in flag. */
+function truthy(v: unknown): boolean {
+  return v === true || v === '1' || v === 'true' || v === 'on' || v === 'yes';
+}
+
+let _cfgEnabled: Promise<boolean> | undefined;
+
+/**
+ * Whether auto-backup is turned on. OPT-IN — off by default. Resolution order:
+ *   1. opts.enabled (explicit, e.g. tests)
+ *   2. CLIHUB_NO_BACKUP set → hard off (CI / one-shot)
+ *   3. CLIHUB_BACKUP truthy → on (per-session)
+ *   4. config `backup.auto` truthy → on (persistent: `clihub config set backup.auto true`)
+ *   5. otherwise off
+ */
+async function backupEnabled(opts: SettingsBackupOpts): Promise<boolean> {
+  if (opts.enabled !== undefined) return opts.enabled;
+  if (process.env.CLIHUB_NO_BACKUP) return false;
+  if (truthy(process.env.CLIHUB_BACKUP)) return true;
+  if (!_cfgEnabled) {
+    _cfgEnabled = loadConfig()
+      .then((cfg) => truthy(getConfigKey(cfg, 'backup.auto')))
+      .catch(() => false);
+  }
+  return _cfgEnabled;
 }
 
 export interface SettingsBackupEntry {
@@ -57,7 +87,7 @@ export async function snapshotBeforeWrite(
   newContent: string,
   opts: SettingsBackupOpts = {},
 ): Promise<string | null> {
-  if (process.env.CLIHUB_NO_BACKUP) return null;
+  if (!(await backupEnabled(opts))) return null;
   let old: string;
   try {
     old = await fs.readFile(filePath, 'utf8');

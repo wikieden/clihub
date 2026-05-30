@@ -913,7 +913,7 @@ cli
           console.log(kleur.bold(`${p.name} (${tildify(p.settingsAdapter.configPath())}):`));
           for (const b of list) console.log(`  ${b.id}`);
         }
-        if (!any) info('no settings backups yet — clihub snapshots each config change automatically');
+        if (!any) info('no settings backups yet — auto-backup is opt-in: `clihub config set backup.auto true` (or set CLIHUB_BACKUP=1)');
         return;
       }
       case 'restore': {

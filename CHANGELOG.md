@@ -4,6 +4,18 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.31.0] — auto-backup is now opt-in
+
+Following real-machine testing, config auto-backup no longer runs silently by
+default — users shouldn't accumulate hidden snapshots they didn't ask for.
+
+- **Off by default. Opt in** with `clihub config set backup.auto true`
+  (persistent) or `CLIHUB_BACKUP=1` (per-session). `CLIHUB_NO_BACKUP=1` still
+  hard-disables. `clihub config restore <tool>` is unchanged.
+- **Scope (by design):** auto-backup covers each CLI's *settings* file (proxy,
+  env, base URL…). Skill and plugin installs write separate files and are not
+  snapshotted — undo those with `clihub skill uninstall` / `plugin uninstall`.
+
 ## [1.30.0] — config auto-backup + one-command rollback
 
 Every change clihub makes to a CLI's settings is now reversible:

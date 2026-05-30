@@ -45,6 +45,7 @@ check "init writes clihub.yaml"           "clihub.yaml" -- clihub init
 # `config show <tool>` only renders installed CLIs, so the round-trip assert
 # needs a detected CLI. On a bare (WITH_STUBS=false) image, skip it cleanly.
 if clihub doctor claude-code 2>/dev/null | grep 'Claude Code' | grep -q '✓'; then
+  export CLIHUB_BACKUP=1   # auto-backup is opt-in (off by default); turn it on for this check
   clihub proxy set http://proxyA:1 --tool claude-code >/dev/null 2>&1
   clihub proxy set http://proxyB:2 --tool claude-code >/dev/null 2>&1
   check "config backups lists a snapshot"   "settings.json" -- clihub config backups claude-code
