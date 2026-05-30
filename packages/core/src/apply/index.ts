@@ -21,9 +21,8 @@ import { CodexSkillAdapter } from '../skill/codex-adapter.js';
 import { KiroCliSkillAdapter } from '../skill/kiro-adapter.js';
 import { GeminiCliSkillAdapter } from '../skill/gemini-adapter.js';
 import { ClaudeCodePluginAdapter } from '../plugin/index.js';
-import { JsonMcpAdapter } from '../mcp/index.js';
+import { addMcp } from '../mcp/manage.js';
 import { recordVersion } from '../version/index.js';
-import type { McpServerManifest } from '../types.js';
 import type { SkillSyncAdapter } from '../tools/types.js';
 
 const SKILL_ADAPTERS: Record<string, () => SkillSyncAdapter> = {
@@ -31,11 +30,6 @@ const SKILL_ADAPTERS: Record<string, () => SkillSyncAdapter> = {
   'codex': () => new CodexSkillAdapter(),
   'kiro-cli': () => new KiroCliSkillAdapter(),
   'gemini-cli': () => new GeminiCliSkillAdapter(),
-};
-
-const JSON_MCP_PATHS: Record<string, string> = {
-  'claude-code': path.join(os.homedir(), '.claude', 'settings.json'),
-  'gemini-cli': path.join(os.homedir(), '.gemini', 'settings.json'),
 };
 
 export type PlanVerb = 'add' | 'skip' | 'upgrade' | 'missing';
@@ -161,24 +155,12 @@ export async function runApply(cfg: ClihubYamlConfig, loader = new CatalogLoader
   for (const mcp of cfg.mcp) {
     const id = mcp.id ?? '';
     if (!id) continue;
-    const manifest: McpServerManifest | undefined =
-      catalog.mcpServers.find((m) => m.id === id) ??
-      (mcp.command || mcp.url
-        ? { id, name: id, description: '', supports: {}, transport: mcp.transport as never, command: mcp.command, url: mcp.url }
-        : undefined);
-    if (!manifest) { failed.push({ kind: 'mcp', id, verb: 'missing', error: 'unknown MCP server' }); continue; }
-    for (const [toolId, settingsPath] of Object.entries(JSON_MCP_PATHS)) {
-      if (manifest.supports && Object.keys(manifest.supports).length > 0 && !manifest.supports[toolId]) continue;
-      const provider = getProvider(toolId);
-      if (!provider) continue;
-      const det = await provider.detect();
-      if (!det.installed) continue;
-      try {
-        await new JsonMcpAdapter({ path: settingsPath }).install(manifest);
-        done.push({ kind: 'mcp', id: `${id}@${toolId}`, verb: 'add' });
-      } catch (e) {
-        failed.push({ kind: 'mcp', id: `${id}@${toolId}`, verb: 'add', error: String(e) });
-      }
+    // Delegate to the single MCP source of truth (correct per-CLI file +
+    // http/sse dialect): Claude Code → ~/.claude.json, Gemini → settings.json.
+    const res = await addMcp(id, { command: mcp.command, url: mcp.url, transport: mcp.transport as never, loader });
+    for (const d of res.done) done.push({ kind: 'mcp', id: d, verb: 'add' });
+    for (const f of res.failed) {
+      failed.push({ kind: 'mcp', id: f.tool === '-' ? id : `${id}@${f.tool}`, verb: f.tool === '-' ? 'missing' : 'add', error: f.error });
     }
   }
 

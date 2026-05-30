@@ -4,6 +4,19 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.41.0] — `clihub apply` MCP now uses the fixed path/dialect
+
+End-to-end testing of `clihub apply` against real CLIs: apply had its *own*
+copy of the MCP-writing logic (`~/.claude/settings.json`, no http dialect), so
+it never picked up the v1.38/v1.40 fixes — `apply` reported `mcp foo@claude-code`
+but wrote it where Claude Code can't read it.
+
+- `runApply` now delegates MCP to the shared `addMcp` (single source of truth):
+  Claude Code → `~/.claude.json`, Gemini → `~/.gemini/settings.json` with the
+  right http/sse shape and command/args splitting. Removed the duplicate map.
+- Verified end-to-end: after `clihub apply`, real `claude mcp list` shows the
+  server (previously: nothing). Suite 94/94.
+
 ## [1.40.0] — fix HTTP MCP shape per CLI (gemini httpUrl)
 
 Real-CLI testing: HTTP/SSE MCP entries differ by CLI. Gemini's own docs require
