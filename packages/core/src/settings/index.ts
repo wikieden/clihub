@@ -6,6 +6,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import type { SettingsAdapter } from '../tools/types.js';
 import { timestamp } from '../backup/index.js';
+import { snapshotBeforeWrite } from './backup.js';
 
 export interface JsonSettingsAdapterOpts {
   /** Absolute path to the settings file. */
@@ -36,6 +37,7 @@ export class JsonSettingsAdapter implements SettingsAdapter {
   async write(data: unknown): Promise<void> {
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
     const formatted = JSON.stringify(data, null, 2) + '\n';
+    await snapshotBeforeWrite(this.filePath, formatted);
     await fs.writeFile(this.filePath, formatted, 'utf8');
   }
 

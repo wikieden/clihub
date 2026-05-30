@@ -11,6 +11,7 @@ import path from 'node:path';
 import { parse, stringify } from 'smol-toml';
 import type { SettingsAdapter } from '../tools/types.js';
 import { timestamp } from '../backup/index.js';
+import { snapshotBeforeWrite } from './backup.js';
 
 export interface TomlSettingsAdapterOpts {
   /** Absolute path to the TOML settings file. */
@@ -44,6 +45,7 @@ export class TomlSettingsAdapter implements SettingsAdapter {
     }
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
     const formatted = stringify(data as Record<string, unknown>) + '\n';
+    await snapshotBeforeWrite(this.filePath, formatted);
     await fs.writeFile(this.filePath, formatted, 'utf8');
   }
 

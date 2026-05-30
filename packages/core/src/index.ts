@@ -33,6 +33,15 @@ export {
 export { JsonSettingsAdapter } from './settings/index.js';
 export { TomlSettingsAdapter, type TomlSettingsAdapterOpts } from './settings/toml.js';
 export {
+  snapshotBeforeWrite,
+  listSettingsBackups,
+  restoreLatestSettings,
+  settingsBackupRoot,
+  backupKey,
+  type SettingsBackupEntry,
+  type SettingsBackupOpts,
+} from './settings/backup.js';
+export {
   BackupManager,
   defaultBackupRoot,
   timestamp,

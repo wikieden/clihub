@@ -845,13 +845,15 @@ cli
 
 // ─── config ───────────────────────────────────────────────────────────
 cli
-  .command('config <action> [key] [value]', 'Show or edit clihub config  (show | get | set | unset)')
+  .command('config <action> [key] [value]', 'Show or edit clihub config  (show | get | set | unset | backups | restore)')
   .action(async (action: string, keyOrTool: string | undefined, value: string | undefined) => {
     const {
       loadConfig,
       setConfigKey,
       getConfigKey,
       defaultConfigPath,
+      listSettingsBackups,
+      restoreLatestSettings,
     } = await import('@clihub/core');
 
     switch (action) {
@@ -899,8 +901,33 @@ cli
         ok(`${keyOrTool} unset`);
         return;
       }
+      case 'backups': {
+        // List auto-backups taken before each clihub-caused settings change.
+        const targets = keyOrTool ? [getProvider(keyOrTool)].filter(Boolean) : listProviders();
+        let any = false;
+        for (const p of targets) {
+          if (!p) continue;
+          const list = await listSettingsBackups(p.settingsAdapter.configPath());
+          if (list.length === 0) continue;
+          any = true;
+          console.log(kleur.bold(`${p.name} (${tildify(p.settingsAdapter.configPath())}):`));
+          for (const b of list) console.log(`  ${b.id}`);
+        }
+        if (!any) info('no settings backups yet — clihub snapshots each config change automatically');
+        return;
+      }
+      case 'restore': {
+        if (!keyOrTool) { err('usage: clihub config restore <tool>  (e.g. claude-code)'); process.exit(1); return; }
+        const p = getProvider(keyOrTool);
+        if (!p) { err(`unknown tool: ${keyOrTool}. Run \`clihub tool list\` for ids.`); process.exit(1); return; }
+        const restored = await restoreLatestSettings(p.settingsAdapter.configPath());
+        if (!restored) { info(`no backups to restore for ${p.name}`); return; }
+        ok(`restored ${p.name} settings from ${restored}`);
+        info('the prior state was itself snapshotted — run restore again to flip back');
+        return;
+      }
       default:
-        err(`Unknown config action: ${action}. Valid: show | get | set | unset`);
+        err(`Unknown config action: ${action}. Valid: show | get | set | unset | backups | restore`);
         process.exit(1);
     }
   });

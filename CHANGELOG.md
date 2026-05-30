@@ -4,6 +4,20 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.30.0] — config auto-backup + one-command rollback
+
+Every change clihub makes to a CLI's settings is now reversible:
+
+- **Auto-backup on write.** Before any clihub-caused settings change (proxy,
+  skill install, profile switch, wizard, apply…), the current file is
+  snapshotted to `~/.clihub/settings-backups/<key>/`. Single chokepoint —
+  both the JSON and TOML adapters. No-op when nothing changed; keeps the last
+  10 per file; opt out with `CLIHUB_NO_BACKUP=1`. Snapshots live *outside* each
+  CLI's own config dir, so the host CLI never sees stray `.bak` files.
+- **`clihub config backups [tool]`** — list snapshots for one or all CLIs.
+- **`clihub config restore <tool>`** — roll back the last change. The restore
+  itself is snapshotted, so running it again flips back.
+
 ## [1.29.0] — non-TTY no longer crashes
 
 Round 2 of the beginner's-eye audit:
