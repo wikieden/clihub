@@ -308,6 +308,7 @@ export {
   generateClihubYaml,
   scaffoldFromInstalled,
   type GenerateYamlOpts,
+  type SkillEntry,
   type ScaffoldOpts,
   type Scaffold,
 } from './init/index.js';

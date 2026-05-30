@@ -8,11 +8,14 @@
 import { listProviders } from '../tools/registry.js';
 import { recommend } from '../recommend/index.js';
 
+/** A skill entry: a bare id, or an id scoped to a single CLI via `tool`. */
+export type SkillEntry = string | { id: string; tool?: string };
+
 export interface GenerateYamlOpts {
   profile?: string;
   preset?: string;
   tools?: string[];
-  skills?: string[];
+  skills?: SkillEntry[];
   /** Prepend a yaml-language-server schema reference comment. */
   schema?: boolean;
 }
@@ -34,7 +37,11 @@ export function generateClihubYaml(opts: GenerateYamlOpts = {}): string {
     out.push('skills: []');
   } else {
     out.push('skills:');
-    for (const s of skills) out.push(`  - ${s}`);
+    for (const s of skills) {
+      if (typeof s === 'string') { out.push(`  - ${s}`); continue; }
+      if (s.tool) out.push(`  - id: ${s.id}`, `    tool: ${s.tool}`);
+      else out.push(`  - ${s.id}`);
+    }
   }
 
   out.push('');

@@ -23,6 +23,16 @@ test('empty skills renders skills: []', () => {
   expect(generateClihubYaml({ skills: [] })).toContain('skills: []');
 });
 
+test('tool-scoped skill entries render id+tool and parse back', () => {
+  const yaml = generateClihubYaml({ tools: ['codex'], skills: [{ id: 'tdd', tool: 'codex' }, 'superpowers'] });
+  expect(yaml).toContain('  - id: tdd');
+  expect(yaml).toContain('    tool: codex');
+  const cfg = parseClihubYaml(yaml);
+  const tdd = cfg.skills.find((s) => s.id === 'tdd');
+  expect(tdd?.tool).toBe('codex');
+  expect(cfg.skills.some((s) => s.id === 'superpowers')).toBe(true);
+});
+
 test('scaffoldFromInstalled returns non-empty tools + skills', async () => {
   const s = await scaffoldFromInstalled({ cwd: process.cwd() });
   expect(s.tools.length).toBeGreaterThan(0);

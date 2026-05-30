@@ -4,6 +4,14 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.21.0] — wizard: per-CLI skill selection
+
+- The setup wizard can now pick a **different skill set for each selected
+  CLI** (multiselect per CLI) instead of one global preset. Choices become
+  tool-scoped `clihub.yaml` skill entries (`- id: <skill>` + `tool: <cli>`).
+- `generateClihubYaml` skills accept `{ id, tool }` objects; new
+  `WizardAnswers.perToolSkills`. Completes the wizard fill list.
+
 ## [1.20.0] — wizard: multiple keys per account
 
 - The setup wizard now stores **multiple API keys per account profile**

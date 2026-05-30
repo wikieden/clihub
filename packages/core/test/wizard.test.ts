@@ -34,3 +34,11 @@ test('planWizard minimal answers default to claude-code', () => {
 test('memoryTemplate mentions clihub memory generate', () => {
   expect(memoryTemplate()).toContain('clihub memory generate');
 });
+
+test('planWizard per-CLI skills become tool-scoped yaml entries + steps', () => {
+  const plan = planWizard({ tools: ['claude-code', 'codex'], perToolSkills: { 'codex': ['tdd'], 'claude-code': ['review'] } });
+  expect(plan.steps.join('\n')).toContain('Skills for codex: tdd');
+  const cfg = parseClihubYaml(plan.yaml);
+  expect(cfg.skills.find((s) => s.id === 'tdd')?.tool).toBe('codex');
+  expect(cfg.skills.find((s) => s.id === 'review')?.tool).toBe('claude-code');
+});

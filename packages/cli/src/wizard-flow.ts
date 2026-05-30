@@ -53,6 +53,24 @@ export async function runWizard(opts: RunWizardOpts = {}): Promise<void> {
   bail(preset);
   const presetId = (preset as string) || undefined;
 
+  // 2b. per-CLI skill selection (optional)
+  const perToolSkills: Record<string, string[]> = {};
+  const wantPerCli = await p.confirm({ message: 'Pick skills per CLI (otherwise the preset applies to all)?', initialValue: false });
+  bail(wantPerCli);
+  if (wantPerCli) {
+    for (const toolId of toolIds) {
+      const supported = catalog.skills.filter((sk) => sk.supports?.[toolId]);
+      if (supported.length === 0) continue;
+      const picked = await p.multiselect({
+        message: `Skills for ${toolId}`,
+        options: supported.map((sk) => ({ value: sk.id, label: sk.name, hint: sk.description })),
+        required: false,
+      });
+      bail(picked);
+      if ((picked as string[]).length > 0) perToolSkills[toolId] = picked as string[];
+    }
+  }
+
   // 3. proxy
   let proxy: string | undefined;
   const wantProxy = await p.confirm({ message: 'Configure an HTTP/HTTPS/SOCKS5 proxy for the CLIs?', initialValue: false });
@@ -102,6 +120,7 @@ export async function runWizard(opts: RunWizardOpts = {}): Promise<void> {
   const plan = planWizard({
     tools: toolIds,
     preset: presetId,
+    perToolSkills,
     proxy,
     accounts: accounts.map((a) => ({ profile: a.profile, apiKeyNames: a.keys.map((k) => k.name) })),
     schema: schema as boolean,

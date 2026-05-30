@@ -188,9 +188,9 @@ enterprise line later (see "Enterprise line" below).
 
 - The wizard loops "add another key?" per account profile; each → `auth set` in that profile's keychain
 
-### 📋 — remaining wizard fill
+### v1.21.0 ✅ — wizard per-CLI skill selection
 
-- Per-CLI preset selection (not just a global preset)
+- Pick a different skill set per selected CLI → tool-scoped `clihub.yaml` skill entries. **Wizard fill list complete** — all newcomer feedback shipped
 
 ### v1.20.0 📋 — more catalog + DX
 

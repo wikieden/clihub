@@ -23,6 +23,8 @@ export interface WizardAccount {
 export interface WizardAnswers {
   tools: string[];
   preset?: string;
+  /** Per-CLI skill selection: tool id → skill ids scoped to that CLI. */
+  perToolSkills?: Record<string, string[]>;
   /** Proxy URL applied to every CLI (http/https/socks5). */
   proxy?: string;
   accounts?: WizardAccount[];
@@ -53,6 +55,14 @@ export function planWizard(answers: WizardAnswers): WizardPlan {
     const keys = acct.apiKeyNames ?? [];
     steps.push(`Create account profile: ${acct.profile}${keys.length > 0 ? ` (+ ${keys.length} key${keys.length > 1 ? 's' : ''}: ${keys.join(', ')})` : ''}`);
   }
+  // Per-CLI skill selection → tool-scoped skill entries.
+  const perTool = answers.perToolSkills ?? {};
+  const skills: Array<string | { id: string; tool: string }> = [];
+  for (const [tool, ids] of Object.entries(perTool)) {
+    for (const id of ids) skills.push({ id, tool });
+    if (ids.length > 0) steps.push(`Skills for ${tool}: ${ids.join(', ')}`);
+  }
+
   steps.push('Write clihub.yaml');
   if (answers.schema) steps.push('Write clihub.schema.json (+ schema header)');
   if (answers.memory) steps.push('Write clihub.memory.md template');
@@ -62,6 +72,7 @@ export function planWizard(answers: WizardAnswers): WizardPlan {
     profile: activeProfile,
     preset: answers.preset,
     tools,
+    skills: skills.length > 0 ? skills : undefined,
     schema: answers.schema,
   });
 
