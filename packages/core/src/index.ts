@@ -153,6 +153,12 @@ export {
   readProxyFromEnv,
 } from './proxy/inject.js';
 export {
+  detectSystemProxy,
+  parseScutilProxy,
+  type SystemProxy,
+  type DetectProxyOpts,
+} from './proxy/detect.js';
+export {
   profileHook,
   type HookShell,
 } from './profile/hook.js';

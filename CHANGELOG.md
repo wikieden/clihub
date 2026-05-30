@@ -4,6 +4,14 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.25.0] — detect system proxy
+
+- clihub now **detects the system / terminal proxy** (env `HTTPS_PROXY`
+  etc., then macOS `scutil --proxy`) and **pre-fills** it in the wizard and
+  the TUI "Set proxy" prompt — no retyping or typos.
+- `clihub proxy show` displays the detected system proxy and its source.
+- core `detectSystemProxy` / `parseScutilProxy` (pure, tested).
+
 ## [1.24.0] — proxy consistency
 
 - The setup wizard's proxy step now **injects into each selected CLI**

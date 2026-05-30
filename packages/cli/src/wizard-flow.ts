@@ -71,12 +71,14 @@ export async function runWizard(opts: RunWizardOpts = {}): Promise<void> {
     }
   }
 
-  // 3. proxy
+  // 3. proxy (pre-filled from the detected system/terminal proxy)
   let proxy: string | undefined;
-  const wantProxy = await p.confirm({ message: 'Configure an HTTP/HTTPS/SOCKS5 proxy for the CLIs?', initialValue: false });
+  const sysProxy = await core.detectSystemProxy().catch(() => ({ source: 'none' as const, url: undefined as string | undefined }));
+  const detectMsg = sysProxy.url ? `Configure a proxy for the CLIs? (detected ${sysProxy.source}: ${sysProxy.url})` : 'Configure an HTTP/HTTPS/SOCKS5 proxy for the CLIs?';
+  const wantProxy = await p.confirm({ message: detectMsg, initialValue: Boolean(sysProxy.url) });
   bail(wantProxy);
   if (wantProxy) {
-    const url = await p.text({ message: 'Proxy URL', placeholder: 'http://proxy.corp:8080 or socks5://user:pass@host:1080' });
+    const url = await p.text({ message: 'Proxy URL', placeholder: 'http://proxy.corp:8080 or socks5://user:pass@host:1080', initialValue: sysProxy.url ?? '' });
     bail(url);
     proxy = (url as string).trim() || undefined;
   }

@@ -1145,7 +1145,10 @@ cli
         const sample = resolveProxy('https://api.anthropic.com', cfg);
         if (sample) info(`effective proxy for https://api.anthropic.com → ${sample}`);
 
-        const { getToolProxy, listProviders } = await import('@clihub/core');
+        const { getToolProxy, listProviders, detectSystemProxy } = await import('@clihub/core');
+        const sys = await detectSystemProxy().catch(() => ({ source: 'none' as const, url: undefined }));
+        console.log(kleur.bold('\ndetected system/terminal proxy:'));
+        console.log(`  ${sys.url ? kleur.cyan(sys.url) + kleur.dim(`  (${sys.source})`) : kleur.dim('(none)')}`);
         console.log(kleur.bold('\nper-CLI proxy (from each CLI\'s settings):'));
         for (const pr of listProviders()) {
           const cur = await getToolProxy(pr.id).catch(() => undefined);

@@ -246,13 +246,15 @@ async function handleCliAction(toolId: ToolId, action: string): Promise<void> {
   const provider = getProvider(toolId)!;
   switch (action) {
     case 'proxy': {
-      const { getToolProxy, setToolProxy } = await import('@clihub/core');
+      const { getToolProxy, setToolProxy, detectSystemProxy } = await import('@clihub/core');
       const cur = await getToolProxy(toolId).catch(() => undefined);
+      const detected = cur ? undefined : await detectSystemProxy().catch(() => undefined);
+      if (detected?.url) log.info(`detected ${detected.source} proxy: ${detected.url} (pre-filled)`);
       const { text } = await import('@clack/prompts');
       const url = await text({
         message: `Proxy for ${provider.name} (blank = clear)`,
         placeholder: 'http://proxy.corp:8080 or socks5://host:1080',
-        initialValue: cur ?? '',
+        initialValue: cur ?? detected?.url ?? '',
       });
       if (isCancel(url)) return;
       const v = (url as string).trim();
