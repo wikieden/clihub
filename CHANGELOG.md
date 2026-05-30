@@ -4,6 +4,20 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.34.0] — fix Goose install hang; verify Cursor
+
+More real-install testing of every supported CLI in the container.
+
+- **Goose `tool install` could hang.** The official script ends by running the
+  interactive `goose configure` (asks for a provider + key), which stalls a
+  non-interactive `clihub tool install`. Now pipes to `CONFIGURE=false bash` —
+  installs the binary only; users configure goose separately. Verified
+  end-to-end: `Goose ✓ installed 1.36.0`.
+- **Cursor verified correct** — `curl https://cursor.com/install | bash`,
+  command `cursor-agent`, config `~/.cursor/cli-config.json` all match a real
+  install (2026.05.28). No change needed.
+- Claude Code / Gemini / Codex already confirmed real via npm.
+
 ## [1.33.0] — fix Kiro CLI install + detection
 
 Caught by installing the real Kiro CLI in the container test env.

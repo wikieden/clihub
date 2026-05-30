@@ -27,8 +27,11 @@ const CONFIG_DIR = path.join(os.homedir(), '.config', 'goose');
 const CONFIG_PATH = path.join(CONFIG_DIR, 'config.yaml');
 const settingsAdapter = new JsonSettingsAdapter({ path: CONFIG_PATH });
 
+// CONFIGURE=false installs just the binary — the official script otherwise
+// ends by running the interactive `goose configure`, which would hang a
+// non-interactive `clihub tool install`. Users configure goose separately.
 const INSTALL_SCRIPT =
-  'curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | bash';
+  'curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh | CONFIGURE=false bash';
 
 async function tryExec(
   cmd: string,
