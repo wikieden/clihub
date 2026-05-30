@@ -80,7 +80,7 @@ export const codexProvider: ToolProvider = {
     try {
       await fs.access(CONFIG_DIR);
     } catch {
-      issues.push(`Config directory missing: ${CONFIG_DIR}`);
+      issues.push(`Not configured yet (run clihub wizard) — no config dir: ${CONFIG_DIR}`);
     }
     return { healthy: issues.length === 0, issues };
   },

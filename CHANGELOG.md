@@ -4,6 +4,18 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.28.0] — newcomer fixes
+
+First-impression polish from a beginner's-eye audit:
+
+- **Typos no longer crash.** An unknown command (`clihub instll`) now prints
+  `unknown command` + a `did you mean clihub install?` suggestion and exits 1,
+  instead of falling through to the TUI and throwing `ERR_TTY_INIT_FAILED`.
+- **`--help` greets newcomers** — a banner up top points to `clihub wizard`.
+- **`doctor` reads friendlier** — paths shrink to `~/…` and a fresh machine
+  shows `(not set up)` / `Not configured yet (run clihub wizard)` instead of
+  the alarming `missing`.
+
 ## [1.27.0] — doctor shows proxy
 
 - `clihub doctor` now has a **PROXY column** (each CLI's injected proxy)

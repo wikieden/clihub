@@ -104,7 +104,7 @@ export const claudeCodeProvider: ToolProvider = {
     try {
       await fs.access(SETTINGS_PATH);
     } catch {
-      issues.push(`Settings file missing: ${SETTINGS_PATH}`);
+      issues.push(`Not configured yet (run clihub wizard) — no settings file: ${SETTINGS_PATH}`);
     }
     return { healthy: issues.length === 0, issues };
   },

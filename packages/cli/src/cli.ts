@@ -29,6 +29,9 @@ const cli = cac('clihub');
 const catalog = new CatalogLoader();
 const backups = new BackupManager();
 
+/** Replace the user's home dir with ~ so doctor paths stay readable. */
+const tildify = (s: string): string => s.split(os.homedir()).join('~');
+
 /** Register declarative providers from ~/.clihub/providers.json + synced catalog. */
 async function ensureProviders(allowScripts = false): Promise<void> {
   const { loadExternalProviders, defaultCatalogDir } = await import('@clihub/core');
@@ -301,7 +304,7 @@ cli
       r.installed ? kleur.green('✓ installed') : kleur.dim('✗ not installed'),
       r.installed ? (r.version ?? kleur.dim('?')) : kleur.dim('—'),
       r.installed
-        ? (r.settingsExists ? r.settingsPath : kleur.yellow(`${r.settingsPath} (missing)`))
+        ? (r.settingsExists ? tildify(r.settingsPath) : kleur.yellow(`${tildify(r.settingsPath)} (not set up)`))
         : kleur.dim('—'),
       r.installed && r.skillCount !== undefined ? String(r.skillCount) : kleur.dim('—'),
       r.installed && r.mcpCount !== undefined ? String(r.mcpCount) : kleur.dim('—'),
@@ -347,7 +350,7 @@ cli
     for (const r of rows) {
       if (r.installed && r.issues.length > 0) {
         warn(`${r.id}: ${t('doctor.issues', { count: r.issues.length })}`);
-        for (const issue of r.issues) console.log(`    - ${issue}`);
+        for (const issue of r.issues) console.log(`    - ${tildify(issue)}`);
         problems += r.issues.length;
       }
     }
@@ -2093,7 +2096,50 @@ cli.command('', t('cli.title')).action(async () => {
   await runTui();
 });
 
-cli.help();
+cli.help((sections) => {
+  // Newcomer banner, inserted right after the version line.
+  sections.splice(1, 0, {
+    body: `${kleur.bold('New here?')} Run ${kleur.cyan('clihub wizard')} for guided setup, or ${kleur.cyan('clihub')} for the interactive menu.`,
+  });
+});
 cli.version(pkg.version);
+
+// ─── unknown-command guard ────────────────────────────────────────────
+// cac's empty default command swallows typos and falls through to the TUI
+// (which throws ERR_TTY_INIT_FAILED in a non-TTY). Catch an unrecognised
+// first arg, suggest the closest command, and exit cleanly instead.
+{
+  const known = new Set<string>();
+  for (const c of cli.commands) {
+    if (c.name) known.add(c.name);
+    for (const a of (c.aliasNames ?? [])) if (a) known.add(a);
+  }
+  const first = process.argv[2];
+  if (first && !first.startsWith('-') && !known.has(first)) {
+    const lev = (a: string, b: string): number => {
+      const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) =>
+        [i, ...Array<number>(b.length).fill(0)]);
+      for (let j = 0; j <= b.length; j++) d[0]![j] = j;
+      for (let i = 1; i <= a.length; i++)
+        for (let j = 1; j <= b.length; j++)
+          d[i]![j] = Math.min(
+            d[i - 1]![j]! + 1,
+            d[i]![j - 1]! + 1,
+            d[i - 1]![j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1),
+          );
+      return d[a.length]![b.length]!;
+    };
+    let guess: string | undefined;
+    let best = Infinity;
+    for (const name of known) {
+      const dist = lev(first, name);
+      if (dist < best) { best = dist; guess = name; }
+    }
+    console.error(kleur.red(`unknown command: ${first}`));
+    if (guess && best <= 3) console.error(`did you mean ${kleur.cyan('clihub ' + guess)}?`);
+    console.error(kleur.dim(`run ${kleur.cyan('clihub --help')} for all commands, or ${kleur.cyan('clihub wizard')} to get started`));
+    process.exit(1);
+  }
+}
 
 cli.parse();

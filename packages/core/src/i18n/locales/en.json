@@ -15,7 +15,7 @@
   "doctor.healthy": "All checks passed",
   "doctor.issues": "{count} issue(s) found",
   "doctor.issue.notInstalled": "{tool} is not installed",
-  "doctor.issue.noSettings": "Settings file missing: {path}",
+  "doctor.issue.noSettings": "Not configured yet (run clihub wizard) — no settings file: {path}",
   "skill.install.start": "Installing skill {skill}...",
   "skill.install.done": "Skill {skill} installed",
   "skill.install.failed": "Failed to install skill {skill}: {reason}",
