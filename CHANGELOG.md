@@ -4,6 +4,19 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.36.0] — fix Gemini skill install (TOML, not Markdown)
+
+Real-CLI testing: `skill install --tool gemini-cli` wrote
+`~/.gemini/commands/<id>.md`. Gemini CLI **only loads `.toml` custom commands**
+(confirmed in its own bundled docs — TOML with a required `prompt` field), so
+the `.md` file was silently ignored — the skill never became a usable command.
+
+- GeminiCliSkillAdapter now writes a valid `<id>.toml` (`description` + a
+  multiline-literal `prompt`), so it loads as `/<id>`. `uninstall` also cleans
+  up any legacy `.md`. 3 new tests assert the TOML parses with a `prompt`.
+
+Verified in container against real gemini 0.44.1.
+
 ## [1.35.0] — honest per-CLI proxy caveat
 
 Real-CLI testing of proxy injection: clihub writes the proxy into a CLI's

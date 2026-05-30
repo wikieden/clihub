@@ -24,9 +24,11 @@ export class GeminiCliSkillAdapter implements SkillSyncAdapter {
 
   async install(skill: SkillManifest, source: string): Promise<void> {
     await fs.mkdir(this.commandsDir, { recursive: true });
-    const body = renderCommandMd(skill, source);
+    // Gemini CLI custom commands MUST be TOML with a `prompt` field; a .md file
+    // in ~/.gemini/commands/ is silently ignored. (gemini docs: custom-commands)
+    const body = renderCommandToml(skill, source);
     await fs.writeFile(
-      path.join(this.commandsDir, `${skill.id}.md`),
+      path.join(this.commandsDir, `${skill.id}.toml`),
       body,
       'utf8',
     );
@@ -34,6 +36,8 @@ export class GeminiCliSkillAdapter implements SkillSyncAdapter {
   }
 
   async uninstall(skillId: string): Promise<void> {
+    await fs.rm(path.join(this.commandsDir, `${skillId}.toml`), { force: true });
+    // Clean up any legacy .md written by older clihub versions.
     await fs.rm(path.join(this.commandsDir, `${skillId}.md`), { force: true });
     await removeGeminiRef(this.geminiMd, skillId);
   }
@@ -47,16 +51,28 @@ export class GeminiCliSkillAdapter implements SkillSyncAdapter {
       throw err;
     }
     return entries
-      .filter((f) => f.endsWith('.md'))
+      .filter((f) => f.endsWith('.toml'))
       .map((f) => {
-        const id = f.replace(/\.md$/, '');
+        const id = f.replace(/\.toml$/, '');
         return { id, name: id, version: 'unknown', path: path.join(this.commandsDir, f) };
       });
   }
 }
 
-function renderCommandMd(skill: SkillManifest, source: string): string {
-  return `# ${skill.name}\n\n${skill.description}\n\nInstalled by clihub from ${source}.\n`;
+/**
+ * Render a Gemini CLI custom-command TOML file. `prompt` is what gets sent to
+ * the model when the user runs `/<id>`. Uses a TOML multiline *literal* string
+ * ('''…''') so skill content needs no backslash/quote escaping.
+ */
+function renderCommandToml(skill: SkillManifest, source: string): string {
+  const desc = (skill.description ?? skill.name)
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/[\r\n]+/g, ' ')
+    .trim();
+  const prompt = `${skill.name}\n\n${skill.description ?? ''}\n\n(Installed by clihub from ${source}.)`
+    .replace(/'''/g, "' ''"); // a literal string cannot contain '''
+  return `# clihub:skill:${skill.id}\ndescription = "${desc}"\nprompt = '''\n${prompt}\n'''\n`;
 }
 
 async function appendGeminiRef(geminiMd: string, skill: SkillManifest): Promise<void> {
