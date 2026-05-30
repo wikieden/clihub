@@ -13,9 +13,10 @@ test('add → list → remove an inline MCP across CLIs', async () => {
   expect(added.done).toContain('myserver@claude-code');
   expect(added.done).toContain('myserver@gemini-cli');
 
-  const claudeSettings = path.join(home, '.claude', 'settings.json');
-  expect(existsSync(claudeSettings)).toBe(true);
-  expect(JSON.parse(readFileSync(claudeSettings, 'utf8')).mcpServers.myserver.command).toBe('my-mcp');
+  // Claude Code reads user-scope MCP from ~/.claude.json (not settings.json).
+  const claudeMcp = path.join(home, '.claude.json');
+  expect(existsSync(claudeMcp)).toBe(true);
+  expect(JSON.parse(readFileSync(claudeMcp, 'utf8')).mcpServers.myserver.command).toBe('my-mcp');
 
   const rows = await listMcp({ home, all: true });
   const claude = rows.find((r) => r.tool === 'claude-code');

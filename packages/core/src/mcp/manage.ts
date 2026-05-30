@@ -16,9 +16,12 @@ import { CatalogLoader } from '../catalog/index.js';
 import { getProvider } from '../tools/registry.js';
 import type { InstalledMcpServer, McpServerManifest, McpTransport } from '../types.js';
 
-/** CLIs whose MCP config is a JSON `mcpServers` map, with their settings file (relative to home). */
+/** CLIs whose MCP config is a JSON `mcpServers` map, with their config file (relative to home).
+ *  NB: Claude Code reads user-scope MCP from ~/.claude.json (verified via
+ *  `claude mcp add --scope user`), NOT ~/.claude/settings.json (which holds
+ *  env/permissions). Gemini reads mcpServers from ~/.gemini/settings.json. */
 const JSON_MCP_RELPATHS: Record<string, string> = {
-  'claude-code': '.claude/settings.json',
+  'claude-code': '.claude.json',
   'gemini-cli': '.gemini/settings.json',
 };
 

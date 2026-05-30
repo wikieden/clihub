@@ -4,6 +4,19 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.38.0] — fix Claude Code MCP location (.claude.json)
+
+Real-CLI testing: `clihub mcp add` wrote Claude Code's MCP server into
+`~/.claude/settings.json`, but Claude Code reads user-scope MCP from
+`~/.claude.json` (verified: `claude mcp add --scope user` reports
+`File modified: ~/.claude.json`). So every MCP server clihub added for Claude
+Code was silently invisible to Claude.
+
+- `mcp add` / `mcp list` / `mcp remove` (and `clihub apply`) now target
+  `~/.claude.json` for Claude Code. Gemini stays `~/.gemini/settings.json`.
+- Verified end-to-end in container: after `clihub mcp add`, the real
+  `claude mcp list` now shows the server. Suite 92/92.
+
 ## [1.37.0] — fix Codex skill install (Agent-Skills dir layout)
 
 Real-CLI testing: Codex auto-discovers Agent Skills under
