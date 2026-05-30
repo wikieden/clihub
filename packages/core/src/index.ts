@@ -319,6 +319,11 @@ export {
   type WizardPlan,
 } from './wizard/index.js';
 export {
+  scaffoldFiles,
+  writeScaffold,
+  type ScaffoldResult,
+} from './scaffold/index.js';
+export {
   computeStatus,
   type ComplianceState,
   type StatusItem,

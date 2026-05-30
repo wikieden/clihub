@@ -92,6 +92,8 @@ export async function runWizard(opts: RunWizardOpts = {}): Promise<void> {
   bail(schema);
   const memory = await p.confirm({ message: 'Write a clihub.memory.md template (one source → every CLI)?', initialValue: true });
   bail(memory);
+  const scaffold = await p.confirm({ message: 'Write project starter files (.editorconfig, .gitignore, CI)?', initialValue: false });
+  bail(scaffold);
 
   const plan = planWizard({
     tools: toolIds,
@@ -100,6 +102,7 @@ export async function runWizard(opts: RunWizardOpts = {}): Promise<void> {
     accounts: accounts.map((a) => ({ profile: a.profile, apiKeyName: a.apiKeyName })),
     schema: schema as boolean,
     memory: memory as boolean,
+    scaffold: scaffold as boolean,
   });
   p.note(plan.steps.map((s, i) => `${i + 1}. ${s}`).join('\n'), 'Plan');
 
@@ -139,6 +142,11 @@ export async function runWizard(opts: RunWizardOpts = {}): Promise<void> {
     const memPath = path.join(cwd, 'clihub.memory.md');
     const memExists = await fsp.access(memPath).then(() => true).catch(() => false);
     if (!memExists) { await fsp.writeFile(memPath, memoryTemplate(), 'utf8'); p.log.success('wrote clihub.memory.md'); }
+  }
+  if (scaffold) {
+    const res = await core.writeScaffold(cwd);
+    for (const f of res.written) p.log.success(`wrote ${f}`);
+    for (const f of res.skipped) p.log.info(`kept existing ${f}`);
   }
   p.outro('Done. Run `clihub apply` to install the preset, `clihub memory generate` to fan out memory.');
 }

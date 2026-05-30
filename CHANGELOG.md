@@ -4,6 +4,13 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.19.0] — project scaffold files
+
+- `clihub init --scaffold` (and a wizard step) writes neutral project
+  starter files — `.editorconfig`, `.gitignore`, `.github/workflows/clihub.yml`
+  — never overwriting an existing file. Agent memory files stay owned by
+  `clihub memory generate`.
+
 ## [1.18.0] — wizard in the menu + run a CLI
 
 - The setup wizard is now re-runnable from the TUI main menu (🧙 Setup

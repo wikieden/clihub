@@ -180,9 +180,12 @@ enterprise line later (see "Enterprise line" below).
 
 - Setup wizard re-runnable from the TUI main menu (extracted to `wizard-flow.ts`); each installed CLI submenu gains a **▶ Run** entry to launch it
 
-### v1.19.0 📋 — fill out the wizard skeleton
+### v1.19.0 ✅ — project scaffold files
 
-- Project scaffold files (AGENTS.md / .editorconfig / .gitignore / CI) from `wizard`
+- `clihub init --scaffold` + wizard step writes `.editorconfig` / `.gitignore` / `.github/workflows/clihub.yml` (never overwriting). Agent memory files remain owned by `memory generate`
+
+### v1.19.x 📋 — remaining wizard fill
+
 - Multiple API keys per account profile (loop)
 - Per-CLI preset selection (not just a global preset)
 

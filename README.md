@@ -144,7 +144,7 @@ clihub backup | backup list | restore <id> | rollback
 clihub config <show|get|set|unset> [key] [value]
 clihub yaml
 clihub wizard [--dry-run]                  guided first-run: CLIs + preset + proxy + accounts + config
-clihub init [--from-installed] [--schema]  scaffold clihub.yaml (infer tools+skills; add schema)
+clihub init [--from-installed] [--schema] [--scaffold]  scaffold clihub.yaml (+ .editorconfig/.gitignore/CI)
 clihub apply [--plan]                      converge this machine to clihub.yaml
 clihub lock                                pin resolved versions to clihub.lock.json
 clihub install [--frozen]                  install from clihub.yaml (or lockfile)

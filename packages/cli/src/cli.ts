@@ -1501,10 +1501,11 @@ cli
   .option('--preset <id>', 'Seed with a preset')
   .option('--from-installed', 'Infer tools (installed CLIs) + skills (recommend) from this machine/project')
   .option('--schema', 'Add a yaml-language-server schema header and write clihub.schema.json')
+  .option('--scaffold', 'Also write project starter files (.editorconfig, .gitignore, CI)')
   .option('--force', 'Overwrite an existing clihub.yaml')
-  .action(async (opts: { profile?: string; preset?: string; fromInstalled?: boolean; schema?: boolean; force?: boolean }) => {
+  .action(async (opts: { profile?: string; preset?: string; fromInstalled?: boolean; schema?: boolean; scaffold?: boolean; force?: boolean }) => {
     const fsp = await import('node:fs/promises');
-    const { generateClihubYaml, scaffoldFromInstalled, clihubYamlSchemaJson } = await import('@clihub/core');
+    const { generateClihubYaml, scaffoldFromInstalled, clihubYamlSchemaJson, writeScaffold } = await import('@clihub/core');
     const target = path.join(process.cwd(), 'clihub.yaml');
     const exists = await fsp.access(target).then(() => true).catch(() => false);
     if (exists && !opts.force) { err('clihub.yaml already exists (use --force to overwrite)'); process.exit(1); }
@@ -1525,6 +1526,11 @@ cli
     if (opts.schema) {
       await fsp.writeFile(path.join(process.cwd(), 'clihub.schema.json'), clihubYamlSchemaJson(), 'utf8');
       ok('wrote clihub.schema.json');
+    }
+    if (opts.scaffold) {
+      const res = await writeScaffold(process.cwd());
+      for (const f of res.written) ok(`wrote ${f}`);
+      for (const f of res.skipped) info(`kept existing ${f}`);
     }
     info('edit it, then run `clihub apply --plan` to preview.');
   });
