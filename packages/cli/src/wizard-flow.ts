@@ -63,8 +63,8 @@ export async function runWizard(opts: RunWizardOpts = {}): Promise<void> {
     proxy = (url as string).trim() || undefined;
   }
 
-  // 4. accounts (multi-profile + one key each)
-  const accounts: Array<{ profile: string; apiKeyName?: string; apiKeyValue?: string }> = [];
+  // 4. accounts (multi-profile + multiple keys each)
+  const accounts: Array<{ profile: string; keys: Array<{ name: string; value: string }> }> = [];
   let addMore = await p.confirm({ message: 'Set up account profiles (work / personal / client)?', initialValue: false });
   bail(addMore);
   while (addMore) {
@@ -72,16 +72,20 @@ export async function runWizard(opts: RunWizardOpts = {}): Promise<void> {
     bail(name);
     const profile = (name as string).trim();
     if (profile) {
-      const keyName = await p.text({ message: `API key env var for "${profile}" (blank to skip)`, placeholder: 'ANTHROPIC_API_KEY' });
-      bail(keyName);
-      const acct: { profile: string; apiKeyName?: string; apiKeyValue?: string } = { profile };
-      if ((keyName as string).trim()) {
-        const val = await p.password({ message: `Value for ${(keyName as string).trim()}` });
+      const keys: Array<{ name: string; value: string }> = [];
+      let addKey = true;
+      while (addKey) {
+        const keyName = await p.text({ message: `API key env var for "${profile}" (blank = done)`, placeholder: 'ANTHROPIC_API_KEY' });
+        bail(keyName);
+        const kn = (keyName as string).trim();
+        if (!kn) break;
+        const val = await p.password({ message: `Value for ${kn}` });
         bail(val);
-        acct.apiKeyName = (keyName as string).trim();
-        acct.apiKeyValue = val as string;
+        keys.push({ name: kn, value: val as string });
+        addKey = (await p.confirm({ message: `Add another key for "${profile}"?`, initialValue: false })) as boolean;
+        bail(addKey);
       }
-      accounts.push(acct);
+      accounts.push({ profile, keys });
     }
     addMore = await p.confirm({ message: 'Add another profile?', initialValue: false });
     bail(addMore);
@@ -99,7 +103,7 @@ export async function runWizard(opts: RunWizardOpts = {}): Promise<void> {
     tools: toolIds,
     preset: presetId,
     proxy,
-    accounts: accounts.map((a) => ({ profile: a.profile, apiKeyName: a.apiKeyName })),
+    accounts: accounts.map((a) => ({ profile: a.profile, apiKeyNames: a.keys.map((k) => k.name) })),
     schema: schema as boolean,
     memory: memory as boolean,
     scaffold: scaffold as boolean,
@@ -125,9 +129,9 @@ export async function runWizard(opts: RunWizardOpts = {}): Promise<void> {
   }
   for (const a of accounts) {
     try { await createProfile(a.profile, {}); } catch { /* exists */ }
-    if (a.apiKeyName && a.apiKeyValue) {
-      try { await setSecret(a.profile, a.apiKeyName, a.apiKeyValue); p.log.success(`stored ${a.apiKeyName} for ${a.profile}`); }
-      catch (e) { p.log.warn(`key ${a.profile}: ${e instanceof Error ? e.message : String(e)}`); }
+    for (const k of a.keys) {
+      try { await setSecret(a.profile, k.name, k.value); p.log.success(`stored ${k.name} for ${a.profile}`); }
+      catch (e) { p.log.warn(`key ${a.profile}/${k.name}: ${e instanceof Error ? e.message : String(e)}`); }
     }
     p.log.success(`profile ${a.profile}`);
   }

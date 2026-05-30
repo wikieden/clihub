@@ -16,8 +16,8 @@ import { generateClihubYaml } from '../init/index.js';
 export interface WizardAccount {
   /** Profile name (e.g. work / personal / client-x). */
   profile: string;
-  /** Optional API key name to store in the profile's keychain entry. */
-  apiKeyName?: string;
+  /** API key names to store in this profile's keychain (one or many). */
+  apiKeyNames?: string[];
 }
 
 export interface WizardAnswers {
@@ -50,7 +50,8 @@ export function planWizard(answers: WizardAnswers): WizardPlan {
   if (answers.preset) steps.push(`Apply preset: ${answers.preset}`);
   if (answers.proxy) steps.push(`Set proxy for every CLI: ${answers.proxy}`);
   for (const acct of answers.accounts ?? []) {
-    steps.push(`Create account profile: ${acct.profile}${acct.apiKeyName ? ` (+ key ${acct.apiKeyName})` : ''}`);
+    const keys = acct.apiKeyNames ?? [];
+    steps.push(`Create account profile: ${acct.profile}${keys.length > 0 ? ` (+ ${keys.length} key${keys.length > 1 ? 's' : ''}: ${keys.join(', ')})` : ''}`);
   }
   steps.push('Write clihub.yaml');
   if (answers.schema) steps.push('Write clihub.schema.json (+ schema header)');

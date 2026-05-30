@@ -7,7 +7,7 @@ test('planWizard builds steps + parseable yaml', () => {
     tools: ['claude-code', 'codex'],
     preset: 'python',
     proxy: 'http://proxy:8080',
-    accounts: [{ profile: 'work', apiKeyName: 'ANTHROPIC_API_KEY' }, { profile: 'personal' }],
+    accounts: [{ profile: 'work', apiKeyNames: ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY'] }, { profile: 'personal' }],
     schema: true,
     memory: true,
   });
@@ -15,7 +15,7 @@ test('planWizard builds steps + parseable yaml', () => {
   expect(joined).toContain('Install CLIs: claude-code, codex');
   expect(joined).toContain('Apply preset: python');
   expect(joined).toContain('Set proxy');
-  expect(joined).toContain('work (+ key ANTHROPIC_API_KEY)');
+  expect(joined).toContain('work (+ 2 keys: ANTHROPIC_API_KEY, OPENAI_API_KEY)');
   expect(joined).toContain('personal');
 
   const cfg = parseClihubYaml(plan.yaml);

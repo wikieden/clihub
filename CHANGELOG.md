@@ -4,6 +4,12 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.20.0] — wizard: multiple keys per account
+
+- The setup wizard now stores **multiple API keys per account profile**
+  (loop "add another key?" per profile) instead of one. Each key →
+  `clihub auth set` in that profile's keychain.
+
 ## [1.19.0] — project scaffold files
 
 - `clihub init --scaffold` (and a wizard step) writes neutral project

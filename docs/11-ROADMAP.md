@@ -184,9 +184,12 @@ enterprise line later (see "Enterprise line" below).
 
 - `clihub init --scaffold` + wizard step writes `.editorconfig` / `.gitignore` / `.github/workflows/clihub.yml` (never overwriting). Agent memory files remain owned by `memory generate`
 
-### v1.19.x 📋 — remaining wizard fill
+### v1.20.0 ✅ — wizard multiple keys per account
 
-- Multiple API keys per account profile (loop)
+- The wizard loops "add another key?" per account profile; each → `auth set` in that profile's keychain
+
+### 📋 — remaining wizard fill
+
 - Per-CLI preset selection (not just a global preset)
 
 ### v1.20.0 📋 — more catalog + DX
