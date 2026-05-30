@@ -47,7 +47,7 @@ export async function runWizard(opts: RunWizardOpts = {}): Promise<void> {
   const catalog = await new CatalogLoader().load();
   const preset = await p.select({
     message: 'Pick a preset (bundles skills)',
-    options: [{ value: '', label: 'none' }, ...catalog.presets.map((pr) => ({ value: pr.id, label: pr.name, hint: pr.description }))],
+    options: [{ value: '', label: 'none' }, ...catalog.presets.map((pr) => ({ value: pr.id, label: pr.name, hint: `${pr.skills.length} skills: ${pr.skills.join(', ')}` }))],
     initialValue: 'starter',
   });
   bail(preset);

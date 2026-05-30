@@ -4,6 +4,12 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.22.0] — show preset contents
+
+- `clihub preset list` now prints each preset's tools + full skill list, and
+  the wizard preset picker shows `N skills: ...` in the hint — newcomers
+  can see what a preset bundles before choosing.
+
 ## [1.21.0] — wizard: per-CLI skill selection
 
 - The setup wizard can now pick a **different skill set for each selected

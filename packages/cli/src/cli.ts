@@ -473,6 +473,8 @@ cli
         console.log(kleur.bold(t('preset.list.header')));
         for (const p of presets) {
           console.log(`  ${kleur.bold(p.id)}  ${p.name}  ${kleur.dim(p.description)}`);
+          console.log(`      ${kleur.dim(`tools: ${p.tools.join(', ')}`)}`);
+          console.log(`      ${kleur.dim(`skills (${p.skills.length}): ${p.skills.join(', ')}`)}`);
         }
         return;
       }
