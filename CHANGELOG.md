@@ -4,6 +4,19 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.33.0] — fix Kiro CLI install + detection
+
+Caught by installing the real Kiro CLI in the container test env.
+
+- **Install method was wrong** (brew cask / "download from kiro.dev"). The
+  official installer is `curl -fsSL https://cli.kiro.dev/install | bash`
+  (macOS + Linux, non-interactive on a fresh install). `tool install kiro-cli`
+  now runs it.
+- **Detection was broken**: the command is `kiro-cli` (installs into
+  `~/.local/bin`, alongside `kiro-cli-chat` / `kiro-cli-term`), not `kiro`.
+  clihub looked for `kiro`, so it reported Kiro as not-installed even when it
+  was. Now detects `kiro-cli` — verified against real `kiro-cli 2.5.0`.
+
 ## [1.32.0] — no more dead-end output
 
 Container testing surfaced two spots where clihub gave a bare result with no

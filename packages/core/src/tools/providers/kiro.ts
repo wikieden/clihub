@@ -1,6 +1,8 @@
 /**
- * Kiro CLI ToolProvider (AWS). Installs via curl or brew.
- * Settings live at ~/.kiro/. No skill adapter in v0.1.
+ * Kiro CLI ToolProvider (AWS). Official installer:
+ *   curl -fsSL https://cli.kiro.dev/install | bash
+ * Installs `kiro-cli` (+ kiro-cli-chat / kiro-cli-term) into ~/.local/bin.
+ * The command is `kiro-cli` (NOT `kiro`). Settings live at ~/.kiro/.
  */
 import { execFile } from 'node:child_process';
 import { promises as fs } from 'node:fs';
@@ -41,50 +43,40 @@ export const kiroProvider: ToolProvider = {
   description: 'AWS Kiro — AI coding agent by Amazon',
   homepage: 'https://kiro.dev',
   supportedPlatforms: ['macos', 'linux'],
-  installMethods: ['curl', 'brew'],
+  installMethods: ['curl'],
 
   async detect(): Promise<DetectResult> {
-    const binPath = await whichCmd('kiro');
+    const binPath = await whichCmd('kiro-cli');
     if (!binPath) return { installed: false };
-    const ver = await tryExec('kiro', ['--version']);
+    const ver = await tryExec('kiro-cli', ['--version']);
     const version = parseVersion(ver?.stdout);
     return { installed: true, path: binPath, version };
   },
 
   async install(opts: InstallOpts = {}): Promise<void> {
     if (opts.dryRun) return;
-    const platform = process.platform;
-    const hasBrew = !!(await tryExec('brew', ['--version']));
-
-    if (opts.method === 'brew' || (opts.method === undefined && platform === 'darwin' && hasBrew)) {
-      await execFileP('brew', ['install', '--cask', 'kiro']);
-      return;
+    if (process.platform === 'win32') {
+      throw new Error(
+        'On Windows, install Kiro CLI from https://kiro.dev/cli/ (the curl installer needs a POSIX shell).',
+      );
     }
-
-    const installPage = 'https://kiro.dev/downloads';
-    throw new Error(
-      `Kiro CLI has no scripted installer on ${platform}.\n` +
-      `Install methods:\n` +
-      `  • macOS:  brew install --cask kiro  (or download from ${installPage})\n` +
-      `  • Linux:  download .deb / .tar.gz from ${installPage}\n` +
-      `  • Windows: download .msi from ${installPage}\n` +
-      `Once installed, run \`clihub doctor kiro-cli\` to verify.`,
-    );
+    // Official one-line installer (macOS + Linux). Non-interactive on a fresh
+    // install; installs kiro-cli into ~/.local/bin.
+    await execFileP('bash', ['-c', 'curl -fsSL https://cli.kiro.dev/install | bash']);
+    // ~/.local/bin may not be on PATH yet — detect() will miss it until then.
   },
 
   async uninstall(): Promise<void> {
-    try { await execFileP('brew', ['uninstall', '--cask', 'kiro']); return; } catch { /* try manual */ }
-    const binPath = await whichCmd('kiro');
-    if (binPath) await fs.rm(binPath, { force: true });
+    const binDir = path.join(os.homedir(), '.local', 'bin');
+    for (const name of ['kiro-cli', 'kiro-cli-chat', 'kiro-cli-term']) {
+      await fs.rm(path.join(binDir, name), { force: true }).catch(() => {});
+    }
+    const binPath = await whichCmd('kiro-cli');
+    if (binPath) await fs.rm(binPath, { force: true }).catch(() => {});
   },
 
   async update(): Promise<void> {
-    const hasBrew = !!(await tryExec('brew', ['--version']));
-    if (hasBrew) {
-      await execFileP('brew', ['upgrade', '--cask', 'kiro']);
-    } else {
-      await this.install({});
-    }
+    await this.install({});
   },
 
   async doctor(): Promise<HealthReport> {
