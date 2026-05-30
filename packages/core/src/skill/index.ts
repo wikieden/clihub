@@ -77,7 +77,9 @@ async function readManifest(
   }
 }
 
-function renderSkillMd(skill: SkillManifest, source: string): string {
+/** Render an Agent-Skills `SKILL.md` (YAML frontmatter + body). Shared by the
+ *  Claude Code and Codex adapters — both auto-discover `<dir>/<id>/SKILL.md`. */
+export function renderSkillMd(skill: SkillManifest, source: string): string {
   return `---
 name: ${skill.id}
 description: ${escapeYaml(skill.description)}

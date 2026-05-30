@@ -4,6 +4,19 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.37.0] — fix Codex skill install (Agent-Skills dir layout)
+
+Real-CLI testing: Codex auto-discovers Agent Skills under
+`~/.codex/skills/<name>/SKILL.md` (a directory per skill, same standard as
+Claude Code — confirmed in the Codex binary's own strings). clihub wrote a flat
+`~/.codex/skills/<id>.md`, which Codex did not discover.
+
+- CodexSkillAdapter now writes `~/.codex/skills/<id>/SKILL.md` (+ `manifest.json`),
+  reusing the shared `renderSkillMd` so Codex and Claude Code produce the same
+  layout. `install` cleans up the legacy flat `.md`. 3 new tests. Suite 90/90.
+
+Verified in container against real codex 0.135.0.
+
 ## [1.36.0] — fix Gemini skill install (TOML, not Markdown)
 
 Real-CLI testing: `skill install --tool gemini-cli` wrote

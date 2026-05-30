@@ -1,3 +1,9 @@
+/**
+ * SkillSyncAdapter for Codex CLI. Codex auto-discovers Agent Skills under
+ * `$CODEX_HOME/skills/<name>/` (defaults to `~/.codex/skills`), same layout as
+ * Claude Code: a directory per skill containing `SKILL.md` (YAML frontmatter).
+ * Earlier clihub wrote a flat `skills/<id>.md`, which Codex did not discover.
+ */
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -6,78 +12,57 @@ import type {
   SkillManifest,
   SkillSyncAdapter,
 } from '../tools/types.js';
+import { renderSkillMd } from './index.js';
 
 export interface CodexSkillAdapterOpts {
-  promptsDir?: string;
-  agentsFile?: string;
+  /** Override skills directory. Defaults to ~/.codex/skills. */
+  skillsDir?: string;
 }
 
 export class CodexSkillAdapter implements SkillSyncAdapter {
-  private readonly promptsDir: string;
-  private readonly agentsFile: string;
+  private readonly skillsDir: string;
 
   constructor(opts: CodexSkillAdapterOpts = {}) {
-    const base = path.join(os.homedir(), '.codex');
-    this.promptsDir = opts.promptsDir ?? path.join(base, 'skills');
-    this.agentsFile = opts.agentsFile ?? path.join(base, 'AGENTS.md');
+    this.skillsDir = opts.skillsDir ?? path.join(os.homedir(), '.codex', 'skills');
   }
 
   async install(skill: SkillManifest, source: string): Promise<void> {
-    await fs.mkdir(this.promptsDir, { recursive: true });
-    const body = renderPromptMd(skill, source);
-    await fs.writeFile(path.join(this.promptsDir, `${skill.id}.md`), body, 'utf8');
-    await appendAgentsRef(this.agentsFile, skill);
+    const dir = path.join(this.skillsDir, skill.id);
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(path.join(dir, 'SKILL.md'), renderSkillMd(skill, source), 'utf8');
+    await fs.writeFile(
+      path.join(dir, 'manifest.json'),
+      JSON.stringify({ ...skill, source }, null, 2) + '\n',
+      'utf8',
+    );
+    // Clean up the legacy flat file from older clihub versions.
+    await fs.rm(path.join(this.skillsDir, `${skill.id}.md`), { force: true }).catch(() => {});
   }
 
   async uninstall(skillId: string): Promise<void> {
-    await fs.rm(path.join(this.promptsDir, `${skillId}.md`), { force: true });
-    await removeAgentsRef(this.agentsFile, skillId);
+    await fs.rm(path.join(this.skillsDir, skillId), { recursive: true, force: true });
+    await fs.rm(path.join(this.skillsDir, `${skillId}.md`), { force: true }).catch(() => {});
   }
 
   async list(): Promise<InstalledSkill[]> {
     let entries: string[];
     try {
-      entries = await fs.readdir(this.promptsDir);
+      entries = await fs.readdir(this.skillsDir);
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
       throw err;
     }
-    return entries
-      .filter((f) => f.endsWith('.md'))
-      .map((f) => {
-        const id = f.replace(/\.md$/, '');
-        return { id, name: id, version: 'unknown', path: path.join(this.promptsDir, f) };
-      });
+    const out: InstalledSkill[] = [];
+    for (const id of entries) {
+      const dir = path.join(this.skillsDir, id);
+      const stat = await fs.stat(dir).catch(() => null);
+      if (!stat?.isDirectory()) continue;
+      let manifest: SkillManifest | undefined;
+      try {
+        manifest = JSON.parse(await fs.readFile(path.join(dir, 'manifest.json'), 'utf8')) as SkillManifest;
+      } catch { /* no manifest */ }
+      out.push({ id, name: manifest?.name ?? id, version: manifest?.version ?? 'unknown', path: dir });
+    }
+    return out;
   }
-}
-
-function renderPromptMd(skill: SkillManifest, source: string): string {
-  return `# ${skill.name}\n\n${skill.description}\n\nInstalled by clihub from ${source}.\n`;
-}
-
-async function appendAgentsRef(agentsFile: string, skill: SkillManifest): Promise<void> {
-  const line = `\n<!-- clihub:skill:${skill.id} -->\n`;
-  let existing = '';
-  try {
-    existing = await fs.readFile(agentsFile, 'utf8');
-  } catch {
-    // file may not exist yet
-  }
-  if (existing.includes(`clihub:skill:${skill.id}`)) return;
-  await fs.appendFile(agentsFile, line, 'utf8');
-}
-
-async function removeAgentsRef(agentsFile: string, skillId: string): Promise<void> {
-  let content: string;
-  try {
-    content = await fs.readFile(agentsFile, 'utf8');
-  } catch {
-    return;
-  }
-  const tag = `<!-- clihub:skill:${skillId} -->`;
-  const updated = content
-    .split('\n')
-    .filter((line) => !line.includes(tag))
-    .join('\n');
-  await fs.writeFile(agentsFile, updated, 'utf8');
 }
