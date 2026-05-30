@@ -42,11 +42,17 @@ check "wizard --dry-run (non-TTY) friendly" "terminal (TTY)" -- clihub wizard --
 section "config scaffold + auto-backup/rollback"
 cd "$(mktemp -d)"
 check "init writes clihub.yaml"           "clihub.yaml" -- clihub init
-clihub proxy set http://proxyA:1 --tool claude-code >/dev/null 2>&1
-clihub proxy set http://proxyB:2 --tool claude-code >/dev/null 2>&1
-check "config backups lists a snapshot"   "settings.json" -- clihub config backups claude-code
-check "config restore rolls back"         "restored" -- clihub config restore claude-code
-check "restore really reverted to proxyA" "proxyA" -- clihub config show claude-code
+# `config show <tool>` only renders installed CLIs, so the round-trip assert
+# needs a detected CLI. On a bare (WITH_STUBS=false) image, skip it cleanly.
+if clihub doctor claude-code 2>/dev/null | grep 'Claude Code' | grep -q '✓'; then
+  clihub proxy set http://proxyA:1 --tool claude-code >/dev/null 2>&1
+  clihub proxy set http://proxyB:2 --tool claude-code >/dev/null 2>&1
+  check "config backups lists a snapshot"   "settings.json" -- clihub config backups claude-code
+  check "config restore rolls back"         "restored" -- clihub config restore claude-code
+  check "restore really reverted to proxyA" "proxyA" -- clihub config show claude-code
+else
+  printf '  \033[33m–\033[0m auto-backup/restore round-trip skipped (no CLI installed on this image)\n'
+fi
 
 printf '\n\033[1m== summary ==\033[0m  \033[32m%s passed\033[0m, \033[31m%s failed\033[0m\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
