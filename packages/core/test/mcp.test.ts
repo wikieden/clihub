@@ -28,6 +28,14 @@ test('add → list → remove an inline MCP across CLIs', async () => {
   expect(after.find((r) => r.tool === 'claude-code')?.servers.some((s) => s.id === 'myserver')).toBe(false);
 });
 
+test('inline --command with args is split into command + args', async () => {
+  const home = mkdtempSync(path.join(tmpdir(), 'clihub-mcp-'));
+  await addMcp('fs', { home, all: true, command: 'npx -y @modelcontextprotocol/server-filesystem /tmp', transport: 'stdio' });
+  const entry = JSON.parse(readFileSync(path.join(home, '.claude.json'), 'utf8')).mcpServers.fs;
+  expect(entry.command).toBe('npx');
+  expect(entry.args).toEqual(['-y', '@modelcontextprotocol/server-filesystem', '/tmp']);
+});
+
 test('add unknown MCP (no command/url) fails clearly', async () => {
   const home = mkdtempSync(path.join(tmpdir(), 'clihub-mcp-'));
   const res = await addMcp('no-such-mcp-xyz', { home, all: true });

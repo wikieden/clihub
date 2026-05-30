@@ -77,10 +77,19 @@ export async function addMcp(id: string, opts: AddMcpOpts = {}): Promise<McpMana
   const home = opts.home ?? os.homedir();
   const loader = opts.loader ?? new CatalogLoader();
   const catalog = await loader.load();
+  // Inline `--command "npx -y @x/y"` must be split into command + args, or the
+  // CLI tries to exec a binary literally named "npx -y @x/y". Catalog manifests
+  // already store command/args separately, so this only touches the inline path.
+  const inlineParts = opts.command ? opts.command.trim().split(/\s+/) : [];
   const manifest: McpServerManifest | undefined =
     catalog.mcpServers.find((m) => m.id === id) ??
     (opts.command || opts.url
-      ? { id, name: id, description: '', supports: {}, transport: opts.transport, command: opts.command, url: opts.url }
+      ? {
+          id, name: id, description: '', supports: {}, transport: opts.transport,
+          command: inlineParts[0],
+          args: inlineParts.length > 1 ? inlineParts.slice(1) : undefined,
+          url: opts.url,
+        }
       : undefined);
 
   const done: string[] = [];

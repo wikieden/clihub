@@ -4,6 +4,18 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.39.0] — fix inline MCP command splitting
+
+`clihub mcp add foo --command "npx -y @scope/server /path"` stored the whole
+string as `command`, so the CLI tried to exec a binary literally named
+`npx -y @scope/server /path` (ENOENT). Now the inline command is split into
+`command` + `args[]` (catalog MCPs already store them separately, so they were
+unaffected).
+
+- Verified in container: `clihub mcp add` then real `claude mcp list` shows
+  `npx -y @modelcontextprotocol/server-filesystem /tmp` as a proper command.
+  Suite 93/93.
+
 ## [1.38.0] — fix Claude Code MCP location (.claude.json)
 
 Real-CLI testing: `clihub mcp add` wrote Claude Code's MCP server into
