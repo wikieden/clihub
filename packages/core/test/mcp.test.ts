@@ -36,6 +36,20 @@ test('inline --command with args is split into command + args', async () => {
   expect(entry.args).toEqual(['-y', '@modelcontextprotocol/server-filesystem', '/tmp']);
 });
 
+test('http MCP uses the right per-CLI shape (gemini httpUrl, claude type+url)', async () => {
+  const home = mkdtempSync(path.join(tmpdir(), 'clihub-mcp-'));
+  await addMcp('ctx7', { home, all: true, url: 'https://mcp.example.com/mcp', transport: 'http' });
+
+  const gem = JSON.parse(readFileSync(path.join(home, '.gemini', 'settings.json'), 'utf8')).mcpServers.ctx7;
+  expect(gem.httpUrl).toBe('https://mcp.example.com/mcp');
+  expect(gem.type).toBeUndefined();
+  expect(gem.url).toBeUndefined();
+
+  const cla = JSON.parse(readFileSync(path.join(home, '.claude.json'), 'utf8')).mcpServers.ctx7;
+  expect(cla.type).toBe('http');
+  expect(cla.url).toBe('https://mcp.example.com/mcp');
+});
+
 test('add unknown MCP (no command/url) fails clearly', async () => {
   const home = mkdtempSync(path.join(tmpdir(), 'clihub-mcp-'));
   const res = await addMcp('no-such-mcp-xyz', { home, all: true });

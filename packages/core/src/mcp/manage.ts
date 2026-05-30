@@ -11,7 +11,7 @@
  */
 import os from 'node:os';
 import path from 'node:path';
-import { JsonMcpAdapter } from './index.js';
+import { JsonMcpAdapter, type McpDialect } from './index.js';
 import { CatalogLoader } from '../catalog/index.js';
 import { getProvider } from '../tools/registry.js';
 import type { InstalledMcpServer, McpServerManifest, McpTransport } from '../types.js';
@@ -29,6 +29,10 @@ export interface McpManageOpts {
   /** Home dir override (tests). */
   home?: string;
   loader?: CatalogLoader;
+}
+
+function dialectFor(tool: string): McpDialect {
+  return tool === 'gemini-cli' ? 'gemini' : 'claude';
 }
 
 function targets(home: string): Array<{ tool: string; path: string }> {
@@ -55,7 +59,7 @@ export async function listMcp(opts: McpManageOpts & { all?: boolean } = {}): Pro
   const home = opts.home ?? os.homedir();
   const rows: McpListRow[] = [];
   for (const t of await activeTargets(home, opts.all ?? false)) {
-    const servers = await new JsonMcpAdapter({ path: t.path }).list();
+    const servers = await new JsonMcpAdapter({ path: t.path, dialect: dialectFor(t.tool) }).list();
     rows.push({ tool: t.tool, servers });
   }
   return rows;
@@ -99,7 +103,7 @@ export async function addMcp(id: string, opts: AddMcpOpts = {}): Promise<McpMana
   for (const t of await activeTargets(home, opts.all ?? false)) {
     if (manifest.supports && Object.keys(manifest.supports).length > 0 && !manifest.supports[t.tool]) continue;
     try {
-      await new JsonMcpAdapter({ path: t.path }).install(manifest);
+      await new JsonMcpAdapter({ path: t.path, dialect: dialectFor(t.tool) }).install(manifest);
       done.push(`${id}@${t.tool}`);
     } catch (e) {
       failed.push({ tool: t.tool, error: String(e) });
@@ -114,7 +118,7 @@ export async function removeMcp(id: string, opts: McpManageOpts & { all?: boolea
   const failed: Array<{ tool: string; error: string }> = [];
   for (const t of await activeTargets(home, opts.all ?? false)) {
     try {
-      await new JsonMcpAdapter({ path: t.path }).uninstall(id);
+      await new JsonMcpAdapter({ path: t.path, dialect: dialectFor(t.tool) }).uninstall(id);
       done.push(`${id}@${t.tool}`);
     } catch (e) {
       failed.push({ tool: t.tool, error: String(e) });

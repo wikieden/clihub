@@ -4,6 +4,20 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.40.0] — fix HTTP MCP shape per CLI (gemini httpUrl)
+
+Real-CLI testing: HTTP/SSE MCP entries differ by CLI. Gemini's own docs require
+`{ httpUrl }` for streamable HTTP and `{ url }` for SSE — *no* `type` field
+(precedence httpUrl > url > command). clihub wrote `{ type:'http', url }` for
+both CLIs, so Gemini saw the `url` key and treated an HTTP server as SSE.
+
+- JsonMcpAdapter gained a `dialect` ('claude' | 'gemini'). Gemini http →
+  `{ httpUrl }`, sse → `{ url }`; Claude Code stays `{ type, url }`.
+- Verified in container: `mcp add --url … --transport http` writes
+  `{"httpUrl":…}` for gemini and `{"type":"http","url":…}` for claude. Suite 94/94.
+
+This completes the MCP correctness pass (location, command split, http shape).
+
 ## [1.39.0] — fix inline MCP command splitting
 
 `clihub mcp add foo --command "npx -y @scope/server /path"` stored the whole

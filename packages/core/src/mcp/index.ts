@@ -28,16 +28,26 @@ export interface McpAdapter {
   configPath(): string;
 }
 
+/** HTTP/SSE entry shape differs per CLI:
+ *  - claude  → { type: 'http'|'sse', url }
+ *  - gemini  → http: { httpUrl }, sse: { url }  (distinguishes by key, no `type`)
+ */
+export type McpDialect = 'claude' | 'gemini';
+
 export interface JsonMcpAdapterOpts {
   /** Absolute path of the JSON settings file. */
   path: string;
+  /** CLI dialect for http/sse entry shape. Defaults to 'claude'. */
+  dialect?: McpDialect;
 }
 
 export class JsonMcpAdapter implements McpAdapter {
   private readonly filePath: string;
+  private readonly dialect: McpDialect;
 
   constructor(opts: JsonMcpAdapterOpts) {
     this.filePath = opts.path;
+    this.dialect = opts.dialect ?? 'claude';
   }
 
   configPath(): string {
@@ -64,7 +74,13 @@ export class JsonMcpAdapter implements McpAdapter {
       if (!server.url) {
         throw new Error(`MCP server ${server.id} uses ${transport} transport but has no url`);
       }
-      entry = { type: transport, url: server.url };
+      if (this.dialect === 'gemini') {
+        // Gemini distinguishes by key (no `type`): httpUrl for streamable HTTP,
+        // url for SSE.
+        entry = transport === 'http' ? { httpUrl: server.url } : { url: server.url };
+      } else {
+        entry = { type: transport, url: server.url };
+      }
       if (server.headers && Object.keys(server.headers).length > 0) {
         entry.headers = { ...server.headers };
       }
