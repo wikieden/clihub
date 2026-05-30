@@ -1,0 +1,6 @@
+#!/bin/sh
+# Stub Codex CLI for clihub's test container. Answers --version only.
+case "$1" in
+  --version|-v|version) echo "codex-cli 0.133.0 (stub)" ;;
+  *) echo "stub codex — not the real CLI"; exit 0 ;;
+esac

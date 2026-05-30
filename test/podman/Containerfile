@@ -1,0 +1,46 @@
+# clihub TEST environment (distinct from the root ./Dockerfile, which is the
+# end-user distribution image). This one mimics a brand-new developer machine:
+# installs clihub from npm and, by default, drops stub CLI binaries on PATH so
+# the "managed CLI is installed" detect()/doctor paths light up — letting the
+# automated report exercise real flows without the actual proprietary CLIs.
+#
+#   podman build -t clihub-test test/podman                 # latest from npm
+#   podman build -t clihub-test --build-arg CLIHUB_VERSION=1.30.0 test/podman
+#   podman build -t clihub-test --build-arg WITH_STUBS=false test/podman  # bare newcomer
+#
+# Then:
+#   podman run --rm clihub-test /opt/report.sh    # automated non-interactive report
+#   podman run --rm -it clihub-test bash          # interactive: run `clihub wizard`
+FROM docker.io/library/node:20-slim
+
+ARG CLIHUB_VERSION=latest
+ARG WITH_STUBS=true
+
+# Note: git/curl are only needed for `clihub plugin/skill install <git-url>`,
+# which the non-interactive report does not exercise — so we skip apt entirely
+# (node:20-slim already ships npm + ca-certificates). Add them back if you test
+# git-backed installs interactively: `apt-get update && apt-get install -y git`.
+
+# clihub itself, from npm — exercises the exact artifact users get.
+RUN npm install -g @wikieden/clihub@${CLIHUB_VERSION} \
+  && clihub --version
+
+# Optional: stub the six managed CLIs onto PATH so detect()/doctor see them as
+# installed. They only answer `--version`; they do not pretend to be the real
+# tools. Build with WITH_STUBS=false for a true "nothing installed yet" machine.
+COPY stubs/ /tmp/stubs/
+RUN if [ "$WITH_STUBS" = "true" ]; then \
+      install -m 0755 /tmp/stubs/* /usr/local/bin/ && \
+      echo "stubs installed: $(ls /tmp/stubs)"; \
+    else echo "no stubs (bare newcomer machine)"; fi \
+  && rm -rf /tmp/stubs
+
+COPY report.sh /opt/report.sh
+RUN chmod +x /opt/report.sh
+
+# Unprivileged user with a real HOME — closest to a normal dev box.
+RUN useradd -m dev
+USER dev
+WORKDIR /home/dev
+ENV CLIHUB_NO_NUDGE=1
+CMD ["bash"]
