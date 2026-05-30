@@ -32,6 +32,9 @@ const backups = new BackupManager();
 /** Replace the user's home dir with ~ so doctor paths stay readable. */
 const tildify = (s: string): string => s.split(os.homedir()).join('~');
 
+/** True when stdin+stdout are an interactive terminal (needed by @clack prompts). */
+const hasInteractiveTty = (): boolean => Boolean(process.stdin.isTTY && process.stdout.isTTY);
+
 /** Register declarative providers from ~/.clihub/providers.json + synced catalog. */
 async function ensureProviders(allowScripts = false): Promise<void> {
   const { loadExternalProviders, defaultCatalogDir } = await import('@clihub/core');
@@ -854,7 +857,7 @@ cli
     switch (action) {
       case 'show': {
         const cfg = await loadConfig();
-        console.log(kleur.bold(`── clihub global (${defaultConfigPath()}) ──`));
+        console.log(kleur.bold(`── clihub global (${tildify(defaultConfigPath())}) ──`));
         console.log(JSON.stringify(cfg, null, 2));
         const targets = keyOrTool ? [getProvider(keyOrTool)].filter(Boolean) : listProviders();
         for (const p of targets) {
@@ -865,7 +868,7 @@ cli
             continue;
           }
           const data = await p.settingsAdapter.read();
-          console.log(kleur.bold(`\n── ${p.name} (${p.settingsAdapter.configPath()}) ──`));
+          console.log(kleur.bold(`\n── ${p.name} (${tildify(p.settingsAdapter.configPath())}) ──`));
           console.log(JSON.stringify(data, null, 2));
         }
         return;
@@ -1152,7 +1155,7 @@ cli
     switch (action) {
       case 'show': {
         const cfg = await loadConfig();
-        console.log(kleur.bold(`global proxy (from ${defaultConfigPath()}):`));
+        console.log(kleur.bold(`global proxy (from ${tildify(defaultConfigPath())}):`));
         console.log(JSON.stringify(cfg.proxy ?? {}, null, 2));
         if (cfg.caBundle) console.log(`ca-bundle: ${cfg.caBundle}`);
         const sample = resolveProxy('https://api.anthropic.com', cfg);
@@ -2086,12 +2089,22 @@ cli
   .command('wizard', 'Guided setup: install CLIs, preset, proxy, accounts, config (re-runnable)')
   .option('--dry-run', 'Show the plan without installing or writing anything')
   .action(async (opts: { dryRun?: boolean }) => {
+    if (!hasInteractiveTty()) {
+      console.error(kleur.yellow('clihub wizard needs an interactive terminal (TTY).'));
+      console.error(kleur.dim('Run it in a normal terminal, or use `clihub init` to scaffold a config non-interactively.'));
+      process.exit(1);
+    }
     const { runWizard } = await import('./wizard-flow.js');
     await runWizard({ dryRun: opts.dryRun });
   });
 
 // ─── default → TUI ────────────────────────────────────────────────────
 cli.command('', t('cli.title')).action(async () => {
+  if (!hasInteractiveTty()) {
+    console.error(kleur.yellow("clihub's interactive menu needs a terminal (TTY)."));
+    console.error(kleur.dim('Run `clihub --help` for commands, `clihub wizard` for setup, or `clihub doctor` for a health check.'));
+    process.exit(1);
+  }
   const { runTui } = await import('./tui/index.js');
   await runTui();
 });

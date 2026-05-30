@@ -4,6 +4,16 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.29.0] — non-TTY no longer crashes
+
+Round 2 of the beginner's-eye audit:
+
+- **`clihub` and `clihub wizard` no longer crash without a terminal.** Both
+  paths used @clack prompts that throw `ERR_TTY_INIT_FAILED` when stdin/stdout
+  aren't a TTY (piped output, CI, `clihub | cat`). They now detect the missing
+  TTY and print a friendly pointer (`clihub --help` / `clihub init`), exit 1.
+- **`config show` / `proxy show` paths** shrink to `~/…` for readability.
+
 ## [1.28.0] — newcomer fixes
 
 First-impression polish from a beginner's-eye audit:
