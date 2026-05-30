@@ -159,6 +159,17 @@ export {
   type DetectProxyOpts,
 } from './proxy/detect.js';
 export {
+  readNudge,
+  writeNudge,
+  shouldNudgeStar,
+  markNudged,
+  defaultNudgePath,
+  CLIHUB_REPO_URL,
+  STAR_NUDGE_PROBABILITY,
+  STAR_NUDGE_MAX_ASKS,
+  type NudgeState,
+} from './nudge/index.js';
+export {
   profileHook,
   type HookShell,
 } from './profile/hook.js';

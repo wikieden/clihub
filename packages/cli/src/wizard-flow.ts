@@ -177,4 +177,6 @@ export async function runWizard(opts: RunWizardOpts = {}): Promise<void> {
     for (const f of res.skipped) p.log.info(`kept existing ${f}`);
   }
   p.outro('Done. Run `clihub apply` to install the preset, `clihub memory generate` to fan out memory.');
+  const { maybeStarNudge } = await import('./star-nudge.js');
+  await maybeStarNudge().catch(() => {});
 }

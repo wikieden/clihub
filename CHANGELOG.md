@@ -4,6 +4,14 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.26.0] — GitHub star nudge
+
+- On TUI exit / after the wizard, clihub occasionally (20%) asks you to
+  star it on GitHub — **Enter opens the repo in your browser, Esc skips**.
+  Capped + remembered in `~/.clihub/nudge.json` (stops after you open it or
+  3 asks); never shown in CI / non-TTY / with `CLIHUB_NO_NUDGE`.
+- core `shouldNudgeStar` / `markNudged` (pure, tested).
+
 ## [1.25.0] — detect system proxy
 
 - clihub now **detects the system / terminal proxy** (env `HTTPS_PROXY`

@@ -137,6 +137,8 @@ export async function runTui(): Promise<void> {
     })) as string | symbol;
 
     if (isCancel(choice) || choice === 'exit') {
+      const { maybeStarNudge } = await import('../star-nudge.js');
+      await maybeStarNudge().catch(() => {});
       cancel('Bye');
       return;
     }
