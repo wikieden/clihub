@@ -1,6 +1,0 @@
-#!/bin/sh
-# Stub Goose CLI for clihub's test container. Answers --version only.
-case "$1" in
-  --version|-v|version) echo "goose 1.0.0 (stub)" ;;
-  *) echo "stub goose — not the real CLI"; exit 0 ;;
-esac

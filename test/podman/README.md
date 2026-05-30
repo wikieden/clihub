@@ -1,56 +1,56 @@
-# clihub test environment (podman)
+# clihub test environment (podman) — real CLIs
 
-A throwaway container that mimics a brand-new developer machine — so test runs
-and experience reports are precise and never touch your real `~/.claude`,
-`~/.codex`, Keychain, etc.
+A throwaway container that installs **the real AI CLIs** — Claude Code, Gemini,
+Codex — from npm, then exercises clihub against them. No stubs: `doctor`,
+`proxy`, `skill`, `mcp`, `config` operate on real binaries and real config files
+(`~/.claude`, `~/.gemini`, `~/.codex`). Nothing touches your host machine.
 
-This is **separate** from the root `./Dockerfile` (that one is the end-user
-distribution image with `ENTRYPOINT clihub`). This harness adds:
+> Installing the CLIs needs no login. Running an actual *coding session* does —
+> that part is out of scope (no API keys in the container).
 
-- stub CLIs (`claude`, `codex`, `gemini`, `goose`, `kiro`, `cursor-agent`) on
-  PATH so `doctor` / proxy / config flows exercise the "CLI installed" paths,
-- an automated non-interactive report (`report.sh`),
-- an interactive shell entry for the wizard / TUI (which need a real TTY).
+This is **separate** from the root `./Dockerfile` (the end-user distribution
+image with `ENTRYPOINT clihub`).
 
 ## Quick start
 
 ```bash
 cd test/podman
 
-./run.sh report          # build + automated newcomer report (non-interactive)
+./run.sh report          # build + automated real-CLI report (non-interactive)
 ./run.sh shell           # build + interactive shell → run `clihub wizard`
-./run.sh report 1.30.0   # pin a specific published version
-./run.sh bare            # a "nothing installed yet" machine, then report
+./run.sh report 1.32.0   # pin a specific published clihub version
 ```
 
 Use `ENGINE=docker ./run.sh report` if you prefer docker.
 
-## What the report covers
+## What the report asserts (on real CLIs / real files)
 
-`report.sh` checks the flows that can run without a TTY: version/help banner,
-`doctor` matrix + stub detection, `recommend`, the newcomer guard rails
-(unknown-command suggestion, friendly non-TTY messages), `init` scaffolding,
-and the auto-backup → `config restore` round-trip.
+- the three CLIs report a real `--version` (proves they are not stubs)
+- `doctor` detects them with their real versions
+- `proxy set` writes the proxy into the real `~/.claude/settings.json`
+- `skill install` creates a real `~/.claude/skills/<id>/` directory
+- `mcp add` lands in the real Gemini config
+- `preset apply starter` runs the real skill installs
+- auto-backup (opt-in) + `config restore` round-trip on the real settings file
 
 ## Interactive testing (wizard + TUI)
 
 ```bash
 ./run.sh shell
-# inside the container:
-clihub wizard        # walk the guided setup; note any awkward prompts
-clihub               # the TUI menu — try Set proxy, Run CLI, navigation
+# inside the container (real CLIs already installed):
+clihub wizard        # walk guided setup; note awkward prompts
+clihub               # TUI menu — Set proxy, Run CLI, navigation
+clihub tool install kiro-cli   # install another real CLI (runs as root)
 ```
 
-Because the container is `--rm`, every run starts from a clean state. Nothing
-persists to the host. To keep a HOME between runs, mount a volume:
+`--rm` means every run starts clean. To persist a HOME between runs:
 
 ```bash
-podman run --rm -it -v clihub-home:/home/dev clihub-test bash
+podman run --rm -it -v clihub-home:/root clihub-test bash
 ```
 
 ## Notes
 
-- Stubs answer `--version` only; they are not the real proprietary CLIs, so
-  `clihub tool install` / actually launching a CLI is out of scope here.
-- `CLIHUB_NO_NUDGE=1` is set so the GitHub-star prompt never fires in CI.
-- Set `CLIHUB_NO_BACKUP=1` to test the no-auto-backup path.
+- Runs as root so `clihub tool install` and ad-hoc `npm i -g` work without sudo.
+- `CLIHUB_NO_NUDGE=1` is set so the GitHub-star prompt never fires.
+- Auto-backup is opt-in: `CLIHUB_BACKUP=1` or `clihub config set backup.auto true`.

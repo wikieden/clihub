@@ -1,6 +1,0 @@
-#!/bin/sh
-# Stub Claude Code CLI for clihub's test container. Answers --version only.
-case "$1" in
-  --version|-v|version) echo "2.1.150 (Claude Code stub)" ;;
-  *) echo "stub claude — not the real CLI"; exit 0 ;;
-esac

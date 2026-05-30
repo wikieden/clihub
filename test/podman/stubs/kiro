@@ -1,6 +1,0 @@
-#!/bin/sh
-# Stub Kiro CLI for clihub's test container. Answers --version only.
-case "$1" in
-  --version|-v|version) echo "0.12.224 (kiro stub)" ;;
-  *) echo "stub kiro — not the real CLI"; exit 0 ;;
-esac

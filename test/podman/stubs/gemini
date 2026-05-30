@@ -1,6 +1,0 @@
-#!/bin/sh
-# Stub Gemini CLI for clihub's test container. Answers --version only.
-case "$1" in
-  --version|-v|version) echo "0.37.2 (gemini stub)" ;;
-  *) echo "stub gemini — not the real CLI"; exit 0 ;;
-esac

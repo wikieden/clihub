@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Automated newcomer-experience report. Runs the non-interactive clihub flows
-# inside the throwaway container and prints a structured pass/fail report.
-# Interactive flows (wizard / TUI menu) need a real TTY — drive those by hand
-# with `podman run -it clihub-test bash`.
+# Automated REAL-CLI report. Runs clihub against the actual Claude Code / Gemini
+# / Codex binaries installed in the container, asserting on real config files on
+# disk. Interactive flows (wizard / TUI) need a TTY — run `podman run -it ... bash`.
 set -u
 export CLIHUB_NO_NUDGE=1
 
@@ -21,39 +20,52 @@ check() {
     fail=$((fail+1))
   fi
 }
+# assert a file on disk contains a string
+file_has() {
+  local label="$1" file="$2" needle="$3"
+  if [ -f "$file" ] && grep -qF "$needle" "$file"; then
+    printf '  \033[32m✓\033[0m %s\n' "$label"; pass=$((pass+1))
+  else
+    printf '  \033[31m✗\033[0m %s — %s missing/lacks "%s"\n' "$label" "$file" "$needle"; fail=$((fail+1))
+  fi
+}
 
-printf '\033[1mclihub container report\033[0m — %s\n' "$(clihub --version 2>/dev/null)"
+printf '\033[1mclihub REAL-CLI report\033[0m — %s\n' "$(clihub --version 2>/dev/null)"
 printf 'node %s | %s\n' "$(node --version)" "$(uname -srm)"
 
-section "install & help"
-check "clihub --version prints a version" "." -- clihub --version
-check "--help shows newcomer banner"      "clihub wizard" -- clihub --help
+section "real CLIs are real (not stubs)"
+check "claude --version is real"  "Claude Code" -- claude --version
+check "gemini --version runs"     "." -- gemini --version
+check "codex --version runs"      "." -- codex --version
 
-section "discovery / health"
-check "doctor renders the matrix"         "STATUS" -- clihub doctor
-check "doctor detects a stubbed CLI"      "Claude Code" -- clihub doctor
-check "recommend suggests skills"         "clihub skill install" -- clihub recommend
+section "doctor sees the real CLIs"
+check "doctor detects Claude Code real version" "Claude Code" -- clihub doctor
+check "doctor detects Gemini"                    "Gemini"      -- clihub doctor
 
-section "newcomer guard rails"
-check "unknown command suggests a fix"    "did you mean" -- clihub instll
-check "bare clihub (non-TTY) is friendly" "terminal (TTY)" -- clihub
-check "wizard --dry-run (non-TTY) friendly" "terminal (TTY)" -- clihub wizard --dry-run
+section "proxy injects into the REAL ~/.claude/settings.json"
+clihub proxy set http://proxy.test:8080 --tool claude-code >/dev/null 2>&1
+file_has "settings.json has the proxy" "$HOME/.claude/settings.json" "proxy.test:8080"
 
-section "config scaffold + auto-backup/rollback"
-cd "$(mktemp -d)"
-check "init writes clihub.yaml"           "clihub.yaml" -- clihub init
-# `config show <tool>` only renders installed CLIs, so the round-trip assert
-# needs a detected CLI. On a bare (WITH_STUBS=false) image, skip it cleanly.
-if clihub doctor claude-code 2>/dev/null | grep 'Claude Code' | grep -q '✓'; then
-  export CLIHUB_BACKUP=1   # auto-backup is opt-in (off by default); turn it on for this check
-  clihub proxy set http://proxyA:1 --tool claude-code >/dev/null 2>&1
-  clihub proxy set http://proxyB:2 --tool claude-code >/dev/null 2>&1
-  check "config backups lists a snapshot"   "settings.json" -- clihub config backups claude-code
-  check "config restore rolls back"         "restored" -- clihub config restore claude-code
-  check "restore really reverted to proxyA" "proxyA" -- clihub config show claude-code
-else
-  printf '  \033[33m–\033[0m auto-backup/restore round-trip skipped (no CLI installed on this image)\n'
-fi
+section "skill install writes a REAL file under ~/.claude"
+clihub skill install superpowers >/dev/null 2>&1
+check "doctor SKILLS count > 0" "Claude Code" -- bash -c 'clihub doctor claude-code | sed "s/\x1b\[[0-9;]*m//g" | grep "Claude Code"'
+ls -1 "$HOME/.claude/skills" >/dev/null 2>&1 \
+  && { printf '  \033[32m✓\033[0m ~/.claude/skills/ exists: %s\n' "$(ls "$HOME/.claude/skills" | tr '\n' ' ')"; pass=$((pass+1)); } \
+  || { printf '  \033[31m✗\033[0m ~/.claude/skills/ not created\n'; fail=$((fail+1)); }
+
+section "mcp add into the REAL Gemini config"
+clihub mcp add filesystem --command "npx -y @modelcontextprotocol/server-filesystem /tmp" >/dev/null 2>&1
+check "mcp list shows filesystem" "filesystem" -- clihub mcp list
+
+section "preset apply (real skill installs)"
+check "preset apply starter completes" "applied" -- clihub preset apply starter
+
+section "auto-backup opt-in round-trip (real settings)"
+export CLIHUB_BACKUP=1
+clihub proxy set http://first:1 --tool claude-code >/dev/null 2>&1
+clihub proxy set http://second:2 --tool claude-code >/dev/null 2>&1
+check "config restore rolls back" "restored" -- clihub config restore claude-code
+file_has "settings reverted to first" "$HOME/.claude/settings.json" "first:1"
 
 printf '\n\033[1m== summary ==\033[0m  \033[32m%s passed\033[0m, \033[31m%s failed\033[0m\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

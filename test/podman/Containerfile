@@ -1,46 +1,35 @@
-# clihub TEST environment (distinct from the root ./Dockerfile, which is the
-# end-user distribution image). This one mimics a brand-new developer machine:
-# installs clihub from npm and, by default, drops stub CLI binaries on PATH so
-# the "managed CLI is installed" detect()/doctor paths light up — letting the
-# automated report exercise real flows without the actual proprietary CLIs.
+# clihub TEST environment — REAL AI CLIs, no stubs.
 #
-#   podman build -t clihub-test test/podman                 # latest from npm
-#   podman build -t clihub-test --build-arg CLIHUB_VERSION=1.30.0 test/podman
-#   podman build -t clihub-test --build-arg WITH_STUBS=false test/podman  # bare newcomer
+# Installs clihub plus the actual Claude Code / Gemini / Codex CLIs from npm
+# (installing them needs no login — only running a *session* does). So `doctor`,
+# `proxy`, `skill`, `mcp`, `config` operate on real binaries and real config
+# files (~/.claude, ~/.gemini, ~/.codex). Runs as root so `clihub tool install`
+# and ad-hoc `npm i -g` work without sudo.
 #
-# Then:
-#   podman run --rm clihub-test /opt/report.sh    # automated non-interactive report
-#   podman run --rm -it clihub-test bash          # interactive: run `clihub wizard`
-FROM docker.io/library/node:20-slim
+#   podman build -t clihub-test test/podman
+#   podman run --rm clihub-test /opt/report.sh    # automated real-CLI report
+#   podman run --rm -it clihub-test bash          # interactive: clihub wizard / TUI
+#
+# Distinct from the root ./Dockerfile (that is the end-user distribution image).
+FROM docker.io/library/node:20
 
 ARG CLIHUB_VERSION=latest
-ARG WITH_STUBS=true
 
-# Note: git/curl are only needed for `clihub plugin/skill install <git-url>`,
-# which the non-interactive report does not exercise — so we skip apt entirely
-# (node:20-slim already ships npm + ca-certificates). Add them back if you test
-# git-backed installs interactively: `apt-get update && apt-get install -y git`.
-
-# clihub itself, from npm — exercises the exact artifact users get.
-RUN npm install -g @wikieden/clihub@${CLIHUB_VERSION} \
-  && clihub --version
-
-# Optional: stub the six managed CLIs onto PATH so detect()/doctor see them as
-# installed. They only answer `--version`; they do not pretend to be the real
-# tools. Build with WITH_STUBS=false for a true "nothing installed yet" machine.
-COPY stubs/ /tmp/stubs/
-RUN if [ "$WITH_STUBS" = "true" ]; then \
-      install -m 0755 /tmp/stubs/* /usr/local/bin/ && \
-      echo "stubs installed: $(ls /tmp/stubs)"; \
-    else echo "no stubs (bare newcomer machine)"; fi \
-  && rm -rf /tmp/stubs
+# clihub + the three real CLIs it manages. node:20 already ships git/curl/bash.
+RUN npm install -g \
+      @wikieden/clihub@${CLIHUB_VERSION} \
+      @anthropic-ai/claude-code \
+      @google/gemini-cli \
+      @openai/codex \
+  && echo "=== installed, real --version ===" \
+  && clihub --version \
+  && claude --version \
+  && gemini --version \
+  && codex --version
 
 COPY report.sh /opt/report.sh
 RUN chmod +x /opt/report.sh
 
-# Unprivileged user with a real HOME — closest to a normal dev box.
-RUN useradd -m dev
-USER dev
-WORKDIR /home/dev
 ENV CLIHUB_NO_NUDGE=1
+WORKDIR /root
 CMD ["bash"]
