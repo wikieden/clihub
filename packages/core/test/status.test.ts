@@ -32,3 +32,17 @@ test('unlocked when no lockfile entry', async () => {
   expect(r.lockfile).toBe(false);
   expect(r.items.find((i) => i.id === 'faketool-status')?.state).toBe('unlocked');
 });
+
+test('compliant when locked version matches the installed one', async () => {
+  const det = await prov.detect();
+  const r = await computeStatus(cfg('faketool-status'), lock('faketool-status', det.version ?? 'unknown'));
+  expect(r.drift).toBe(0);
+  expect(r.compliant).toBe(true);
+  expect(r.items.find((i) => i.id === 'faketool-status')?.state).toBe('ok');
+});
+
+test("lock of 'latest' is not a precise pin → unlocked, not drift", async () => {
+  const r = await computeStatus(cfg('faketool-status'), lock('faketool-status', 'latest'));
+  expect(r.drift).toBe(0);
+  expect(r.items.find((i) => i.id === 'faketool-status')?.state).toBe('unlocked');
+});
