@@ -23,6 +23,7 @@ import type { InstalledMcpServer, McpServerManifest, McpTransport } from '../typ
 const JSON_MCP_RELPATHS: Record<string, string> = {
   'claude-code': '.claude.json',
   'gemini-cli': '.gemini/settings.json',
+  'qwen-code': '.qwen/settings.json',
 };
 
 export interface McpManageOpts {
@@ -32,7 +33,8 @@ export interface McpManageOpts {
 }
 
 function dialectFor(tool: string): McpDialect {
-  return tool === 'gemini-cli' ? 'gemini' : 'claude';
+  // Qwen Code is a Gemini-CLI fork → same mcpServers/httpUrl shape.
+  return tool === 'gemini-cli' || tool === 'qwen-code' ? 'gemini' : 'claude';
 }
 
 function targets(home: string): Array<{ tool: string; path: string }> {

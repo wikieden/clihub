@@ -12,6 +12,7 @@ export { claudeCodeProvider } from './tools/providers/claude-code.js';
 export { codexProvider } from './tools/providers/codex.js';
 export { kiroProvider } from './tools/providers/kiro.js';
 export { geminiProvider } from './tools/providers/gemini.js';
+export { qwenProvider } from './tools/providers/qwen.js';
 export { cursorProvider } from './tools/providers/cursor.js';
 export { gooseProvider } from './tools/providers/goose.js';
 export {

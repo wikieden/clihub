@@ -5,6 +5,7 @@ import { kiroProvider } from './providers/kiro.js';
 import { geminiProvider } from './providers/gemini.js';
 import { cursorProvider } from './providers/cursor.js';
 import { gooseProvider } from './providers/goose.js';
+import { qwenProvider } from './providers/qwen.js';
 
 const providers: Record<string, ToolProvider> = {
   [claudeCodeProvider.id]: claudeCodeProvider,
@@ -13,6 +14,7 @@ const providers: Record<string, ToolProvider> = {
   [geminiProvider.id]: geminiProvider,
   [cursorProvider.id]: cursorProvider,
   [gooseProvider.id]: gooseProvider,
+  [qwenProvider.id]: qwenProvider,
 };
 
 export function getProvider(id: string): ToolProvider | undefined {

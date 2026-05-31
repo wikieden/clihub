@@ -4,6 +4,16 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.44.0] — add Qwen Code (7th CLI)
+
+New supported CLI: **Qwen Code** (`qwen`, Alibaba — a Gemini-CLI fork). Install
+`npm i -g @qwen-code/qwen-code`; config at `~/.qwen/settings.json`. Detect /
+install / doctor / proxy work, and MCP routes through the shared adapter with
+the Gemini dialect (`httpUrl` for HTTP). Verified in the real-CLI container.
+
+Supported CLIs are now: Claude Code, Codex, Gemini CLI, Qwen Code, Kiro, Cursor,
+Goose.
+
 ## [1.43.0] — honest plugin-install caveat (Claude marketplaces)
 
 Real-CLI testing: `clihub plugin install` bare-`git clone`s into
