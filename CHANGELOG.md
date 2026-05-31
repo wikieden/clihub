@@ -4,6 +4,17 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.47.0] — catalog MCP now installs into Qwen
+
+Follow-up to v1.44/v1.46: Qwen is an MCP target, but the catalog's MCP servers
+declared `supports` only for claude/codex/kiro/gemini — so `clihub mcp add
+<catalog-id>` (and `apply`/`recommend`) silently skipped Qwen. Added
+`qwen-code` to all 14 catalog MCP `supports` maps.
+
+Note: Kiro MCP (`kiro-cli mcp`) needs `kiro-cli login` before it writes its
+config, so its file path/shape can't be verified headless — Kiro MCP routing is
+intentionally deferred rather than guessed.
+
 ## [1.46.0] — Codex MCP support (TOML)
 
 `clihub mcp` was JSON-only (Claude/Gemini/Qwen) — Codex was skipped, so
