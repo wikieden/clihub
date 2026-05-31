@@ -1,6 +1,6 @@
 {
   "name": "@clihub/core",
-  "version": "1.44.0",
+  "version": "1.45.0",
   "private": true,
   "description": "clihub kernel: providers, settings, skills, backup, catalog, i18n (workspace-only, not published)",
   "type": "module",
@@ -20,6 +20,7 @@
     "dist"
   ],
   "devDependencies": {
-    "smol-toml": "^1.6.1"
+    "smol-toml": "^1.6.1",
+    "yaml": "^2.6.1"
   }
 }

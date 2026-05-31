@@ -4,6 +4,17 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.45.0] — guard YAML-config CLIs from JSON proxy injection
+
+Found while scoping more CLIs: `clihub proxy set --tool goose` crashed with a
+cryptic `Unexpected token 'G' … is not valid JSON` — the JSON settings adapter
+tried to `JSON.parse` goose's real YAML config (`~/.config/goose/config.yaml`).
+
+- `setToolProxy` / `getToolProxy` now detect a `.yaml`/`.yml` config path and
+  refuse JSON env-injection with clear guidance (`export HTTPS_PROXY=…`) instead
+  of crashing. Config file is left untouched. General — covers any future
+  YAML-config CLI. Verified in the real-CLI container. Suite 99/99.
+
 ## [1.44.0] — add Qwen Code (7th CLI)
 
 New supported CLI: **Qwen Code** (`qwen`, Alibaba — a Gemini-CLI fork). Install

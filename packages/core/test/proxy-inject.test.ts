@@ -1,5 +1,5 @@
 import { test, expect } from 'bun:test';
-import { applyProxyEnv, readProxyFromEnv } from '../src/proxy/inject.js';
+import { applyProxyEnv, readProxyFromEnv, setToolProxy, getToolProxy } from '../src/proxy/inject.js';
 
 test('applyProxyEnv sets HTTP_PROXY + HTTPS_PROXY', () => {
   const out = applyProxyEnv({}, 'http://proxy:8080');
@@ -28,6 +28,11 @@ test('clearing removes proxy keys, drops env if empty', () => {
   const keepFoo = applyProxyEnv({ env: { FOO: 'bar', HTTP_PROXY: 'x' } }, undefined);
   expect((keepFoo.env as Record<string, string>).FOO).toBe('bar');
   expect((keepFoo.env as Record<string, string>).HTTP_PROXY).toBeUndefined();
+});
+
+test('setToolProxy refuses YAML-config CLIs (goose) with guidance; getToolProxy returns undefined', async () => {
+  await expect(setToolProxy('goose', 'http://p:8080')).rejects.toThrow(/YAML/i);
+  expect(await getToolProxy('goose')).toBeUndefined();
 });
 
 test('readProxyFromEnv prefers HTTPS then HTTP then ALL', () => {
