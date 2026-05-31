@@ -15,17 +15,19 @@ FROM docker.io/library/node:20
 
 ARG CLIHUB_VERSION=latest
 
-# clihub + the three real CLIs it manages. node:20 already ships git/curl/bash.
+# clihub + the real CLIs it manages. node:20 already ships git/curl/bash.
 RUN npm install -g \
       @wikieden/clihub@${CLIHUB_VERSION} \
       @anthropic-ai/claude-code \
       @google/gemini-cli \
       @openai/codex \
+      @qwen-code/qwen-code \
   && echo "=== installed, real --version ===" \
   && clihub --version \
   && claude --version \
   && gemini --version \
-  && codex --version
+  && codex --version \
+  && qwen --version
 
 COPY report.sh /opt/report.sh
 RUN chmod +x /opt/report.sh

@@ -37,10 +37,13 @@ section "real CLIs are real (not stubs)"
 check "claude --version is real"  "Claude Code" -- claude --version
 check "gemini --version runs"     "." -- gemini --version
 check "codex --version runs"      "." -- codex --version
+check "qwen --version runs"       "." -- qwen --version
 
 section "doctor sees the real CLIs"
 check "doctor detects Claude Code real version" "Claude Code" -- clihub doctor
 check "doctor detects Gemini"                    "Gemini"      -- clihub doctor
+check "doctor detects Qwen Code"                 "Qwen"        -- clihub doctor
+check "doctor detects Codex"                     "Codex"       -- clihub doctor
 
 section "proxy injects into the REAL ~/.claude/settings.json"
 clihub proxy set http://proxy.test:8080 --tool claude-code >/dev/null 2>&1
@@ -53,9 +56,13 @@ ls -1 "$HOME/.claude/skills" >/dev/null 2>&1 \
   && { printf '  \033[32m✓\033[0m ~/.claude/skills/ exists: %s\n' "$(ls "$HOME/.claude/skills" | tr '\n' ' ')"; pass=$((pass+1)); } \
   || { printf '  \033[31m✗\033[0m ~/.claude/skills/ not created\n'; fail=$((fail+1)); }
 
-section "mcp add into the REAL Gemini config"
-clihub mcp add filesystem --command "npx -y @modelcontextprotocol/server-filesystem /tmp" >/dev/null 2>&1
-check "mcp list shows filesystem" "filesystem" -- clihub mcp list
+section "mcp add fans out to JSON + TOML CLIs (real configs)"
+clihub mcp add github >/dev/null 2>&1
+check "mcp list shows github"                  "github" -- clihub mcp list
+file_has "Gemini settings.json has github"     "$HOME/.gemini/settings.json" "github"
+file_has "Qwen settings.json has github"        "$HOME/.qwen/settings.json" "github"
+file_has "Claude ~/.claude.json has github"     "$HOME/.claude.json" "github"
+file_has "Codex config.toml [mcp_servers]"      "$HOME/.codex/config.toml" "mcp_servers.github"
 
 section "preset apply (real skill installs)"
 check "preset apply starter completes" "applied" -- clihub preset apply starter
