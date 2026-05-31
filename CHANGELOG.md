@@ -4,6 +4,18 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.43.0] — honest plugin-install caveat (Claude marketplaces)
+
+Real-CLI testing: `clihub plugin install` bare-`git clone`s into
+`~/.claude/plugins/<id>/` and claimed it was "discovered on launch". But modern
+Claude Code loads plugins via **marketplaces** (`claude plugin marketplace add`
++ `claude plugin install`, tracked in `enabledPlugins` — confirmed in the real
+`claude plugin` command + binary). A bare clone is not auto-discovered.
+
+- `plugin install` now says "cloned" (not "installed") and, for Claude Code,
+  prints the actual `claude plugin marketplace add … / claude plugin install …`
+  commands to run. No false "it's active now" promise. Doc comment corrected.
+
 ## [1.42.0] — `clihub install --frozen` actually uses the lockfile
 
 `--frozen` read `clihub.lock.json` only to check it existed + print its version,

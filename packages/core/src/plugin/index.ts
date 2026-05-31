@@ -106,9 +106,11 @@ export class GitClonePluginAdapter implements PluginAdapter {
 }
 
 /**
- * Claude Code's plugin directory (`~/.claude/plugins/`). Each plugin
- * lives in its own subdirectory and is discovered by Claude Code on
- * launch.
+ * Claude Code's plugin directory (`~/.claude/plugins/`). NOTE: modern Claude
+ * Code loads plugins via *marketplaces* (`claude plugin marketplace add` +
+ * `claude plugin install`, tracked in `enabledPlugins`), so a bare clone here is
+ * not auto-discovered. This adapter is the legacy clone strategy; the CLI prints
+ * the marketplace commands to run with Claude's own `claude plugin`.
  */
 export class ClaudeCodePluginAdapter extends GitClonePluginAdapter {
   constructor() {

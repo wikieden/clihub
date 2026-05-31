@@ -567,7 +567,15 @@ cli
         info(`[${opts.tool}] cloning ${plugin.source} → ${path.join(adapter.rootDir(), plugin.id)}`);
         try {
           await adapter.install(plugin);
-          ok(`[${opts.tool}] plugin ${id} installed`);
+          ok(`[${opts.tool}] plugin ${id} cloned → ${path.join(adapter.rootDir(), plugin.id)}`);
+          if (opts.tool === 'claude-code') {
+            console.log(kleur.dim(
+              `  note: Claude Code now loads plugins via marketplaces (\`enabledPlugins\`), not a bare\n` +
+              `  clone. To have Claude discover it, register + install through Claude's own command:\n` +
+              `    claude plugin marketplace add ${plugin.source}\n` +
+              `    claude plugin install ${plugin.id}@<marketplace>`,
+            ));
+          }
         } catch (e) {
           err(`[${opts.tool}] plugin ${id} install failed: ${String(e)}`);
           process.exit(1);
