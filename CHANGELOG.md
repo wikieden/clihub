@@ -4,6 +4,18 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.42.0] — `clihub install --frozen` actually uses the lockfile
+
+`--frozen` read `clihub.lock.json` only to check it existed + print its version,
+then installed from `clihub.yaml` anyway — so it neither pinned the locked
+versions nor "refused drift" (its own description). A no-op flag.
+
+- `install --frozen` now builds the apply config FROM the lockfile
+  (`lockfileToConfig`): pinned tool versions + the locked skills/mcp/plugins,
+  not re-resolved from yaml. Reproducible CI installs as intended.
+- Verified end-to-end: with yaml=`mcp: [github]` but lock=`{filesystem}`,
+  `install --frozen` installs filesystem (the lock), not github. Suite 96/96.
+
 ## [1.41.0] — `clihub apply` MCP now uses the fixed path/dialect
 
 End-to-end testing of `clihub apply` against real CLIs: apply had its *own*

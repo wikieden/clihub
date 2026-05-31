@@ -238,6 +238,23 @@ export async function writeLockfile(lock: Lockfile, file: string): Promise<void>
   await fs.rename(tmp, file);
 }
 
+/**
+ * Build an apply config from a lockfile — the pinned source of truth for
+ * `clihub install --frozen` (reproducible installs). Tool versions come from
+ * the lock, not re-resolved from clihub.yaml.
+ */
+export function lockfileToConfig(lock: Lockfile): ClihubYamlConfig {
+  return {
+    version: 1,
+    tools: Object.entries(lock.tools).map(([id, t]) => ({ id, version: t.version, method: t.method })),
+    skills: Object.entries(lock.skills).flatMap(([id, s]) =>
+      s.tools.length > 0 ? s.tools.map((tool) => ({ id, tool })) : [{ id }]),
+    presets: [],
+    mcp: Object.keys(lock.mcp).map((id) => ({ id })),
+    plugins: Object.keys(lock.plugins).map((id) => ({ id })),
+  };
+}
+
 export async function readLockfile(file: string): Promise<Lockfile | undefined> {
   try {
     const raw = await fs.readFile(file, 'utf8');

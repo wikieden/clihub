@@ -1674,17 +1674,21 @@ cli
   .option('--frozen', 'Require clihub.lock.json and refuse drift')
   .action(async (opts: { frozen?: boolean }) => {
     await ensureProviders();
-    const { findClihubYaml, parseClihubYaml, runApply, readLockfile, formatErrorMessage } = await import('@clihub/core');
+    const { findClihubYaml, parseClihubYaml, runApply, readLockfile, lockfileToConfig, formatErrorMessage } = await import('@clihub/core');
     const fsp = await import('node:fs/promises');
     const file = await findClihubYaml();
     if (!file) { err(formatErrorMessage('CLIHUB-E-600')); process.exit(1); }
     const dir = path.dirname(file);
+    let cfg;
     if (opts.frozen) {
       const lock = await readLockfile(path.join(dir, 'clihub.lock.json'));
-      if (!lock) { err(formatErrorMessage('CLIHUB-E-604', 'clihub.lock.json missing; run `clihub lock` first')); process.exit(1); }
+      if (!lock) { err(formatErrorMessage('CLIHUB-E-604', 'clihub.lock.json missing; run `clihub lock` first')); process.exit(1); return; }
       info(`Installing --frozen from clihub.lock.json (clihub ${lock.clihub})`);
+      // Install the pinned versions from the lock, NOT re-resolved from yaml.
+      cfg = lockfileToConfig(lock);
+    } else {
+      cfg = parseClihubYaml(await fsp.readFile(file, 'utf8'));
     }
-    const cfg = parseClihubYaml(await fsp.readFile(file, 'utf8'));
     const result = await runApply(cfg);
     for (const d of result.done) ok(`${d.kind} ${d.id}`);
     for (const f of result.failed) err(`${f.kind} ${f.id}: ${f.error}`);

@@ -249,6 +249,7 @@ export {
   generateLockfile,
   writeLockfile,
   readLockfile,
+  lockfileToConfig,
   type PlanItem,
   type PlanVerb,
   type ApplyPlan,
