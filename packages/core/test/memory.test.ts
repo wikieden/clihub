@@ -41,6 +41,7 @@ test('memory targets match each CLI real convention', () => {
   expect(memById['claude-code']!.project).toBe('CLAUDE.md');
   expect(memById['codex']!.project).toBe('AGENTS.md');
   expect(memById['gemini-cli']!.project).toBe('GEMINI.md');
+  expect(memById['qwen-code']!.project).toBe('QWEN.md');
   expect(memById['cursor']!.project).toBe(path.join('.cursor', 'rules', 'clihub.mdc'));
   expect(memById['cursor']!.frontmatter ?? '').toContain('alwaysApply');
   expect(memById['goose']!.project).toBe('.goosehints');

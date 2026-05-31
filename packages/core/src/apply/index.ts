@@ -30,6 +30,7 @@ const SKILL_ADAPTERS: Record<string, () => SkillSyncAdapter> = {
   'codex': () => new CodexSkillAdapter(),
   'kiro-cli': () => new KiroCliSkillAdapter(),
   'gemini-cli': () => new GeminiCliSkillAdapter(),
+  'qwen-code': () => new GeminiCliSkillAdapter({ commandsDir: path.join(os.homedir(), '.qwen', 'commands'), geminiMd: path.join(os.homedir(), '.qwen', 'QWEN.md') }),
 };
 
 export type PlanVerb = 'add' | 'skip' | 'upgrade' | 'missing';

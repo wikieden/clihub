@@ -4,6 +4,22 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.49.0] — Qwen skill + memory (full parity)
+
+Qwen was added as a provider (v1.44) + MCP target (v1.47) but had no skill or
+memory wiring — `skill install --tool qwen-code` failed, and `apply`/`preset`/
+`memory generate`/`doctor` skipped it.
+
+- Qwen skill reuses the Gemini adapter with Qwen paths: writes
+  `~/.qwen/commands/<id>.toml` (Qwen is a Gemini-CLI fork). Wired into all three
+  SKILL_ADAPTERS maps (cli, apply, doctor) so install/apply/preset/skill-count
+  all include Qwen.
+- Memory target added: `QWEN.md` (project) + `~/.qwen/QWEN.md` (user).
+
+Verified in container: `skill install --tool qwen-code` → superpowers.toml;
+`memory generate` → QWEN.md. Qwen now at parity with Gemini across
+install/detect/settings/MCP/skill/memory. Suite 105/105.
+
 ## [1.48.0] — doctor MCP count is accurate (all 4 CLIs)
 
 `clihub doctor`'s MCP column had its own stale path map — it read Claude MCP

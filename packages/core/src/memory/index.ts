@@ -55,6 +55,12 @@ export const MEMORY_TARGETS: MemoryTarget[] = [
     user: path.join(os.homedir(), '.gemini', 'GEMINI.md'),
   },
   {
+    tool: 'qwen-code',
+    label: 'Qwen Code',
+    project: 'QWEN.md',
+    user: path.join(os.homedir(), '.qwen', 'QWEN.md'),
+  },
+  {
     tool: 'cursor',
     label: 'Cursor',
     project: path.join('.cursor', 'rules', 'clihub.mdc'),
