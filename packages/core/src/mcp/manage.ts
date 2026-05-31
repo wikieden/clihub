@@ -11,7 +11,7 @@
  */
 import os from 'node:os';
 import path from 'node:path';
-import { JsonMcpAdapter, type McpDialect } from './index.js';
+import { JsonMcpAdapter, TomlMcpAdapter, type McpAdapter, type McpDialect } from './index.js';
 import { CatalogLoader } from '../catalog/index.js';
 import { getProvider } from '../tools/registry.js';
 import type { InstalledMcpServer, McpServerManifest, McpTransport } from '../types.js';
@@ -20,11 +20,20 @@ import type { InstalledMcpServer, McpServerManifest, McpTransport } from '../typ
  *  NB: Claude Code reads user-scope MCP from ~/.claude.json (verified via
  *  `claude mcp add --scope user`), NOT ~/.claude/settings.json (which holds
  *  env/permissions). Gemini reads mcpServers from ~/.gemini/settings.json. */
-const JSON_MCP_RELPATHS: Record<string, string> = {
+/** MCP-capable CLIs → config file (relative to home). Claude/Gemini/Qwen use a
+ *  JSON `mcpServers` map; Codex uses TOML `[mcp_servers]` in config.toml. */
+const MCP_RELPATHS: Record<string, string> = {
   'claude-code': '.claude.json',
   'gemini-cli': '.gemini/settings.json',
   'qwen-code': '.qwen/settings.json',
+  'codex': '.codex/config.toml',
 };
+
+/** The right MCP adapter for a CLI: TOML for Codex, JSON (+dialect) for the rest. */
+function adapterFor(tool: string, p: string): McpAdapter {
+  if (tool === 'codex') return new TomlMcpAdapter({ path: p });
+  return new JsonMcpAdapter({ path: p, dialect: dialectFor(tool) });
+}
 
 export interface McpManageOpts {
   /** Home dir override (tests). */
@@ -38,7 +47,7 @@ function dialectFor(tool: string): McpDialect {
 }
 
 function targets(home: string): Array<{ tool: string; path: string }> {
-  return Object.entries(JSON_MCP_RELPATHS).map(([tool, rel]) => ({ tool, path: path.join(home, ...rel.split('/')) }));
+  return Object.entries(MCP_RELPATHS).map(([tool, rel]) => ({ tool, path: path.join(home, ...rel.split('/')) }));
 }
 
 /** Only the JSON-MCP CLIs that are actually installed (override with `all` in tests). */
@@ -61,7 +70,7 @@ export async function listMcp(opts: McpManageOpts & { all?: boolean } = {}): Pro
   const home = opts.home ?? os.homedir();
   const rows: McpListRow[] = [];
   for (const t of await activeTargets(home, opts.all ?? false)) {
-    const servers = await new JsonMcpAdapter({ path: t.path, dialect: dialectFor(t.tool) }).list();
+    const servers = await adapterFor(t.tool, t.path).list();
     rows.push({ tool: t.tool, servers });
   }
   return rows;
@@ -105,7 +114,7 @@ export async function addMcp(id: string, opts: AddMcpOpts = {}): Promise<McpMana
   for (const t of await activeTargets(home, opts.all ?? false)) {
     if (manifest.supports && Object.keys(manifest.supports).length > 0 && !manifest.supports[t.tool]) continue;
     try {
-      await new JsonMcpAdapter({ path: t.path, dialect: dialectFor(t.tool) }).install(manifest);
+      await adapterFor(t.tool, t.path).install(manifest);
       done.push(`${id}@${t.tool}`);
     } catch (e) {
       failed.push({ tool: t.tool, error: String(e) });
@@ -120,7 +129,7 @@ export async function removeMcp(id: string, opts: McpManageOpts & { all?: boolea
   const failed: Array<{ tool: string; error: string }> = [];
   for (const t of await activeTargets(home, opts.all ?? false)) {
     try {
-      await new JsonMcpAdapter({ path: t.path, dialect: dialectFor(t.tool) }).uninstall(id);
+      await adapterFor(t.tool, t.path).uninstall(id);
       done.push(`${id}@${t.tool}`);
     } catch (e) {
       failed.push({ tool: t.tool, error: String(e) });

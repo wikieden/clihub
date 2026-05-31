@@ -1929,12 +1929,12 @@ cli
     switch (action) {
       case 'list': {
         const rows = await listMcp();
-        if (rows.length === 0) { info('no JSON-MCP CLI installed (Claude Code / Gemini CLI).'); return; }
+        if (rows.length === 0) { info('no MCP-capable CLI installed (Claude Code / Gemini / Qwen / Codex).'); return; }
         for (const r of rows) {
           console.log(kleur.bold(r.tool) + (r.servers.length === 0 ? kleur.dim('  (none)') : ''));
           for (const s of r.servers) console.log(`  ${kleur.cyan(s.id)}${s.command ? kleur.dim(`  ${s.command}`) : ''}`);
         }
-        console.log(kleur.dim('  (unified MCP management covers JSON-config CLIs — Claude Code & Gemini; others manage MCP in their own config)'));
+        console.log(kleur.dim('  (unified MCP management covers Claude Code, Gemini, Qwen (JSON) and Codex (TOML); others manage MCP in their own config)'));
         return;
       }
       case 'add': {

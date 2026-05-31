@@ -15,6 +15,7 @@
  */
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { TomlSettingsAdapter } from '../settings/toml.js';
 import type { InstalledMcpServer, McpServerManifest } from '../types.js';
 
 export interface McpAdapter {
@@ -125,5 +126,54 @@ export class JsonMcpAdapter implements McpAdapter {
   private async write(obj: Record<string, unknown>): Promise<void> {
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
     await fs.writeFile(this.filePath, JSON.stringify(obj, null, 2) + '\n', 'utf8');
+  }
+}
+
+/**
+ * MCP adapter for Codex — TOML config.toml with an `[mcp_servers.<id>]` table
+ * (verified via `codex mcp add`). stdio only (command + args); HTTP/SSE MCP is
+ * not expressible here, so it's refused rather than written wrong.
+ */
+export class TomlMcpAdapter implements McpAdapter {
+  private readonly inner: TomlSettingsAdapter;
+
+  constructor(opts: { path: string }) {
+    this.inner = new TomlSettingsAdapter({ path: opts.path });
+  }
+
+  configPath(): string {
+    return this.inner.configPath();
+  }
+
+  async list(): Promise<InstalledMcpServer[]> {
+    const obj = (await this.inner.read()) as Record<string, unknown>;
+    const servers = (obj.mcp_servers ?? {}) as Record<string, { command?: string; args?: string[] }>;
+    return Object.entries(servers).map(([id, def]) => ({
+      id, name: id, command: def.command ?? '', args: def.args,
+    }));
+  }
+
+  async install(server: McpServerManifest): Promise<void> {
+    if ((server.transport ?? 'stdio') !== 'stdio') {
+      throw new Error(`codex MCP via clihub supports stdio only (${server.id} is ${server.transport})`);
+    }
+    if (!server.command) throw new Error(`MCP server ${server.id} has no command`);
+    const obj = (await this.inner.read()) as Record<string, unknown>;
+    const map = (obj.mcp_servers ??= {}) as Record<string, unknown>;
+    const entry: Record<string, unknown> = { command: server.command };
+    if (server.args && server.args.length > 0) entry.args = server.args;
+    if (server.env && Object.keys(server.env).length > 0) {
+      entry.env = Object.fromEntries(Object.keys(server.env).map((k) => [k, process.env[k] ?? '']));
+    }
+    map[server.id] = entry;
+    await this.inner.write(obj);
+  }
+
+  async uninstall(id: string): Promise<void> {
+    const obj = (await this.inner.read()) as Record<string, unknown>;
+    const map = obj.mcp_servers as Record<string, unknown> | undefined;
+    if (!map || !(id in map)) return;
+    delete map[id];
+    await this.inner.write(obj);
   }
 }

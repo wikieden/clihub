@@ -33,6 +33,7 @@ export {
 } from './tools/declarative.js';
 export { JsonSettingsAdapter } from './settings/index.js';
 export { TomlSettingsAdapter, type TomlSettingsAdapterOpts } from './settings/toml.js';
+export { YamlSettingsAdapter, type YamlSettingsAdapterOpts } from './settings/yaml.js';
 export {
   snapshotBeforeWrite,
   listSettingsBackups,
@@ -65,6 +66,7 @@ export { KiroCliSkillAdapter } from './skill/kiro-adapter.js';
 export { GeminiCliSkillAdapter } from './skill/gemini-adapter.js';
 export {
   JsonMcpAdapter,
+  TomlMcpAdapter,
   type McpAdapter,
   type JsonMcpAdapterOpts,
 } from './mcp/index.js';

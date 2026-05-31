@@ -28,6 +28,15 @@ test('add → list → remove an inline MCP across CLIs', async () => {
   expect(after.find((r) => r.tool === 'claude-code')?.servers.some((s) => s.id === 'myserver')).toBe(false);
 });
 
+test('codex MCP lands in ~/.codex/config.toml [mcp_servers] (TOML, command+args)', async () => {
+  const { parse: parseToml } = await import('smol-toml');
+  const home = mkdtempSync(path.join(tmpdir(), 'clihub-mcp-'));
+  await addMcp('fs', { home, all: true, command: 'npx -y @modelcontextprotocol/server-filesystem /tmp', transport: 'stdio' });
+  const toml = parseToml(readFileSync(path.join(home, '.codex', 'config.toml'), 'utf8')) as { mcp_servers?: Record<string, { command?: string; args?: string[] }> };
+  expect(toml.mcp_servers?.fs?.command).toBe('npx');
+  expect(toml.mcp_servers?.fs?.args).toEqual(['-y', '@modelcontextprotocol/server-filesystem', '/tmp']);
+});
+
 test('inline --command with args is split into command + args', async () => {
   const home = mkdtempSync(path.join(tmpdir(), 'clihub-mcp-'));
   await addMcp('fs', { home, all: true, command: 'npx -y @modelcontextprotocol/server-filesystem /tmp', transport: 'stdio' });

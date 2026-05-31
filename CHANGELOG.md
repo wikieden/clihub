@@ -4,6 +4,20 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.46.0] — Codex MCP support (TOML)
+
+`clihub mcp` was JSON-only (Claude/Gemini/Qwen) — Codex was skipped, so
+`mcp add` / `apply` / `recommend` never touched it even though the catalog
+already declared `supports.codex`.
+
+- New `TomlMcpAdapter` writes Codex's `[mcp_servers.<id>]` table in
+  `~/.codex/config.toml` (stdio command/args/env; HTTP/SSE refused — not
+  expressible there). `mcp add/list/remove` + `apply` now include Codex.
+- Verified end-to-end: `clihub mcp add github` → `✓ github@codex`, and the real
+  `codex mcp list` shows it enabled. So the catalog's common MCP servers
+  (filesystem, github, sequential-thinking, memory, …) now install into Codex
+  too. Suite 105/105.
+
 ## [1.45.0] — guard YAML-config CLIs from JSON proxy injection
 
 Found while scoping more CLIs: `clihub proxy set --tool goose` crashed with a
