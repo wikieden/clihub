@@ -4,6 +4,17 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.48.0] — doctor MCP count is accurate (all 4 CLIs)
+
+`clihub doctor`'s MCP column had its own stale path map — it read Claude MCP
+from `~/.claude/settings.json` (wrong since v1.38 → `.claude.json`) and didn't
+count Qwen or Codex at all. So the column under-reported after `mcp add`.
+
+- doctor now sources MCP counts from the shared `listMcp` (single source of
+  truth): Claude `~/.claude.json`, Gemini/Qwen `settings.json`, Codex
+  `config.toml`. Dropped the duplicate map. Verified in container: after
+  `mcp add`, the MCP column shows the count for all four.
+
 ## [1.47.0] — catalog MCP now installs into Qwen
 
 Follow-up to v1.44/v1.46: Qwen is an MCP target, but the catalog's MCP servers

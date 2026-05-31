@@ -19,7 +19,7 @@ import { ClaudeCodeSkillAdapter } from '../skill/index.js';
 import { CodexSkillAdapter } from '../skill/codex-adapter.js';
 import { KiroCliSkillAdapter } from '../skill/kiro-adapter.js';
 import { GeminiCliSkillAdapter } from '../skill/gemini-adapter.js';
-import { JsonMcpAdapter } from '../mcp/index.js';
+import { listMcp } from '../mcp/manage.js';
 import { listProviders } from '../tools/registry.js';
 import type { SkillSyncAdapter } from '../tools/types.js';
 import { loadConfig, resolveProxy, proxyEnvVector, type ClihubConfig } from '../config/index.js';
@@ -42,12 +42,6 @@ const SKILL_ADAPTERS: Record<string, () => SkillSyncAdapter> = {
   'codex': () => new CodexSkillAdapter(),
   'kiro-cli': () => new KiroCliSkillAdapter(),
   'gemini-cli': () => new GeminiCliSkillAdapter(),
-};
-
-/** CLIs whose MCP servers live under `<settings>.mcpServers` (JSON shape). */
-const JSON_MCP_PATHS: Record<string, string> = {
-  'claude-code': path.join(os.homedir(), '.claude', 'settings.json'),
-  'gemini-cli': path.join(os.homedir(), '.gemini', 'settings.json'),
 };
 
 async function fileExists(p: string): Promise<boolean> {
@@ -167,6 +161,14 @@ export async function runHealthMatrix(): Promise<ToolHealthRow[]> {
   const providers = listProviders();
   const rows: ToolHealthRow[] = [];
 
+  // MCP counts come from the single source of truth (manage.ts), which knows
+  // each CLI's real config + format: Claude ~/.claude.json, Gemini/Qwen
+  // settings.json, Codex config.toml [mcp_servers]. Computed once.
+  const mcpCounts = new Map<string, number>();
+  try {
+    for (const row of await listMcp({})) mcpCounts.set(row.tool, row.servers.length);
+  } catch { /* best-effort */ }
+
   for (const provider of providers) {
     const det = await provider.detect();
     const settingsPath = provider.settingsAdapter.configPath();
@@ -182,15 +184,8 @@ export async function runHealthMatrix(): Promise<ToolHealthRow[]> {
       }
     }
 
-    let mcpCount: number | undefined;
-    const jsonMcpPath = JSON_MCP_PATHS[provider.id];
-    if (jsonMcpPath && det.installed) {
-      try {
-        mcpCount = (await new JsonMcpAdapter({ path: jsonMcpPath }).list()).length;
-      } catch {
-        mcpCount = undefined;
-      }
-    }
+    const mcpCount: number | undefined =
+      det.installed && mcpCounts.has(provider.id) ? mcpCounts.get(provider.id) : undefined;
 
     const report = await provider.doctor();
 
