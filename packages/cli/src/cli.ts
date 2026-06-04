@@ -13,7 +13,9 @@ import {
   ClaudeCodePluginAdapter,
   ClaudeCodeSkillAdapter,
   CodexSkillAdapter,
+  CursorSkillAdapter,
   GeminiCliSkillAdapter,
+  GooseSkillAdapter,
   KiroCliSkillAdapter,
   getProvider,
   listProviders,
@@ -51,6 +53,8 @@ const ADAPTERS: Record<string, () => SkillSyncAdapter> = {
   'kiro-cli': () => new KiroCliSkillAdapter(),
   'gemini-cli': () => new GeminiCliSkillAdapter(),
   'qwen-code': () => new GeminiCliSkillAdapter({ commandsDir: path.join(os.homedir(), '.qwen', 'commands'), geminiMd: path.join(os.homedir(), '.qwen', 'QWEN.md') }),
+  'cursor': () => new CursorSkillAdapter(),
+  'goose': () => new GooseSkillAdapter(),
 };
 
 const PLUGIN_ADAPTERS: Record<string, () => PluginAdapter> = {

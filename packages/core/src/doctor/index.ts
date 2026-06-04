@@ -19,6 +19,8 @@ import { ClaudeCodeSkillAdapter } from '../skill/index.js';
 import { CodexSkillAdapter } from '../skill/codex-adapter.js';
 import { KiroCliSkillAdapter } from '../skill/kiro-adapter.js';
 import { GeminiCliSkillAdapter } from '../skill/gemini-adapter.js';
+import { CursorSkillAdapter } from '../skill/cursor-adapter.js';
+import { GooseSkillAdapter } from '../skill/goose-adapter.js';
 import { listMcp } from '../mcp/manage.js';
 import { listProviders } from '../tools/registry.js';
 import type { SkillSyncAdapter } from '../tools/types.js';
@@ -43,6 +45,8 @@ const SKILL_ADAPTERS: Record<string, () => SkillSyncAdapter> = {
   'kiro-cli': () => new KiroCliSkillAdapter(),
   'gemini-cli': () => new GeminiCliSkillAdapter(),
   'qwen-code': () => new GeminiCliSkillAdapter({ commandsDir: path.join(os.homedir(), '.qwen', 'commands'), geminiMd: path.join(os.homedir(), '.qwen', 'QWEN.md') }),
+  'cursor': () => new CursorSkillAdapter(),
+  'goose': () => new GooseSkillAdapter(),
 };
 
 async function fileExists(p: string): Promise<boolean> {

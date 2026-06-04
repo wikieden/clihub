@@ -4,6 +4,27 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.50.0] — Cursor + Goose skill adapters
+
+Cursor and Goose had memory wiring but no skill sync — `skill install --tool
+cursor`/`--tool goose` hit no adapter and silently did nothing. Both CLIs use a
+non-SKILL.md surface, so we ground-truthed the real formats before writing:
+
+- **Cursor**: custom "/" commands are plain Markdown at
+  `~/.cursor/commands/<name>.md` (global) — filename is the command name, body
+  is the prompt, no frontmatter required. `CursorSkillAdapter` writes
+  `clihub-<id>.md` so list/uninstall only touch clihub-owned files.
+- **Goose**: no SKILL.md concept; the reusable-prompt unit is a *recipe* at
+  `~/.config/goose/recipes/<name>.yaml`. `GooseSkillAdapter` emits a minimal
+  valid recipe (`version`, `title`, `description`, `instructions` + optional
+  `prompt`) with block scalars so bodies need no escaping.
+
+Wired into all four skill-adapter maps (`cli.ts`, `apply`, `doctor`, barrel).
+Verified in a sandbox HOME: `skill install --tool cursor/goose superpowers`
+lands the real files in the right format; YAML round-trips through the `yaml`
+parser. Suite 110/110 (+5). With this, Cursor and Goose join the skill surface —
+6 of 7 CLIs now have skill sync (Kiro keeps its steering-md adapter).
+
 ## [1.49.0] — Qwen skill + memory (full parity)
 
 Qwen was added as a provider (v1.44) + MCP target (v1.47) but had no skill or
