@@ -7,7 +7,7 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-**The one tool that installs Claude Code, Codex, Gemini CLI, Kiro, Cursor, and Goose — keeps their skills in sync across every CLI — and ships one-command rollback when an update bites.**
+**The one tool that installs Claude Code, Codex, Gemini CLI, Qwen Code, Kiro, Cursor, and Goose — keeps their skills in sync across every CLI — and ships one-command rollback when an update bites.**
 
 ![demo](docs/assets/demo.gif)
 
@@ -27,7 +27,7 @@ That's it. Four CLIs installed, 5 core skills fanned out to all of them, your pr
 Every AI coding CLI ships its own bespoke skill / plugin / MCP layout. If you run more than one, you end up:
 
 - Re-installing the same skill four times in four different folders.
-- Hand-syncing `superpowers` to `~/.claude/skills/`, `~/.codex/skills/`, `~/.kiro/skills/`, `~/.gemini/skills/`.
+- Hand-syncing `superpowers` into seven different layouts — `~/.claude/skills/`, `~/.codex/skills/`, `~/.gemini/commands/*.toml`, `~/.qwen/commands/*.toml`, `~/.kiro/steering/`, `~/.cursor/commands/*.md`, `~/.config/goose/recipes/*.yaml`.
 - Nuking your config on an unrelated upgrade and having no way back.
 
 clihub solves all three:
@@ -88,7 +88,7 @@ clihub rollback                        # restore the most recent snapshot
 
 ## Currently supported
 
-**CLIs**: Claude Code, OpenAI Codex CLI, Kiro CLI, Gemini CLI, Cursor CLI, Block Goose.
+**CLIs** (7): Claude Code, OpenAI Codex CLI, Gemini CLI, Qwen Code, Kiro CLI, Cursor CLI, Block Goose.
 
 **Skills**: 30 in the catalog — `superpowers`, `oh-my-claudecode`, `codegraph`, `tdd`, `review`, `frontend-design`, `api-design`, `database-migrations`, `caveman`, `lark-im`, `lark-doc`, `lark-wiki`, ... ([full list](packages/catalog/skills.json)).
 
@@ -150,7 +150,7 @@ clihub lock                                pin resolved versions to clihub.lock.
 clihub install [--frozen]                  install from clihub.yaml (or lockfile)
 clihub status [--json] [--strict]          check this machine vs clihub.lock.json (CI gate)
 clihub diff <a> [b]                        diff two clihub.lock.json (added/removed/upgraded)
-clihub mcp <list|add|remove> [id]          manage MCP servers across CLIs (Claude Code / Gemini)
+clihub mcp <list|add|remove> [id]          manage MCP servers across CLIs (Claude Code / Gemini / Qwen JSON · Codex TOML)
 clihub schema [--out FILE]                  emit clihub.yaml JSON Schema (editor autocomplete)
 clihub ci [github|gitlab] [--out FILE]       generate a CI workflow that validates clihub.yaml
 clihub team <add|list|pull|use|push|rm>      share clihub config across a team via a git repo
@@ -217,7 +217,7 @@ bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't
 - **v0.8** ✅ — **`clihub sync`**: cross-machine, end-to-end-encrypted config bundle (global config + catalog sources + profile metadata). scrypt + AES-256-GCM, passphrase-only, zero backend — move the bundle however you like.
 - **v0.9** ✅ — **signed catalogs**: ed25519 `catalog keygen` / `sign` + a local trust store (`catalog trust add --source`). `catalog verify` checks both the sha256 checksums (integrity) and the publisher signature (authenticity) — a forged manifest can't be re-signed without the private key. Pure `node:crypto`, no cosign dependency.
 - **v0.10** ✅ — **declarative provider SDK**: teach clihub a new AI CLI with a JSON spec (`~/.clihub/providers.json` or a catalog's `providers.json`) — detection + npm/bun/brew install with no code or fork. `provider list|add|remove`. Shell-command installs are gated behind `--allow-scripts`; built-in providers can't be shadowed.
-- **v0.11** ✅ (current, `@wikieden/clihub@0.11.0` on npm) — **`clihub status`**: compliance gate that diffs this machine against the pinned `clihub.lock.json` (ok / drift / missing / unlocked). `--json` for dashboards, `--strict` to fail CI when a teammate drifts off the agreed toolchain.
+- **v0.11** ✅ — **`clihub status`**: compliance gate that diffs this machine against the pinned `clihub.lock.json` (ok / drift / missing / unlocked). `--json` for dashboards, `--strict` to fail CI when a teammate drifts off the agreed toolchain.
 - **v0.12** ✅ — **`clihub schema`**: emit a draft-07 JSON Schema for `clihub.yaml` so editors (yaml-language-server) give autocomplete + inline validation.
 - **v1.0.0** ✅ — **stable**. Frozen surface: `clihub.yaml` schema v1, `clihub.lock.json` v1, `@clihub/core` public API, and the `clihub` command set. See [`CHANGELOG.md`](CHANGELOG.md).
 - **v1.1.0** ✅ — **`clihub ci`**: generate a GitHub Actions / GitLab workflow that validates `clihub.yaml` on every push (with commented opt-ins for memory `--check` and `status --strict`).
@@ -227,8 +227,9 @@ bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't
 - **v1.5.0** ✅ — **`clihub auth login`**: OAuth 2.0 device-grant login (RFC 8628, headless/CI-friendly). Vendor-neutral BYO config; token written to the CLI's native credential file (0600). Security-reviewed.
 - **v1.6.0** ✅ — **`clihub auth login --refresh`**: token-expiry recovery via the RFC 6749 refresh-token grant — re-mint an access token from the stored `refresh_token`, no browser. Completes the auth pillar.
 - **v1.7.0** ✅ — **`clihub conformance`**: validate a catalog against the published clihub specs. The machine-checkable basis for a `clihub-compatible` badge.
-- **v1.8.0** ✅ (current, `@wikieden/clihub@1.8.0` on npm) — **`clihub auth login --browser`**: OAuth Authorization Code + PKCE (RFC 7636) via a 127.0.0.1 loopback redirect, for providers without a device flow. CSPRNG `state` (CSRF), S256 challenge; security-reviewed. Completes the three login modes (device / browser / refresh).
-- **post-1.8 (external-infra blocked)** — registry *server* (`clihub.dev`) + VS Code/JetBrains marketplace clients. See [`docs/spec/`](docs/spec/).
+- **v1.8.0** ✅ — **`clihub auth login --browser`**: OAuth Authorization Code + PKCE (RFC 7636) via a 127.0.0.1 loopback redirect, for providers without a device flow. CSPRNG `state` (CSRF), S256 challenge; security-reviewed. Completes the three login modes (device / browser / refresh).
+- **v1.10–1.50** ✅ (current, `@wikieden/clihub@1.50.0` on npm) — discovery (`recommend`), `cd`-aware profile auto-switch, lockfile `diff`, **unified `clihub mcp`** across CLIs, first-run **wizard** + scaffold, per-CLI proxy injection, opt-in config **auto-backup**, plus a real-CLI **podman test harness** that ground-truthed every config path. Coverage grew to **7 CLIs**: **Qwen Code** (v1.44) joined at full parity, **Codex MCP** landed via a TOML adapter (v1.46), and **Cursor + Goose skill** sync arrived (v1.50, `~/.cursor/commands/*.md` + `~/.config/goose/recipes/*.yaml`). 6 of 7 CLIs now have skill sync; MCP fans out across all four JSON/TOML CLIs.
+- **post-1.50 (external-infra blocked)** — registry *server* (`clihub.dev`) + VS Code/JetBrains marketplace clients. See [`docs/spec/`](docs/spec/).
 
 See [`docs/11-ROADMAP.md`](docs/11-ROADMAP.md) and [`docs/20-MARKET-RESEARCH.md`](docs/20-MARKET-RESEARCH.md).
 

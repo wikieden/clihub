@@ -7,7 +7,7 @@
 
 [English](README.md) | **简体中文**
 
-**一个工具，装好 Claude Code、Codex、Gemini CLI、Kiro、Cursor、Goose —— 把它们的 skills 跨 CLI 同步 —— 升级出问题时一条命令回滚。**
+**一个工具，装好 Claude Code、Codex、Gemini CLI、Qwen Code、Kiro、Cursor、Goose —— 把它们的 skills 跨 CLI 同步 —— 升级出问题时一条命令回滚。**
 
 ![demo](docs/assets/demo.gif)
 
@@ -25,7 +25,7 @@ clihub preset apply starter
 每个 AI 编码 CLI 都有自己一套 skill / plugin / MCP 目录结构。同时用多个就会陷入：
 
 - 同一个 skill 在四个目录里装四遍。
-- 手动把 `superpowers` 同步到 `~/.claude/skills/`、`~/.codex/skills/`、`~/.kiro/skills/`、`~/.gemini/skills/`。
+- 手动把 `superpowers` 同步到七套不同目录 —— `~/.claude/skills/`、`~/.codex/skills/`、`~/.gemini/commands/*.toml`、`~/.qwen/commands/*.toml`、`~/.kiro/steering/`、`~/.cursor/commands/*.md`、`~/.config/goose/recipes/*.yaml`。
 - 一次无关升级把配置冲掉，无法回退。
 
 clihub 一次解决：
@@ -85,7 +85,7 @@ clihub rollback                        # 恢复最近一次快照
 
 ## 当前支持
 
-**CLI**：Claude Code、OpenAI Codex CLI、Kiro CLI、Gemini CLI、Cursor CLI、Block Goose。
+**CLI**（7 个）：Claude Code、OpenAI Codex CLI、Gemini CLI、Qwen Code、Kiro CLI、Cursor CLI、Block Goose。
 
 **Skills**：目录内 30 个 —— `superpowers`、`oh-my-claudecode`、`codegraph`、`tdd`、`review`、`frontend-design`、`api-design`、`database-migrations`、`caveman`、`lark-im`、`lark-doc`、`lark-wiki` …（[完整列表](packages/catalog/skills.json)）。
 
