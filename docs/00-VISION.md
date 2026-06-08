@@ -2,7 +2,9 @@
 
 ## One-liner
 
-**The infrastructure layer for AI coding.** One control plane to install Claude Code, Codex, Gemini, Kiro, Cursor and Goose side by side, keep their skills / MCP servers / plugins / memory files in sync, switch between accounts and proxies, pin and roll back versions, sign and verify catalogs, sync config across machines, and gate CI on a shared lockfile — with any new CLI added via a declarative spec, no fork.
+**The reproducible control plane for AI coding.** One kernel — reachable from CLI, TUI, and a desktop GUI — to install, configure, and switch 7 AI coding CLIs (Claude Code, Codex, Gemini, Qwen Code, Kiro, Cursor, Goose); keep their skills / MCP / memory / system-prompts in sync; 1-click-switch providers from a **signed** preset catalog; optionally route every request through a **self-hosted local gateway** (failover, account pool, circuit-breaker); and pin **all of it** — versions, providers, routing topology — into a signed `clihub.lock.json` that a CI drift gate enforces. A superset of CC Switch that stays reproducible, local-first, and supply-chain-signed.
+
+> **Strategic vs tactical.** "Reproducible control plane" is the strategic position; "superset of CC Switch" is a tactical comparison hook, not the headline. The defensible moat is the four things no switcher or gateway has — resolved-version lockfile + CI drift gate, ed25519-signed *federated* catalog, install-the-CLIs breadth, version pin/rollback — and **every new surface (provider switch, gateway routing) is expressed as pinned + signed + drift-gated**, or it is just a me-too feature. The gateway's killer differentiator is not failover (LiteLLM does it better) — it is that *your whole LLM routing topology is a reviewable, signed, reproducible artifact*.
 
 Stable since `@wikieden/clihub@1.0.0`.
 
@@ -42,33 +44,41 @@ plane is a later, separately-packaged line (see [`11-ROADMAP.md`](11-ROADMAP.md)
 
 ## Competitive moat
 
-| Competitor | Stars | Overlap | clihub-only |
-|---|---|---|---|
-| alirezarezvani/claude-skills | 16k | skill fan-out | install the CLIs + preset + rollback |
-| multica-ai/multica | 33k | multi-CLI orchestration | manager, not orchestrator |
-| jeremylongshore/ccpi | 2k | Claude Code plugin marketplace | cross-CLI + MCP + backup |
-| oh-my-claudecode | — | Claude Code plugin | cross-CLI |
+Landscape splits into two camps: **AI-CLI provider-switchers** (our real
+competitors) and **runtime/version managers** (where we borrow primitives).
+Verified against each project's docs/repos (2026-06 competitive analysis).
 
-**Moat depth** (deepest first):
-1. CLI install matrix across 6 CLIs — others don't bother.
-2. Backup / one-command rollback + per-tool version pin/rollback of `~/.claude` (and siblings).
-3. Reproducibility: `clihub.yaml` → `clihub.lock.json` → `install --frozen` → `status` CI gate.
-4. Cross-CLI memory sync (one source → `CLAUDE.md`/`AGENTS.md`/`GEMINI.md`/...).
-5. Signed catalogs (ed25519 trust store) + cross-machine E2E-encrypted sync.
-6. Declarative provider SDK — add any CLI via JSON spec, no fork.
-7. Presets bundling tools + skills + MCP + plugin; installer for the open `agentskills.io` SKILL.md standard.
-8. i18n (zh / ja / ko / es) — non-English market grab.
+| Competitor | Camp | What it does | clihub-only |
+|---|---|---|---|
+| **CC Switch** (`farion1231/cc-switch`) | AI-CLI switcher | desktop app: 1-click provider switch + unified MCP + Skills across Claude Code / Codex / Gemini / OpenCode | 7-CLI breadth (adds Kiro/Cursor/Goose/Qwen); native-schema fan-out; signed **federated** catalog; resolved-version lockfile + CI drift gate; E2E cross-machine sync |
+| **ccs / CLIProxyAPI** | AI-CLI switcher | multi-account via an OAuth **runtime proxy** that routes LLM traffic | clihub writes each CLI's *native* config — a config-adapter, **not** a data-plane proxy (see Non-goals) |
+| mise / asdf / proto / aqua | version manager | manage tool *versions* vertically; ship exec wrappers, registries, lockfiles, signing | none unify a heterogeneous fleet of AI CLIs or speak their config schemas; we adopt their `exec` + lockfile-integrity primitives |
+| chezmoi | dotfile manager | Go-template files + per-machine vars + encrypted secrets | schema-aware of 7 AI CLIs (writes idiomatic JSON/TOML/YAML), not opaque file blobs |
+
+**Moat depth** (verified, deepest first):
+1. **7-CLI horizontal unification** — install **and** configure 7 distinct AI CLIs. Version managers manage versions vertically; CC Switch tops out at ~4 CLIs.
+2. **Native idiomatic-schema fan-out** — one source maps into each CLI's own layout (skills / memory / MCP across JSON / TOML / YAML). No version manager does semantic config fan-out; chezmoi templates files but doesn't speak each CLI's schema.
+3. **ed25519-signed *federated* catalog** + pinned-publisher trust store — unique in the AI-CLI field (CC Switch / Smithery don't sign); on par with aqua's supply-chain posture, but federated multi-source.
+4. **Resolved-version lockfile + CI drift gate** (`status --strict`) — rare even among version managers; no AI-CLI competitor ships a lockfile + CI gate.
+5. **E2E-encrypted cross-machine sync** + git-backed team config — schema-aware of the 7 CLIs, not opaque blobs.
+6. Per-CLI proxy / base-URL / profile injection + cross-CLI OAuth/keychain credential visibility.
+7. Skill audit (shell / hooks / network / symlink risk) on install — no competitor reviews skill payloads.
+8. Declarative provider SDK — add any CLI via JSON spec, no fork; presets + the open `agentskills.io` SKILL.md installer; i18n (zh / ja / ko / es).
 
 ## Engineering footprint
 
-This repo (formerly `CCEnvOneCLick`) carries:
+One kernel, many surfaces — **`@clihub/core` is the single source of truth**; every
+front-end is a thin shell over it and they never fork logic (enforced by golden
+parity tests: GUI result == CLI result == kernel call). This repo (formerly
+`CCEnvOneCLick`) carries:
 
-1. **`@wikieden/clihub` npm package** — cross-platform CLI + bundled library.
-2. **`clihub` Claude Code skill** — calls the same kernel from inside Claude Code.
-3. **`/clihub` slash command** — same menu inside the agent.
-4. **Catalog** — `skills.json`, `tools.json`, `presets.json`, `mcp.json` (and `plugins.json`).
-5. **Install scripts** — `curl | sh` with git-clone fallback.
-6. **Statusline** — preserved two-line statusline from v0.0.
+1. **`@clihub/core`** — the kernel (providers, adapters, catalog, lock, sync, gateway logic).
+2. **`@wikieden/clihub` npm package** — CLI + Clack **TUI** (first-class; headless / CI / server / power-user surface).
+3. **`clihub-desktop` (Tauri 2)** — native **desktop GUI**; tray, 1-click switch, MCP/skills panels, gateway dashboard, drift/lockfile banners. Co-equal with the CLI/TUI, never the only entry point.
+4. **`@clihub/gateway`** — optional, off-by-default, loopback-only local gateway daemon (separate package, not in default install).
+5. **`clihub` Claude Code skill** + **`/clihub` slash command** — the same kernel from inside the agent.
+6. **Catalog** — `skills.json`, `tools.json`, `presets.json`, `mcp.json`, `plugins.json`, and `providers.json` (signed provider presets).
+7. **Install scripts** (`curl | sh` + git-clone fallback) + **statusline**.
 
 ## Core value props
 
@@ -110,6 +120,7 @@ Each pillar feeds the others: Pillars I–IV make clihub credible as infra; V–
 ## Non-goals
 
 - Don't replace the AI CLIs (no Claude Code rewrite).
+- **The gateway is local-only and opt-in — never a hosted data-plane.** clihub ships an *optional, off-by-default, loopback-only* local gateway (`@clihub/gateway`, a separate package, **not** in the default install) for provider failover / account-pooling / circuit-breaking. It must never become a hosted/multi-tenant request-routing **service**, a metered virtual-key SaaS (that lane is LiteLLM / CliGate), or bind a non-loopback address without an explicit `--unsafe-bind` + confirmation. Keys never persist outside the OS keychain — read in only at request time, zeroized per-request, never synced, never logged. **Same-format pass-through only**: no cross-provider format conversion (Anthropic↔OpenAI↔Gemini translation is a correctness liability that stays with claude-code-router / LiteLLM). The gateway holds live keys in the request path, so it ships behind a blocking security review (see [`22-GATEWAY-SECURITY.md`](22-GATEWAY-SECURITY.md)).
 - Don't ship a closed enterprise console (that's a paid future tier, but the local CLI stays open).
 - Don't require a cloud account for the local tool.
 
@@ -130,6 +141,10 @@ feature gates.
 ## Related design docs
 
 - [`docs/11-ROADMAP.md`](11-ROADMAP.md) — release plan v0.1 → v2.0.
+- [`docs/20-COMPETITIVE.md`](20-COMPETITIVE.md) — competitive landscape + positioning (version managers + AI-CLI field).
+- [`docs/22-GATEWAY-SECURITY.md`](22-GATEWAY-SECURITY.md) — gateway threat model + security design.
+- [`docs/23-ARCHITECTURE.md`](23-ARCHITECTURE.md) — post-pivot architecture (one kernel, many shells, gateway, GUI).
+- [`docs/24-VERSION-PLAN.md`](24-VERSION-PLAN.md) — per-version delivery spec (P0 → v2.0).
 - [`docs/13-MONETIZATION.md`](13-MONETIZATION.md) — three-phase business model.
 - [`docs/14-SPRINT.md`](14-SPRINT.md) — day-by-day sprint plan.
 - [`docs/17-INFRA-PILLARS.md`](17-INFRA-PILLARS.md) — ten pillars in depth.

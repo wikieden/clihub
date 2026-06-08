@@ -6,9 +6,14 @@
 
 Status anchors: ✅ shipped · 🚧 in progress · 📋 planned
 
-**Current: `@wikieden/clihub@1.1.0` — stable.** Frozen surface: `clihub.yaml`
+**Current: `@wikieden/clihub@1.50.0` — stable.** Frozen surface: `clihub.yaml`
 schema v1, `clihub.lock.json` v1, the `@clihub/core` public API, and the
-`clihub` CLI command set.
+`clihub` CLI command set. Since v1.21 the line has grown coverage +
+correctness (full per-release history in [`../CHANGELOG.md`](../CHANGELOG.md)):
+Qwen Code as the **7th CLI** (v1.44) with full parity, Codex MCP via a TOML
+adapter (v1.46), and Cursor + Goose skill adapters (v1.50) — 6 of 7 CLIs now
+have skill sync. Unified MCP management spans Claude / Gemini / Qwen (JSON) +
+Codex (TOML).
 
 ## Released
 
@@ -192,9 +197,42 @@ enterprise line later (see "Enterprise line" below).
 
 - Pick a different skill set per selected CLI → tool-scoped `clihub.yaml` skill entries. **Wizard fill list complete** — all newcomer feedback shipped
 
-### v1.20.0 📋 — more catalog + DX
+### PIVOT — CC Switch superset: config + local gateway + GUI (2026-06)
 
-- Grow catalog skills / MCP entries; ongoing newcomer-experience polish
+clihub becomes a **superset of CC Switch** (provider switching, bidirectional MCP,
+50+ presets, import) PLUS an **opt-in local gateway** (failover / account-pool /
+circuit-breaker) PLUS a **native desktop GUI** — while making the **reproducibility
+moat the protagonist of every feature**. Strategic position = *"reproducible
+control plane for AI coding"*; *"superset of CC Switch"* is a tactical hook, not the
+headline. Three surfaces over one kernel (`@clihub/core`): CLI/TUI
+(`@wikieden/clihub`), desktop GUI (`clihub-desktop`, Tauri 2), and the opt-in
+gateway (`@clihub/gateway`, off by default, not in the default install). The
+gateway's differentiator is **not** failover (LiteLLM wins that) — it is that the
+routing topology is **pinned + signed + CI-drift-gated**. See
+[`00-VISION.md`](00-VISION.md) and the threat model
+[`22-GATEWAY-SECURITY.md`](22-GATEWAY-SECURITY.md).
+
+> **Honesty notes (from the design review):** `v1.61→1.70` is **a quarter, not ten
+> point-releases**. Cross-provider **format conversion is removed** from the
+> committed roadmap (Anthropic↔OpenAI↔Gemini translation is a correctness liability
+> — pass-through only). **OAuth/subscription account-pooling is not shipped** (vendor
+> ToS / ban risk) — API-key pooling only. Several "pure reuse" claims were wrong
+> against the code (only anthropic/openai/google have base-URL injectors;
+> goose/YAML can't be pointed at the gateway via the existing seam; gateway egress
+> is a net-new HTTP client; `providers.json` doesn't exist yet) — tracked in the
+> threat model.
+
+| Phase | Versions | Scope | Headless? | Effort |
+|---|---|---|---|---|
+| **P0** (now) | docs | reframe VISION/COMPETITIVE non-goals to *hosted/multi-tenant only*; write the gateway threat model **first** as a design constraint | docs | S ✅ landing |
+| **P1a** | v1.51–1.54 | signed `providers.json` preset catalog (50+); **1-click `provider switch`** (anthropic/openai/google only — others need new injectors); deep-link `import` (clihub:// + best-effort ccswitch://); **bidirectional MCP reconcile** (read-back + 3-way merge, default `--union`) | **YES, fully** | M |
+| **P1b** | v1.55–1.60 | cross-CLI **system-prompt** mgmt; **cloud-folder sync** (iCloud/Dropbox/OneDrive/WebDAV) + `sync --watch` + redaction guard; `self-update` channel; **`clihub exec`** (ephemeral run-with-injected-context); **per-machine overlay** (`clihub.local.yaml` + `{{hostname}}`/`${VAR}` + extends/merge + team 3-way); usage = **tokens-only best-effort (never a $ figure)**; **provider pinned in `clihub.lock` + CI drift gate — the 1.60 headline.** CC Switch CONFIG PARITY declared | **YES** | M |
+| **P2 GATE** | decision | start the gateway **only** if P1 shows real adoption AND there is budget for a 3–4-month key-holding-daemon project incl. human-in-loop live-key testing. Else STOP — P1 is a complete, differentiated product | — | — |
+| **P2** | v1.61–1.66 | **gateway MVP**, separate `@clihub/gateway`, OFF by default, **pass-through only**: loopback bind + DNS-rebind/Host guard + 256-bit bearer on **every** endpoint + **mandatory keychain floor** (hard-refuse `file` backend) + **per-request key zeroize** + default-no-body-logging + **signed-host-pinset re-verified at start** + API-key-only pool + circuit-breaker. **Blocking external security review = the exit criterion** (never self-approved) | **partly** (live-key tests need humans) | **L (≈ a quarter)** |
+| **P2b** | post-review | account-pool selection, active health probes → doctor matrix, **`gateway:` block lockfile-pinned + CI-drift-gated** (the moat differentiator), rate-limit/drain, OS-service install. **No format conversion.** | partly | M |
+| **P3** | v2.0 | **native Tauri 2 desktop GUI** (owner decision) — thin shell over `@clihub/core` via a `@clihub/daemon` sidecar; lead panels = **drift / lockfile / gateway dashboard** (never a provider dropdown first); golden parity tests (GUI == CLI == kernel). Code-signing / notarization (Apple Developer ID + Windows EV) is a funded effort. **CLI/TUI stay co-equal, never the only entry point** | shell needs human QA | M (new toolchain) |
+
+Ongoing alongside: grow catalog skills / MCP entries; newcomer-experience polish.
 
 ## Enterprise line (future spin-off)
 
@@ -227,6 +265,7 @@ infrastructure; the specs fix the contracts:
 |---|---|---|
 | Anthropic changes the skill format | high | adapter layer absorbs deltas |
 | alirezarezvani/claude-skills adds CLI install | high | shipped to npm + presets + rollback first |
+| CC Switch (or another AI-CLI switcher) adds breadth | high | moat is lockfile + CI drift gate + signed *federated* catalog + native-schema fan-out + E2E sync — keep widening CLI coverage and depth, don't compete on the runtime-proxy axis |
 | AI CLI shake-out: a CLI dies | high | provider abstraction; drop the provider, no user impact |
 | nobody cares (silent fail) | medium | HN / Reddit / V2EX launch on the 1.x stable line |
 | translation drift | low | LLM-assisted + native-speaker review on release |
