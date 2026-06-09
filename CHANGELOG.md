@@ -4,6 +4,28 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.61.0] — P1a: endpoint presets + import + MCP reconcile (+ registry dedup)
+
+Config-surface superset toward the GUI (P1a in the version plan) + a debt
+cleanup. The LLM-endpoint feature is `clihub endpoint` — **not** `provider`
+(that is the declarative CLI-SDK command, v0.10).
+
+- **`clihub endpoint`** — a signed `endpoints.json` preset catalog (7 verified
+  seed endpoints: Anthropic / OpenAI / Google / DeepSeek / OpenRouter / Groq /
+  Ollama — real URLs only) + `endpoint use <id>` 1-click switch that writes the
+  preset's baseURL into the active profile's native CLI config (anthropic /
+  openai / google injectors); the key stays in the OS keychain. `EndpointPreset`
+  conformance rejects inline secrets.
+- **`clihub import`** — reverse-ingest installed CLIs + their actual skills + MCP
+  servers into a `clihub.yaml` (adopt clihub on top of an existing setup).
+- **`clihub mcp reconcile`** — bidirectional cross-CLI drift report + `--apply`
+  (union) to converge a server across CLIs; closes the "fans out but never
+  reconciles back" gap.
+- **Refactor** — single-source skill-adapter registry (`skill/registry.ts`);
+  apply / doctor / CLI stop carrying duplicate maps.
+
+Tests → 151. core + CLI tsc clean, bundle builds, every command sandbox-smoked.
+
 ## [1.60.0] — Phase 1b: prompt · usage · cloud-sync · self-update · lockfile prompt-gate
 
 Six config-surface features (v1.55–v1.60 in the version plan), all headless-verified:
