@@ -5,22 +5,34 @@ import {
   randomToken,
   DAEMON_VERSION,
   routeKeys,
+  knownRoutes,
+  sseFrame,
+  streamKeys,
 } from '../src/index.js';
-import { listEndpoints, listProviders } from '@clihub/core';
+import { listEndpoints, listProviders, reconcileMcpPlan, planApply, parseClihubYaml } from '@clihub/core';
 
 const TOKEN = 'a'.repeat(64);
 const ctx = { token: TOKEN, version: DAEMON_VERSION };
 
-function authedReq(path: string): Request {
+function getReq(path: string): Request {
   return new Request(`http://127.0.0.1${path}`, {
     headers: { authorization: `Bearer ${TOKEN}` },
   });
 }
 
-describe('routeRequest auth', () => {
+function postReq(path: string, body?: unknown, auth = true): Request {
+  const headers: Record<string, string> = { 'content-type': 'application/json' };
+  if (auth) headers.authorization = `Bearer ${TOKEN}`;
+  return new Request(`http://127.0.0.1${path}`, {
+    method: 'POST',
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+}
+
+describe('auth + guards', () => {
   test('401 without a bearer token', async () => {
-    const res = await routeRequest(new Request('http://127.0.0.1/healthz'), ctx);
-    expect(res.status).toBe(401);
+    expect((await routeRequest(new Request('http://127.0.0.1/healthz'), ctx)).status).toBe(401);
   });
 
   test('401 with a wrong token', async () => {
@@ -29,6 +41,10 @@ describe('routeRequest auth', () => {
       ctx,
     );
     expect(res.status).toBe(401);
+  });
+
+  test('401 on a POST without a token', async () => {
+    expect((await routeRequest(postReq('/v1/endpoint/use', { id: 'x' }, false), ctx)).status).toBe(401);
   });
 
   test('403 on a non-loopback Host header (DNS-rebind guard)', async () => {
@@ -41,37 +57,107 @@ describe('routeRequest auth', () => {
     expect(res.status).toBe(403);
   });
 
-  test('404 with the known-route list for an unknown path', async () => {
-    const res = await routeRequest(authedReq('/v1/nope'), ctx);
+  test('allows an IPv6 [::1] loopback Host (with port)', async () => {
+    const res = await routeRequest(
+      new Request('http://127.0.0.1/healthz', {
+        headers: { authorization: `Bearer ${TOKEN}`, host: '[::1]:8973' },
+      }),
+      ctx,
+    );
+    expect(res.status).toBe(200);
+  });
+
+  test('404 lists known routes (data + stream) for an unknown path', async () => {
+    const res = await routeRequest(getReq('/v1/nope'), ctx);
     expect(res.status).toBe(404);
     const body = (await res.json()) as { known: string[] };
-    expect(body.known).toEqual(routeKeys());
+    expect(body.known).toEqual(knownRoutes());
+    expect(body.known).toContain('POST /v1/endpoint/use');
+    expect(body.known).toContain('GET /stream/doctor');
   });
 });
 
 describe('healthz', () => {
   test('reports ok + version', async () => {
-    const res = await routeRequest(authedReq('/healthz'), ctx);
+    const res = await routeRequest(getReq('/healthz'), ctx);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, name: 'clihub-daemon', version: DAEMON_VERSION });
   });
 });
 
-describe('golden parity — route result === direct kernel call', () => {
+describe('golden parity — read routes === direct kernel call', () => {
   test('/v1/endpoints matches listEndpoints()', async () => {
-    const res = await routeRequest(authedReq('/v1/endpoints'), ctx);
+    const res = await routeRequest(getReq('/v1/endpoints'), ctx);
     const body = (await res.json()) as { endpoints: unknown };
     expect(body.endpoints).toEqual(await listEndpoints());
   });
 
   test('/v1/providers ids match listProviders()', async () => {
-    const res = await routeRequest(authedReq('/v1/providers'), ctx);
+    const res = await routeRequest(getReq('/v1/providers'), ctx);
     const body = (await res.json()) as { providers: Array<{ id: string }> };
     expect(body.providers.map((p) => p.id)).toEqual(listProviders().map((p) => p.id));
   });
 });
 
-describe('createDaemon', () => {
+describe('mutating routes — validation (no side effects)', () => {
+  test('POST /v1/endpoint/use with no body → 400', async () => {
+    expect((await routeRequest(postReq('/v1/endpoint/use'), ctx)).status).toBe(400);
+  });
+
+  test('POST /v1/endpoint/use {} → 400 (missing id)', async () => {
+    expect((await routeRequest(postReq('/v1/endpoint/use', {}), ctx)).status).toBe(400);
+  });
+
+  test('POST /v1/mcp/add {} → 400 (missing id)', async () => {
+    expect((await routeRequest(postReq('/v1/mcp/add', {}), ctx)).status).toBe(400);
+  });
+
+  test('POST /v1/profile/use {} → 400 (missing name)', async () => {
+    expect((await routeRequest(postReq('/v1/profile/use', {}), ctx)).status).toBe(400);
+  });
+
+  // addMcp early-returns for an unknown id with no command/url — it touches no
+  // config file, so this exercises POST→kernel delegation + the no-op audit path
+  // (audit is skipped when done is empty) without mutating real config.
+  test('POST /v1/mcp/add unknown id → 200 with failure, mutates nothing', async () => {
+    const res = await routeRequest(postReq('/v1/mcp/add', { id: 'clihub-nonexistent-server-zzz' }), ctx);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { done: string[]; failed: Array<{ tool: string }> };
+    expect(body.done).toEqual([]);
+    expect(body.failed.length).toBeGreaterThan(0);
+  });
+});
+
+describe('golden parity — read-only POST paths === direct kernel call', () => {
+  test('POST /v1/mcp/reconcile (preview) matches reconcileMcpPlan({})', async () => {
+    const res = await routeRequest(postReq('/v1/mcp/reconcile', {}), ctx);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(await reconcileMcpPlan({}));
+  });
+
+  test('POST /v1/apply {plan:true, yaml} matches planApply(parse(yaml))', async () => {
+    const yaml = 'tools: []\n';
+    const res = await routeRequest(postReq('/v1/apply', { plan: true, yaml }), ctx);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(await planApply(parseClihubYaml(yaml)));
+  });
+});
+
+describe('SSE streams', () => {
+  test('sseFrame formats a data frame', () => {
+    expect(sseFrame({ a: 1 })).toBe('data: {"a":1}\n\n');
+  });
+
+  test('streamKeys lists the two streams', () => {
+    expect(streamKeys()).toEqual(['GET /stream/doctor', 'GET /stream/watch']);
+  });
+
+  test('GET /stream/doctor without a token → 401', async () => {
+    expect((await routeRequest(new Request('http://127.0.0.1/stream/doctor'), ctx)).status).toBe(401);
+  });
+});
+
+describe('createDaemon (live loopback server)', () => {
   test('refuses a non-loopback bind without unsafeBind', () => {
     expect(() => createDaemon({ host: '0.0.0.0' })).toThrow(/non-loopback/);
   });
@@ -81,16 +167,52 @@ describe('createDaemon', () => {
     try {
       expect(d.host).toBe('127.0.0.1');
       expect(d.port).toBeGreaterThan(0);
-
       const ok = await fetch(`${d.url}/healthz`, { headers: { authorization: `Bearer ${TOKEN}` } });
       expect(ok.status).toBe(200);
-
       const denied = await fetch(`${d.url}/healthz`);
       expect(denied.status).toBe(401);
     } finally {
       d.stop();
     }
   });
+
+  test('streams a first /stream/doctor frame over the wire', async () => {
+    const d = createDaemon({ token: TOKEN });
+    const ctrl = new AbortController();
+    try {
+      const res = await fetch(`${d.url}/stream/doctor`, {
+        headers: { authorization: `Bearer ${TOKEN}` },
+        signal: ctrl.signal,
+      });
+      expect(res.status).toBe(200);
+      expect(res.headers.get('content-type')).toContain('text/event-stream');
+      const reader = res.body!.getReader();
+      const { value } = await reader.read();
+      const text = new TextDecoder().decode(value);
+      expect(text.startsWith('data: ')).toBe(true);
+      const payload = JSON.parse(text.slice('data: '.length).trim());
+      expect(Array.isArray(payload.tools)).toBe(true);
+    } finally {
+      ctrl.abort();
+      d.stop();
+    }
+  }, 20000);
+
+  test('opens /stream/watch and cancels cleanly', async () => {
+    const d = createDaemon({ token: TOKEN });
+    const ctrl = new AbortController();
+    try {
+      const res = await fetch(`${d.url}/stream/watch`, {
+        headers: { authorization: `Bearer ${TOKEN}` },
+        signal: ctrl.signal,
+      });
+      expect(res.status).toBe(200);
+      expect(res.headers.get('content-type')).toContain('text/event-stream');
+    } finally {
+      ctrl.abort();
+      d.stop();
+    }
+  }, 20000);
 
   test('randomToken is 64 hex chars and unique', () => {
     const a = randomToken();

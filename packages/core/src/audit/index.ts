@@ -8,7 +8,7 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-export type AuditActor = 'cli' | 'tui' | 'core';
+export type AuditActor = 'cli' | 'tui' | 'core' | 'daemon';
 
 export interface AuditEntryBase {
   /** ISO 8601 UTC. */
