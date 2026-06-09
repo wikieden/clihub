@@ -111,34 +111,49 @@ function stripFrontmatter(text: string): string {
 }
 
 /** Remove an existing managed block (used when a source file is also a target). */
-export function stripManagedBlock(text: string): string {
-  const s = text.indexOf(MEMORY_START);
-  const e = text.indexOf(MEMORY_END);
+export function stripManagedBlock(
+  text: string,
+  start: string = MEMORY_START,
+  end: string = MEMORY_END,
+): string {
+  const s = text.indexOf(start);
+  const e = text.indexOf(end);
   if (s !== -1 && e !== -1 && e > s) {
-    return (text.slice(0, s) + text.slice(e + MEMORY_END.length)).trim();
+    return (text.slice(0, s) + text.slice(e + end.length)).trim();
   }
   return text;
 }
 
 /** Insert or replace the managed block in `existing`, preserving outside text. */
-export function applyManagedBlock(existing: string, body: string): string {
-  const block = `${MEMORY_START}\n${body.trim()}\n${MEMORY_END}`;
-  const s = existing.indexOf(MEMORY_START);
-  const e = existing.indexOf(MEMORY_END);
+export function applyManagedBlock(
+  existing: string,
+  body: string,
+  start: string = MEMORY_START,
+  end: string = MEMORY_END,
+): string {
+  const block = `${start}\n${body.trim()}\n${end}`;
+  const s = existing.indexOf(start);
+  const e = existing.indexOf(end);
   if (s !== -1 && e !== -1 && e > s) {
-    return existing.slice(0, s) + block + existing.slice(e + MEMORY_END.length);
+    return existing.slice(0, s) + block + existing.slice(e + end.length);
   }
   const head = existing.replace(/\s+$/, '');
   return (head ? `${head}\n\n` : '') + block + '\n';
 }
 
 /** Compute the full file content a target should have for `body`. */
-export function renderTarget(target: MemoryTarget, existing: string, body: string): string {
+export function renderTarget(
+  target: MemoryTarget,
+  existing: string,
+  body: string,
+  start: string = MEMORY_START,
+  end: string = MEMORY_END,
+): string {
   if (target.frontmatter) {
     const fm = `---\n${target.frontmatter}\n---\n`;
-    return fm + applyManagedBlock(stripFrontmatter(existing), body);
+    return fm + applyManagedBlock(stripFrontmatter(existing), body, start, end);
   }
-  return applyManagedBlock(existing, body);
+  return applyManagedBlock(existing, body, start, end);
 }
 
 export type MemoryVerb = 'create' | 'update' | 'unchanged' | 'skip';
@@ -160,6 +175,11 @@ export interface MemoryOptions {
   source?: string;
   /** Include CLIs that are not installed (default: false → skip them). */
   all?: boolean;
+  /** Managed-block markers (default: memory markers). Lets a second engine
+   *  (e.g. `clihub prompt`) write a distinct block into the same files. */
+  markers?: { start: string; end: string };
+  /** Target table (default: MEMORY_TARGETS). */
+  targets?: MemoryTarget[];
 }
 
 function targetPath(target: MemoryTarget, scope: 'project' | 'user', cwd: string): string | undefined {
@@ -179,9 +199,12 @@ async function readExisting(file: string): Promise<string | undefined> {
 export async function planMemory(body: string, opts: MemoryOptions = {}): Promise<MemoryPlanItem[]> {
   const cwd = opts.cwd ?? process.cwd();
   const scope = opts.scope ?? 'project';
+  const targets = opts.targets ?? MEMORY_TARGETS;
+  const start = opts.markers?.start ?? MEMORY_START;
+  const end = opts.markers?.end ?? MEMORY_END;
   const items: MemoryPlanItem[] = [];
 
-  for (const target of MEMORY_TARGETS) {
+  for (const target of targets) {
     const file = targetPath(target, scope, cwd);
     if (!file) continue; // no file for this scope (e.g. cursor has no user file)
 
@@ -195,7 +218,7 @@ export async function planMemory(body: string, opts: MemoryOptions = {}): Promis
     }
 
     const existing = await readExisting(file);
-    const next = renderTarget(target, existing ?? '', body);
+    const next = renderTarget(target, existing ?? '', body, start, end);
     if (existing === undefined) items.push({ tool: target.tool, label: target.label, path: file, verb: 'create' });
     else if (existing === next) items.push({ tool: target.tool, label: target.label, path: file, verb: 'unchanged' });
     else items.push({ tool: target.tool, label: target.label, path: file, verb: 'update' });
@@ -212,16 +235,19 @@ export async function generateMemory(body: string, opts: MemoryOptions = {}): Pr
   const written: MemoryPlanItem[] = [];
   const failed: Array<{ tool: string; path: string; error: string }> = [];
 
+  const targets = opts.targets ?? MEMORY_TARGETS;
+  const start = opts.markers?.start ?? MEMORY_START;
+  const end = opts.markers?.end ?? MEMORY_END;
   const plan = await planMemory(body, opts);
   for (const item of plan) {
     if (item.verb === 'skip' || item.verb === 'unchanged') {
       written.push(item);
       continue;
     }
-    const target = MEMORY_TARGETS.find((m) => m.tool === item.tool)!;
+    const target = targets.find((m) => m.tool === item.tool)!;
     try {
       const existing = (await readExisting(item.path)) ?? '';
-      const next = renderTarget(target, existing, body);
+      const next = renderTarget(target, existing, body, start, end);
       await fs.mkdir(path.dirname(item.path), { recursive: true });
       const tmp = `${item.path}.tmp`;
       await fs.writeFile(tmp, next, 'utf8');

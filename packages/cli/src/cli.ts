@@ -1297,7 +1297,17 @@ cli
 // ─── self-update ──────────────────────────────────────────────────────
 cli
   .command('self-update', 'Update clihub to the latest version')
-  .action(async () => {
+  .option('--check', 'Only report whether an update is available (no install)')
+  .action(async (opts: { check?: boolean }) => {
+    const { checkForUpdate } = await import('@clihub/core');
+    const chk = await checkForUpdate({ current: pkg.version });
+    if (opts.check) {
+      if (chk.error) info(`update check failed: ${chk.error}`);
+      else if (chk.updateAvailable) info(`update available: ${chk.current} → ${chk.latest}  (run: clihub self-update)`);
+      else ok(`clihub ${chk.current} is up to date`);
+      return;
+    }
+    if (!chk.error && !chk.updateAvailable) { ok(`clihub ${chk.current} is already up to date`); return; }
     const { execFile } = await import('node:child_process');
     const { promisify } = await import('node:util');
     const execFileP = promisify(execFile);
@@ -1669,12 +1679,12 @@ cli
   .command('lock', 'Generate clihub.lock.json from clihub.yaml')
   .action(async () => {
     await ensureProviders();
-    const { findClihubYaml, parseClihubYaml, generateLockfile, writeLockfile, formatErrorMessage } = await import('@clihub/core');
+    const { findClihubYaml, parseClihubYaml, generateLockfile, writeLockfile, formatErrorMessage, CatalogLoader } = await import('@clihub/core');
     const fsp = await import('node:fs/promises');
     const file = await findClihubYaml();
     if (!file) { err(formatErrorMessage('CLIHUB-E-600')); process.exit(1); }
     const cfg = parseClihubYaml(await fsp.readFile(file, 'utf8'));
-    const lock = await generateLockfile(cfg, pkg.version);
+    const lock = await generateLockfile(cfg, pkg.version, new CatalogLoader(), { cwd: path.dirname(file) });
     const lockPath = path.join(path.dirname(file), 'clihub.lock.json');
     await writeLockfile(lock, lockPath);
     ok(`wrote ${lockPath}`);
@@ -1723,13 +1733,60 @@ async function syncPassphrase(confirm: boolean): Promise<string> {
 }
 
 cli
-  .command('sync [action] [file]', 'Cross-machine encrypted config sync (export | import)')
+  .command('sync [action] [file]', 'Cross-machine encrypted config sync (export | import | push | pull)')
   .option('--out <file>', 'export: output file (default: clihub-sync.txt)')
-  .option('--plan', 'import: show the diff without writing')
-  .option('--no-overwrite', 'import: keep local files that differ')
-  .action(async (action: string | undefined, file: string | undefined, opts: { out?: string; plan?: boolean; overwrite?: boolean }) => {
-    const { collectBundle, encryptBundle, decryptBundle, planRestore, applyRestore } = await import('@clihub/core');
+  .option('--to <transport>', 'push/pull: destination — a folder path or webdav:https://host/path')
+  .option('--watch', 'push: keep running and re-push on config change')
+  .option('--plan', 'import/pull: show the diff without writing')
+  .option('--no-overwrite', 'import/pull: keep local files that differ')
+  .action(async (action: string | undefined, file: string | undefined, opts: { out?: string; to?: string; watch?: boolean; plan?: boolean; overwrite?: boolean }) => {
+    const { collectBundle, encryptBundle, decryptBundle, planRestore, applyRestore, resolveTransport, pushBundle, pullBundle, redactBundle, watchAndPush } = await import('@clihub/core');
     const fsp = await import('node:fs/promises');
+
+    if (action === 'push' || action === 'pull') {
+      const spec = opts.to ?? file;
+      if (!spec) { err('usage: clihub sync push|pull --to <folder|webdav:URL>'); process.exit(1); }
+      const transport = resolveTransport(spec);
+      if (action === 'push') {
+        const pass = await syncPassphrase(true);
+        if (opts.watch) {
+          info(`watching config; pushing to ${transport.describe()} on change (Ctrl-C to stop)`);
+          const handle = watchAndPush(transport, {
+            clihubVersion: pkg.version,
+            passphrase: pass,
+            onPush: (n) => ok(`pushed${n ? `, redacted ${n} secret(s)` : ''} → ${transport.describe()}`),
+            onError: (e) => err(e instanceof Error ? e.message : String(e)),
+          });
+          process.on('SIGINT', () => { handle.stop(); process.exit(0); });
+          await new Promise(() => {}); // keep alive until Ctrl-C
+          return;
+        }
+        const raw = await collectBundle(pkg.version);
+        const { bundle, redactions } = redactBundle(raw);
+        try { await pushBundle(transport, bundle, pass); }
+        catch (e) { err(e instanceof Error ? e.message : String(e)); process.exit(1); }
+        ok(`pushed ${bundle.files.length} files${redactions.length ? `, redacted ${redactions.length} secret(s)` : ''} → ${transport.describe()}`);
+        return;
+      }
+      const pass = await syncPassphrase(false);
+      let bundle;
+      try { bundle = await pullBundle(transport, pass); }
+      catch (e) { err(e instanceof Error ? e.message : String(e)); process.exit(1); }
+      info(`bundle from clihub ${bundle.clihub}, generated ${bundle.generatedAt}`);
+      if (opts.plan) {
+        for (const it of await planRestore(bundle)) {
+          const mark = it.verb === 'new' ? kleur.green('+') : it.verb === 'overwrite' ? kleur.yellow('~') : kleur.dim('=');
+          console.log(`  ${mark} ${it.path}`);
+        }
+        return;
+      }
+      const res = await applyRestore(bundle, { noOverwrite: opts.overwrite === false });
+      for (const w of res.written) if (w.verb !== 'same') ok(w.path);
+      if (res.relinkedProfile) ok(`current profile → ${res.relinkedProfile}`);
+      for (const f of res.failed) err(`${f.path}: ${f.error}`);
+      if (res.failed.length > 0) process.exit(1);
+      return;
+    }
 
     if (action === 'export') {
       const pass = await syncPassphrase(true);
@@ -1815,6 +1872,69 @@ cli
     if (result.failed.length > 0) process.exit(1);
   });
 
+// ─── prompt (system prompt / persona) ─────────────────────────────────
+cli
+  .command('prompt [action]', 'Sync one system-prompt/persona source to every CLI (generate | plan)')
+  .option('--user', 'Write user-level files (~/.claude, ~/.codex, ...) instead of project files')
+  .option('--all', 'Include CLIs that are not installed')
+  .option('--source <file>', 'Source markdown (default: clihub.systemprompt.md)')
+  .option('--check', 'Exit non-zero if any file is out of date (CI); writes nothing')
+  .action(async (action: string | undefined, opts: { user?: boolean; all?: boolean; source?: string; check?: boolean }) => {
+    const { resolvePromptSource, planSysprompt, generateSysprompt } = await import('@clihub/core');
+    const scope = opts.user ? 'user' : 'project';
+    const src = await resolvePromptSource(process.cwd(), opts.source);
+    if (!src) {
+      err('no system-prompt source found (looked for clihub.systemprompt.md)');
+      info('create clihub.systemprompt.md with your system prompt / persona, then re-run.');
+      info('note: this is a SEPARATE managed block from `clihub memory` in the same instruction files.');
+      process.exit(1);
+    }
+    info(`source: ${src.file}`);
+    const pOpts = { scope, all: opts.all } as const;
+
+    if (action === 'plan' || opts.check) {
+      const plan = await planSysprompt(src.body, pOpts);
+      for (const it of plan) {
+        const mark = it.verb === 'create' ? kleur.green('+')
+          : it.verb === 'update' ? kleur.yellow('~')
+          : it.verb === 'skip' ? kleur.dim('·')
+          : kleur.dim('=');
+        console.log(`  ${mark} ${it.label} ${kleur.dim(it.path)}${it.detail ? kleur.dim(`  (${it.detail})`) : ''}`);
+      }
+      const drift = plan.filter((i) => i.verb === 'create' || i.verb === 'update').length;
+      info(`${drift} out of date, ${plan.filter((i) => i.verb === 'unchanged').length} current, ${plan.filter((i) => i.verb === 'skip').length} skipped`);
+      if (opts.check && drift > 0) { err('system-prompt files are out of date (run `clihub prompt generate`)'); process.exit(1); }
+      return;
+    }
+
+    const result = await generateSysprompt(src.body, pOpts);
+    for (const w of result.written) {
+      if (w.verb === 'skip') continue;
+      ok(`${w.label} ${kleur.dim(w.path)}${w.verb === 'unchanged' ? kleur.dim(' (unchanged)') : ''}`);
+    }
+    for (const f of result.failed) err(`${f.tool} ${f.path}: ${f.error}`);
+    if (result.failed.length > 0) process.exit(1);
+  });
+
+// ─── usage ────────────────────────────────────────────────────────────
+cli
+  .command('usage', 'Token rollup across CLIs (read-only; tokens only, never $)')
+  .option('--json', 'Output the rollup as JSON')
+  .action(async (opts: { json?: boolean }) => {
+    const { collectUsage } = await import('@clihub/core');
+    const res = await collectUsage();
+    if (opts.json) { console.log(JSON.stringify(res, null, 2)); return; }
+    for (const r of res.rows) {
+      if (r.supported) {
+        ok(`${r.label}  ${kleur.dim(`in ${r.inputTokens} · out ${r.outputTokens} · cache ${r.cacheTokens} · ${r.sessions} sessions`)}  total ${kleur.bold(String(r.totalTokens))}`);
+      } else {
+        console.log(`  ${kleur.dim('·')} ${r.label} ${kleur.dim(`(${r.note})`)}`);
+      }
+    }
+    info(`total tokens: ${res.totals.totalTokens} (in ${res.totals.inputTokens} · out ${res.totals.outputTokens} · cache ${res.totals.cacheTokens})`);
+    info('tokens only — clihub never asserts a dollar cost.');
+  });
+
 // ─── status ───────────────────────────────────────────────────────────
 cli
   .command('status', 'Check this machine against clihub.lock.json (CI compliance gate)')
@@ -1822,13 +1942,14 @@ cli
   .option('--strict', 'Exit non-zero if not compliant (drift or missing)')
   .action(async (opts: { json?: boolean; strict?: boolean }) => {
     await ensureProviders();
-    const { findClihubYaml, parseClihubYaml, readLockfile, computeStatus, formatErrorMessage } = await import('@clihub/core');
+    const { findClihubYaml, parseClihubYaml, readLockfile, computeStatus, formatErrorMessage, systemPromptHash } = await import('@clihub/core');
     const fsp = await import('node:fs/promises');
     const file = await findClihubYaml();
     if (!file) { err(formatErrorMessage('CLIHUB-E-600')); process.exit(1); }
     const cfg = parseClihubYaml(await fsp.readFile(file, 'utf8'));
     const lock = await readLockfile(path.join(path.dirname(file), 'clihub.lock.json'));
-    const report = await computeStatus(cfg, lock);
+    const sph = await systemPromptHash(path.dirname(file));
+    const report = await computeStatus(cfg, lock, { systemPromptHash: sph });
 
     if (opts.json) {
       console.log(JSON.stringify(report, null, 2));

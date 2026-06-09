@@ -4,6 +4,33 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.60.0] — Phase 1b: prompt · usage · cloud-sync · self-update · lockfile prompt-gate
+
+Six config-surface features (v1.55–v1.60 in the version plan), all headless-verified:
+
+- **`clihub prompt`** (v1.55) — cross-CLI system-prompt / persona management. These
+  CLIs have no separate system-prompt config file, so `prompt` writes a SECOND
+  managed block (own marker + `clihub.systemprompt.md` source) into the same verified
+  instruction files `memory` uses — the two blocks coexist, each regenerated
+  independently. The memory block engine is parameterized (markers + targets), so
+  there is one engine, not two.
+- **`clihub usage [--json]`** (v1.56) — read-only token rollup. **Tokens only, never a
+  dollar figure.** Ships a verified Claude Code parser (`~/.claude/projects/**/*.jsonl`
+  `message.usage.*`); other CLIs report `supported:false` rather than fabricate.
+- **`clihub sync push|pull --to <transport>`** (v1.57) — cloud-folder sync below the
+  existing E2E bundle: `FsFolderTransport` (iCloud/Dropbox/OneDrive folders) +
+  `WebDavTransport`. Crypto untouched; no clihub backend.
+- **`clihub sync --watch` + redaction guard** (v1.58) — polling daemon re-pushes on
+  change; `redactBundle` masks secret-keyed / known-token values before any snapshot
+  leaves the machine.
+- **`clihub self-update --check`** (v1.59) — npm dist-tag aware update check (injectable
+  fetch; degrades to no-update on error, never throws).
+- **Lockfile `systemPromptHash` + `status` gate** (v1.60) — `clihub.lock.json` pins the
+  system-prompt hash and `status --strict` drift-gates it; added a forward-compat
+  `provider` lock field (populated by `provider switch`, v1.51+).
+
+Suite 110 → **137** (+27). Docs/version plan in `docs/24-VERSION-PLAN.md`. Held — no tag/publish.
+
 ## [1.50.0] — Cursor + Goose skill adapters
 
 Cursor and Goose had memory wiring but no skill sync — `skill install --tool

@@ -280,6 +280,22 @@ export {
   type MemoryResult,
 } from './memory/index.js';
 export {
+  resolvePromptSource,
+  planSysprompt,
+  generateSysprompt,
+  systemPromptHash,
+  SYSPROMPT_TARGETS,
+  PROMPT_SOURCE_CANDIDATES,
+  PROMPT_START,
+  PROMPT_END,
+} from './sysprompt/index.js';
+export {
+  collectUsage,
+  type UsageRow,
+  type UsageOptions,
+  type UsageResult,
+} from './usage/index.js';
+export {
   collectBundle,
   encryptBundle,
   decryptBundle,
@@ -293,6 +309,31 @@ export {
   type RestoreResult,
   type ApplyRestoreOpts,
 } from './sync/index.js';
+export {
+  type SyncTransport,
+  FsFolderTransport,
+  WebDavTransport,
+  type WebDavOptions,
+  resolveTransport,
+  pushBundle,
+  pullBundle,
+  SYNC_BLOB_NAME,
+} from './sync/transport.js';
+export {
+  redactBundle,
+  watchAndPush,
+  REDACTED,
+  type Redaction,
+  type WatchOptions as SyncWatchOptions,
+  type SyncWatchHandle,
+} from './sync/redact.js';
+export {
+  checkForUpdate,
+  compareSemver,
+  CLIHUB_PKG,
+  type UpdateCheck,
+  type CheckOptions,
+} from './update/index.js';
 export {
   clihubYamlSchema,
   clihubYamlSchemaJson,

@@ -25,6 +25,7 @@ import { GooseSkillAdapter } from '../skill/goose-adapter.js';
 import { ClaudeCodePluginAdapter } from '../plugin/index.js';
 import { addMcp } from '../mcp/manage.js';
 import { recordVersion } from '../version/index.js';
+import { systemPromptHash } from '../sysprompt/index.js';
 import type { SkillSyncAdapter } from '../tools/types.js';
 
 const SKILL_ADAPTERS: Record<string, () => SkillSyncAdapter> = {
@@ -194,12 +195,17 @@ export interface Lockfile {
   skills: Record<string, { tools: string[] }>;
   mcp: Record<string, Record<string, never>>;
   plugins: Record<string, Record<string, never>>;
+  /** Selected provider preset (forward-compat; populated by `provider switch`, v1.51+). */
+  provider?: { id: string; baseURL?: string };
+  /** sha256 of the resolved clihub.systemprompt.md body, if any (v1.60). */
+  systemPromptHash?: string;
 }
 
 export async function generateLockfile(
   cfg: ClihubYamlConfig,
   clihubVersion: string,
   loader = new CatalogLoader(),
+  opts: { cwd?: string } = {},
 ): Promise<Lockfile> {
   const catalog = await loader.load();
   const tools: Lockfile['tools'] = {};
@@ -225,6 +231,8 @@ export async function generateLockfile(
   const plugins: Lockfile['plugins'] = {};
   for (const p of cfg.plugins) plugins[p.id] = {};
 
+  const promptHash = await systemPromptHash(opts.cwd);
+
   return {
     version: 1,
     generatedAt: new Date().toISOString(),
@@ -234,6 +242,7 @@ export async function generateLockfile(
     skills,
     mcp,
     plugins,
+    ...(promptHash ? { systemPromptHash: promptHash } : {}),
   };
 }
 

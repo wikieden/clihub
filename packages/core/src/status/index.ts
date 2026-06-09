@@ -19,7 +19,7 @@ import { getProvider } from '../tools/registry.js';
 export type ComplianceState = 'ok' | 'drift' | 'missing' | 'unlocked';
 
 export interface StatusItem {
-  kind: 'tool' | 'skill';
+  kind: 'tool' | 'skill' | 'prompt';
   id: string;
   state: ComplianceState;
   /** Version pinned in the lockfile (if any). */
@@ -41,7 +41,11 @@ export interface StatusReport {
   lockfile: boolean;
 }
 
-export async function computeStatus(cfg: ClihubYamlConfig, lock?: Lockfile): Promise<StatusReport> {
+export async function computeStatus(
+  cfg: ClihubYamlConfig,
+  lock?: Lockfile,
+  opts: { systemPromptHash?: string } = {},
+): Promise<StatusReport> {
   const items: StatusItem[] = [];
 
   for (const tool of cfg.tools) {
@@ -73,6 +77,19 @@ export async function computeStatus(cfg: ClihubYamlConfig, lock?: Lockfile): Pro
   if (lock) {
     for (const [id, entry] of Object.entries(lock.skills)) {
       items.push({ kind: 'skill', id, state: 'ok', detail: entry.tools.join(', ') || undefined });
+    }
+  }
+
+  // system prompt: drift-gate the pinned hash (v1.60).
+  if (lock?.systemPromptHash) {
+    const short = (h: string): string => h.slice(0, 12);
+    const actual = opts.systemPromptHash;
+    if (!actual) {
+      items.push({ kind: 'prompt', id: 'system-prompt', state: 'missing', locked: short(lock.systemPromptHash), detail: 'no clihub.systemprompt.md' });
+    } else if (actual !== lock.systemPromptHash) {
+      items.push({ kind: 'prompt', id: 'system-prompt', state: 'drift', locked: short(lock.systemPromptHash), actual: short(actual) });
+    } else {
+      items.push({ kind: 'prompt', id: 'system-prompt', state: 'ok', locked: short(lock.systemPromptHash) });
     }
   }
 
