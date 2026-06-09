@@ -11,7 +11,7 @@
     },
     "packages/cli": {
       "name": "@wikieden/clihub",
-      "version": "1.44.0",
+      "version": "1.61.0",
       "bin": {
         "clihub": "dist/cli.js",
       },
@@ -24,10 +24,18 @@
     },
     "packages/core": {
       "name": "@clihub/core",
-      "version": "1.44.0",
+      "version": "1.61.0",
       "devDependencies": {
         "smol-toml": "^1.6.1",
         "yaml": "^2.6.1",
+      },
+    },
+    "packages/daemon": {
+      "name": "@clihub/daemon",
+      "version": "1.61.0",
+      "devDependencies": {
+        "@clihub/core": "workspace:*",
+        "bun-types": "^1.1.0",
       },
     },
   },
@@ -38,9 +46,13 @@
 
     "@clihub/core": ["@clihub/core@workspace:packages/core"],
 
+    "@clihub/daemon": ["@clihub/daemon@workspace:packages/daemon"],
+
     "@types/node": ["@types/node@22.19.19", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-dyh/xO2Fh5bYrfWaaqGrRQQGkNdmYw6AmaAUvYeUMNTWQtvb796ikLdmTchRmOlOiIJ1TDXfWgVx1QkUlQ6Hew=="],
 
     "@wikieden/clihub": ["@wikieden/clihub@workspace:packages/cli"],
+
+    "bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
     "cac": ["cac@6.7.14", "", {}, "sha512-b6Ilus+c3RrdDk+JhLKUAQfzzgLEPy6wcXqS7f/xe1EETvsDP6GORG7SFuOs6cID5YkqchW/LXZbX5bc8j7ZcQ=="],
 
