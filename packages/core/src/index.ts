@@ -68,6 +68,14 @@ export { CursorSkillAdapter } from './skill/cursor-adapter.js';
 export { GooseSkillAdapter } from './skill/goose-adapter.js';
 export { SKILL_ADAPTERS, skillAdapterFor, skillCapableTools } from './skill/registry.js';
 export {
+  listEndpoints,
+  findEndpoint,
+  validateEndpointPreset,
+  validateEndpointCatalog,
+  ENDPOINT_FAMILIES,
+  type EndpointPreset,
+} from './endpoint/index.js';
+export {
   JsonMcpAdapter,
   TomlMcpAdapter,
   type McpAdapter,

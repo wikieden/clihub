@@ -1920,6 +1920,22 @@ cli
     info('tokens only — clihub never asserts a dollar cost.');
   });
 
+// ─── endpoint (LLM API endpoint presets) ──────────────────────────────
+cli
+  .command('endpoint', 'List LLM API endpoint presets (Anthropic, OpenAI, DeepSeek, …)')
+  .option('--json', 'Output as JSON')
+  .action(async (opts: { json?: boolean }) => {
+    const { listEndpoints } = await import('@clihub/core');
+    const presets = await listEndpoints();
+    if (opts.json) { console.log(JSON.stringify(presets, null, 2)); return; }
+    if (presets.length === 0) { info('no endpoint presets in catalog'); return; }
+    for (const e of presets) {
+      console.log(`  ${kleur.bold(e.id)}  ${kleur.dim(e.label)}`);
+      console.log(`    ${kleur.dim(`${e.family} · ${e.baseURL}${e.authEnv ? ` · key: ${e.authEnv}` : ''}`)}`);
+    }
+    info(`${presets.length} endpoint presets — \`clihub endpoint use <id>\` to switch (v1.52).`);
+  });
+
 // ─── status ───────────────────────────────────────────────────────────
 cli
   .command('status', 'Check this machine against clihub.lock.json (CI compliance gate)')

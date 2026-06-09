@@ -1,0 +1,50 @@
+[
+  {
+    "id": "anthropic",
+    "label": "Anthropic (Claude API)",
+    "family": "anthropic",
+    "baseURL": "https://api.anthropic.com",
+    "authEnv": "ANTHROPIC_API_KEY"
+  },
+  {
+    "id": "openai",
+    "label": "OpenAI",
+    "family": "openai",
+    "baseURL": "https://api.openai.com/v1",
+    "authEnv": "OPENAI_API_KEY"
+  },
+  {
+    "id": "google",
+    "label": "Google Gemini",
+    "family": "google",
+    "baseURL": "https://generativelanguage.googleapis.com",
+    "authEnv": "GEMINI_API_KEY"
+  },
+  {
+    "id": "deepseek",
+    "label": "DeepSeek (OpenAI-compatible)",
+    "family": "openai",
+    "baseURL": "https://api.deepseek.com",
+    "authEnv": "DEEPSEEK_API_KEY"
+  },
+  {
+    "id": "openrouter",
+    "label": "OpenRouter",
+    "family": "openai",
+    "baseURL": "https://openrouter.ai/api/v1",
+    "authEnv": "OPENROUTER_API_KEY"
+  },
+  {
+    "id": "groq",
+    "label": "Groq",
+    "family": "openai",
+    "baseURL": "https://api.groq.com/openai/v1",
+    "authEnv": "GROQ_API_KEY"
+  },
+  {
+    "id": "ollama",
+    "label": "Ollama (local)",
+    "family": "openai",
+    "baseURL": "http://localhost:11434/v1"
+  }
+]

@@ -127,6 +127,25 @@ export interface Preset {
 }
 
 /**
+ * A named LLM API endpoint preset (v1.51). Switching endpoints writes the
+ * preset's baseURL + key (by NAME) into each CLI's native config — it is NOT a
+ * declarative CLI provider (see ToolProvider) and NOT a runtime proxy. Presets
+ * carry an env-var NAME only; an inline secret is rejected by conformance.
+ */
+export interface EndpointPreset {
+  id: string;
+  label: string;
+  /** Wire-protocol family — selects which base-URL injector applies. */
+  family: 'anthropic' | 'openai' | 'google';
+  /** Real API base URL (https, or http for localhost). */
+  baseURL: string;
+  /** Default model hints. */
+  models?: string[];
+  /** NAME of the env var the credential lives under — never an inline secret. */
+  authEnv?: string;
+}
+
+/**
  * Detect current platform. Windows is recognized but not yet supported
  * by any provider in v0.1.
  */

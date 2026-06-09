@@ -6,6 +6,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import type {
+  EndpointPreset,
   McpServerManifest,
   PluginManifest,
   Preset,
@@ -17,6 +18,7 @@ import _tools from '../../../catalog/tools.json' with { type: 'json' };
 import _presets from '../../../catalog/presets.json' with { type: 'json' };
 import _mcp from '../../../catalog/mcp.json' with { type: 'json' };
 import _plugins from '../../../catalog/plugins.json' with { type: 'json' };
+import _endpoints from '../../../catalog/endpoints.json' with { type: 'json' };
 import { defaultCatalogDir, readCatalogManifest } from './sync.js';
 import { orderedSourceDirs } from './sources.js';
 
@@ -26,6 +28,7 @@ export interface Catalog {
   presets: Preset[];
   mcpServers: McpServerManifest[];
   plugins: PluginManifest[];
+  endpoints: EndpointPreset[];
 }
 
 export interface CatalogLoaderOpts {
@@ -77,6 +80,7 @@ export class CatalogLoader {
       presets: _presets as unknown as Preset[],
       mcpServers: _mcp as unknown as McpServerManifest[],
       plugins: _plugins as unknown as PluginManifest[],
+      endpoints: _endpoints as unknown as EndpointPreset[],
     };
     return this.cache;
   }
@@ -103,6 +107,7 @@ export class CatalogLoader {
       presets: new Map<string, Preset>(),
       mcpServers: new Map<string, McpServerManifest>(),
       plugins: new Map<string, PluginManifest>(),
+      endpoints: new Map<string, EndpointPreset>(),
     };
     let loadedAny = false;
     for (const dir of dirs) {
@@ -118,6 +123,7 @@ export class CatalogLoader {
       for (const p of cat.presets) byId.presets.set(p.id, p);
       for (const m of cat.mcpServers) byId.mcpServers.set(m.id, m);
       for (const pl of cat.plugins) byId.plugins.set(pl.id, pl);
+      for (const e of cat.endpoints ?? []) byId.endpoints.set(e.id, e);
     }
     if (!loadedAny) throw new Error('no source dir loaded');
     return {
@@ -126,6 +132,7 @@ export class CatalogLoader {
       presets: [...byId.presets.values()],
       mcpServers: [...byId.mcpServers.values()],
       plugins: [...byId.plugins.values()],
+      endpoints: [...byId.endpoints.values()],
     };
   }
 
@@ -134,14 +141,15 @@ export class CatalogLoader {
       const raw = await fs.readFile(path.join(dir, name), 'utf8');
       return JSON.parse(raw) as T;
     };
-    const [skills, tools, presets, mcpServers, plugins] = await Promise.all([
+    const [skills, tools, presets, mcpServers, plugins, endpoints] = await Promise.all([
       readAt<SkillManifest[]>('skills.json'),
       readAt<ToolCatalogEntry[]>('tools.json'),
       readAt<Preset[]>('presets.json'),
       readAt<McpServerManifest[]>('mcp.json').catch(() => [] as McpServerManifest[]),
       readAt<PluginManifest[]>('plugins.json').catch(() => [] as PluginManifest[]),
+      readAt<EndpointPreset[]>('endpoints.json').catch(() => [] as EndpointPreset[]),
     ]);
-    return { skills, tools, presets, mcpServers, plugins };
+    return { skills, tools, presets, mcpServers, plugins, endpoints };
   }
 
   async findMcpServer(id: string): Promise<McpServerManifest | undefined> {
