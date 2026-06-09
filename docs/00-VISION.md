@@ -77,7 +77,7 @@ parity tests: GUI result == CLI result == kernel call). This repo (formerly
 3. **`clihub-desktop` (Tauri 2)** — native **desktop GUI**; tray, 1-click switch, MCP/skills panels, gateway dashboard, drift/lockfile banners. Co-equal with the CLI/TUI, never the only entry point.
 4. **`@clihub/gateway`** — optional, off-by-default, loopback-only local gateway daemon (separate package, not in default install).
 5. **`clihub` Claude Code skill** + **`/clihub` slash command** — the same kernel from inside the agent.
-6. **Catalog** — `skills.json`, `tools.json`, `presets.json`, `mcp.json`, `plugins.json`, and `providers.json` (signed provider presets).
+6. **Catalog** — `skills.json`, `tools.json`, `presets.json`, `mcp.json`, `plugins.json`, and `endpoints.json` (signed LLM-endpoint presets).
 7. **Install scripts** (`curl | sh` + git-clone fallback) + **statusline**.
 
 ## Core value props

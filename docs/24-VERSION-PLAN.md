@@ -25,17 +25,19 @@ Status: ✅ done · 🚧 in progress · 📋 planned · ⛔ gated/blocked
 
 ---
 
-## Phase 1a — Config superset, switch + import + MCP (headless) 📋
+## Phase 1a — Config superset, switch + import + MCP (headless) ✅ SHIPPED (held)
 
-| Ver | Deliverable | Reuses | New | Headless | Acceptance gate |
-|---|---|---|---|---|---|
-| **v1.51** | `providers.json` signed preset catalog (50+: Anthropic, OpenAI, DeepSeek, Moonshot/Kimi, Zhipu/GLM, OpenRouter, Groq, Ollama…) | `CatalogLoader`, `signing`/`trust`, conformance | `ProviderPreset` type; 6th catalog array; conformance rule **rejects inline secrets + unpinned host** | YES | load + signature verify + untrusted-key refusal over temp catalog |
-| **v1.52** | `clihub provider list\|current\|switch <preset>` — 1-click switch | `baseurls.ts` INJECTORS, keychain `getSecret` | switch writer (baseURL+model+key into native settings) — **anthropic/openai/google only** | YES | assert on-disk JSON/TOML after switch; key stays in keychain |
-| **v1.53** | `clihub import [--link <url>]` — reverse-ingest existing per-CLI config; clihub:// + best-effort ccswitch:// | `SettingsAdapter.read`, `inspectCredentials`, `listMcp`, `skillAdapter.list`, `generateClihubYaml` | `src/import/index.ts` normalized model + deep-link decoder | YES | round-trip: real per-CLI config → import → emitted `clihub.yaml` matches |
-| **v1.54** | `clihub mcp reconcile` — bidirectional, 3-way merge | `listMcp` (reads every CLI back), `diff.ts` | `src/mcp/reconcile.ts` + conflict policy (`--union` default, `--source-wins` CI); `snapshotBeforeWrite` each write | YES | drift plan + convergence over fixtures; promote-into-source path |
+| Ver | Deliverable | Shipped | Notes |
+|---|---|---|---|
+| **v1.51** | `endpoints.json` signed preset catalog + `clihub endpoint` | ✅ `d5e3c7f` | `EndpointPreset` type, 6th catalog array, conformance (no inline secret / real host). **7 verified-endpoint seed** (Anthropic/OpenAI/Google/DeepSeek/OpenRouter/Groq/Ollama) — grow to 50+ later, real URLs only |
+| **v1.52** | `clihub endpoint list\|current\|use <id>` 1-click switch | ✅ `1f6cdf2` | writes baseURL into active profile via `baseurls.ts` injectors + meta; key stays in keychain. anthropic/openai/google families only (qwen/kiro/cursor/goose have no injector) |
+| **v1.53** | `clihub import` reverse-ingest → clihub.yaml | ✅ `9cb16a7` | scans installed CLIs + actual skills + MCP; `generateClihubYaml` gained `mcp?`. `--link` deep-link decoder **deferred** (ccswitch:// schema unverified) |
+| **v1.54** | `clihub mcp reconcile` bidirectional drift + union apply | ✅ `5b1e253` | `reconcileMcpPlan` (cross-CLI presence) + `--apply` union via `addMcp`; non-catalog servers reported manual. `--source-wins`/interactive deferred |
 
-**Correction baked in:** qwen/kiro/cursor/goose have **no** base-URL injector yet —
-v1.52 ships the 3 that do; the rest are net-new (gateway-era work).
+**Naming:** the LLM-endpoint feature ships as `clihub endpoint` / `endpoints.json` /
+`EndpointPreset` — **not** `provider` (that is the declarative CLI-SDK command,
+v0.10) and not a runtime proxy. qwen/kiro/cursor/goose have no base-URL injector
+yet (gateway-era work).
 
 ---
 

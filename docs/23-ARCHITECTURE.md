@@ -45,7 +45,7 @@ embodies this — `packages/cli/src/cli.ts` "delegates all domain logic to
 |---|---|---|
 | `@clihub/core` | kernel — all domain logic | exists |
 | `@wikieden/clihub` | CLI (cac) + Clack **TUI**; bundles core | exists |
-| `@clihub/catalog` | signed manifests: `skills/tools/presets/mcp/plugins.json` + **`providers.json`** | exists (+ providers) |
+| `@clihub/catalog` | signed manifests: `skills/tools/presets/mcp/plugins.json` + **`endpoints.json`** | exists (+ endpoints) |
 | `@clihub/gateway` | opt-in loopback HTTP daemon (routing/failover/pool); **not in default install** | **new (P2)** |
 | `@clihub/daemon` | thin Bun HTTP+WS sidecar — 1:1 kernel→JSON route table; the only IPC surface for the GUI | **new (P3)** |
 | `clihub-desktop` | Tauri 2 Rust shell + WebView SPA (~9 panels) | **new (P3)** |
@@ -82,7 +82,7 @@ All six CC-Switch-parity features **compose existing primitives**:
 
 | Feature | Mechanism | Reuses | New |
 |---|---|---|---|
-| Provider presets + 1-click switch | `providers.json` = 6th signed catalog array; `provider use` writes baseURL+model+key via a **catalog-driven** injector table | `CatalogLoader`, `signing`/`trust`, `baseurls.ts`, keychain | `ProviderPreset` type; generalize INJECTORS from 3 hard-coded → catalog map covering all 7 CLIs |
+| Endpoint presets + 1-click switch ✅ v1.51–52 | `endpoints.json` = 6th signed catalog array; `clihub endpoint use` writes baseURL into each CLI's native config via the existing `baseurls.ts` injectors | `CatalogLoader`, `signing`/`trust`, `baseurls.ts`, keychain | `EndpointPreset` type; 7-preset verified seed; anthropic/openai/google injectors (qwen/kiro/cursor/goose deferred) |
 | `clihub import` | read-direction of the same writers → normalized model → `clihub.yaml`/preset | `SettingsAdapter.read`, `inspectCredentials`, `listMcp`, `skillAdapter.list`, `generateClihubYaml` | `src/import/index.ts` + `--link` decoder (clihub:// + best-effort ccswitch://) |
 | Bidirectional MCP reconcile | 3-way merge: desired vs each CLI live (`listMcp`) vs lockfile-base | `listMcp`, `diff.ts` comparators | `src/mcp/reconcile.ts` + conflict policy (`--union` default, `--source-wins` for CI) |
 | Usage/cost rollup | per-CLI `USAGE_SOURCES` parsers → typed rows (read-only) | shape of `inspectCredentials`/`runHealthMatrix` | `src/usage/index.ts` (**fragile** per-CLI parsers); **tokens-only, never a $ figure asserted as fact** |

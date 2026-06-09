@@ -219,7 +219,7 @@ routing topology is **pinned + signed + CI-drift-gated**. See
 > ToS / ban risk) — API-key pooling only. Several "pure reuse" claims were wrong
 > against the code (only anthropic/openai/google have base-URL injectors;
 > goose/YAML can't be pointed at the gateway via the existing seam; gateway egress
-> is a net-new HTTP client; `providers.json` doesn't exist yet) — tracked in the
+> is a net-new HTTP client; `endpoints.json` did not exist pre-P1a, now shipped) — tracked in the
 > threat model.
 
 | Phase | Versions | Scope | Headless? | Effort |
