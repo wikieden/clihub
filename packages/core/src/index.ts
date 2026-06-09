@@ -66,6 +66,7 @@ export { KiroCliSkillAdapter } from './skill/kiro-adapter.js';
 export { GeminiCliSkillAdapter } from './skill/gemini-adapter.js';
 export { CursorSkillAdapter } from './skill/cursor-adapter.js';
 export { GooseSkillAdapter } from './skill/goose-adapter.js';
+export { SKILL_ADAPTERS, skillAdapterFor, skillCapableTools } from './skill/registry.js';
 export {
   JsonMcpAdapter,
   TomlMcpAdapter,

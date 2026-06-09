@@ -11,12 +11,7 @@ import {
   BackupManager,
   CatalogLoader,
   ClaudeCodePluginAdapter,
-  ClaudeCodeSkillAdapter,
-  CodexSkillAdapter,
-  CursorSkillAdapter,
-  GeminiCliSkillAdapter,
-  GooseSkillAdapter,
-  KiroCliSkillAdapter,
+  SKILL_ADAPTERS as ADAPTERS,
   getProvider,
   listProviders,
   type PluginAdapter,
@@ -46,16 +41,6 @@ async function ensureProviders(allowScripts = false): Promise<void> {
     /* spec file errors shouldn't block built-in tools */
   }
 }
-
-const ADAPTERS: Record<string, () => SkillSyncAdapter> = {
-  'claude-code': () => new ClaudeCodeSkillAdapter(),
-  'codex': () => new CodexSkillAdapter(),
-  'kiro-cli': () => new KiroCliSkillAdapter(),
-  'gemini-cli': () => new GeminiCliSkillAdapter(),
-  'qwen-code': () => new GeminiCliSkillAdapter({ commandsDir: path.join(os.homedir(), '.qwen', 'commands'), geminiMd: path.join(os.homedir(), '.qwen', 'QWEN.md') }),
-  'cursor': () => new CursorSkillAdapter(),
-  'goose': () => new GooseSkillAdapter(),
-};
 
 const PLUGIN_ADAPTERS: Record<string, () => PluginAdapter> = {
   'claude-code': () => new ClaudeCodePluginAdapter(),

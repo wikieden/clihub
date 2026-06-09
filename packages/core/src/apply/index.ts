@@ -16,27 +16,13 @@ import path from 'node:path';
 import type { ClihubYamlConfig } from '../clihubyaml/full.js';
 import { getProvider } from '../tools/registry.js';
 import { CatalogLoader } from '../catalog/index.js';
-import { ClaudeCodeSkillAdapter } from '../skill/index.js';
-import { CodexSkillAdapter } from '../skill/codex-adapter.js';
-import { KiroCliSkillAdapter } from '../skill/kiro-adapter.js';
-import { GeminiCliSkillAdapter } from '../skill/gemini-adapter.js';
-import { CursorSkillAdapter } from '../skill/cursor-adapter.js';
-import { GooseSkillAdapter } from '../skill/goose-adapter.js';
+import { SKILL_ADAPTERS } from '../skill/registry.js';
 import { ClaudeCodePluginAdapter } from '../plugin/index.js';
 import { addMcp } from '../mcp/manage.js';
 import { recordVersion } from '../version/index.js';
 import { systemPromptHash } from '../sysprompt/index.js';
 import type { SkillSyncAdapter } from '../tools/types.js';
 
-const SKILL_ADAPTERS: Record<string, () => SkillSyncAdapter> = {
-  'claude-code': () => new ClaudeCodeSkillAdapter(),
-  'codex': () => new CodexSkillAdapter(),
-  'kiro-cli': () => new KiroCliSkillAdapter(),
-  'gemini-cli': () => new GeminiCliSkillAdapter(),
-  'qwen-code': () => new GeminiCliSkillAdapter({ commandsDir: path.join(os.homedir(), '.qwen', 'commands'), geminiMd: path.join(os.homedir(), '.qwen', 'QWEN.md') }),
-  'cursor': () => new CursorSkillAdapter(),
-  'goose': () => new GooseSkillAdapter(),
-};
 
 export type PlanVerb = 'add' | 'skip' | 'upgrade' | 'missing';
 

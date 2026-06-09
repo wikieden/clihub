@@ -15,12 +15,7 @@
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ClaudeCodeSkillAdapter } from '../skill/index.js';
-import { CodexSkillAdapter } from '../skill/codex-adapter.js';
-import { KiroCliSkillAdapter } from '../skill/kiro-adapter.js';
-import { GeminiCliSkillAdapter } from '../skill/gemini-adapter.js';
-import { CursorSkillAdapter } from '../skill/cursor-adapter.js';
-import { GooseSkillAdapter } from '../skill/goose-adapter.js';
+import { SKILL_ADAPTERS } from '../skill/registry.js';
 import { listMcp } from '../mcp/manage.js';
 import { listProviders } from '../tools/registry.js';
 import type { SkillSyncAdapter } from '../tools/types.js';
@@ -39,15 +34,6 @@ export interface ToolHealthRow {
   issues: string[];
 }
 
-const SKILL_ADAPTERS: Record<string, () => SkillSyncAdapter> = {
-  'claude-code': () => new ClaudeCodeSkillAdapter(),
-  'codex': () => new CodexSkillAdapter(),
-  'kiro-cli': () => new KiroCliSkillAdapter(),
-  'gemini-cli': () => new GeminiCliSkillAdapter(),
-  'qwen-code': () => new GeminiCliSkillAdapter({ commandsDir: path.join(os.homedir(), '.qwen', 'commands'), geminiMd: path.join(os.homedir(), '.qwen', 'QWEN.md') }),
-  'cursor': () => new CursorSkillAdapter(),
-  'goose': () => new GooseSkillAdapter(),
-};
 
 async function fileExists(p: string): Promise<boolean> {
   try {

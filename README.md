@@ -7,7 +7,7 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-**The one tool that installs Claude Code, Codex, Gemini CLI, Qwen Code, Kiro, Cursor, and Goose — keeps their skills in sync across every CLI — and ships one-command rollback when an update bites.**
+**The reproducible control plane for AI coding CLIs.** Install Claude Code, Codex, Gemini CLI, Qwen Code, Kiro, Cursor, and Goose; keep their skills / MCP / memory / system-prompts in sync across every CLI; switch accounts and proxies; and pin it all to a signed `clihub.lock.json` with one-command rollback when an update bites.
 
 ![demo](docs/assets/demo.gif)
 
@@ -16,7 +16,7 @@ curl -fsSL https://raw.githubusercontent.com/wikieden/clihub/main/scripts/instal
 clihub preset apply starter
 ```
 
-That's it. Four CLIs installed, 5 core skills fanned out to all of them, your prior `~/.claude` snapshotted and recoverable.
+That's it. Your stack installed, core skills fanned out to every CLI, your prior `~/.claude` snapshotted and recoverable.
 
 > **Who's it for?** Newcomers, individual developers, and teams/enterprises each get a different slice — see [`docs/21-VALUE.md`](docs/21-VALUE.md).
 
