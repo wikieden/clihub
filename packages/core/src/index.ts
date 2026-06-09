@@ -78,6 +78,12 @@ export {
   type UseEndpointResult,
 } from './endpoint/index.js';
 export {
+  importMachine,
+  type ImportResult,
+  type ImportSkill,
+  type ImportOpts,
+} from './import/index.js';
+export {
   JsonMcpAdapter,
   TomlMcpAdapter,
   type McpAdapter,

@@ -16,6 +16,8 @@ export interface GenerateYamlOpts {
   preset?: string;
   tools?: string[];
   skills?: SkillEntry[];
+  /** MCP server ids to pin (default: none → `mcp: []`). */
+  mcp?: string[];
   /** Prepend a yaml-language-server schema reference comment. */
   schema?: boolean;
 }
@@ -48,7 +50,15 @@ export function generateClihubYaml(opts: GenerateYamlOpts = {}): string {
   if (opts.preset) out.push('presets:', `  - ${opts.preset}`);
   else out.push('presets: []');
 
-  out.push('', 'mcp: []', 'plugins: []', '');
+  out.push('');
+  if (opts.mcp && opts.mcp.length > 0) {
+    out.push('mcp:');
+    for (const id of opts.mcp) out.push(`  - id: ${id}`);
+  } else {
+    out.push('mcp: []');
+  }
+
+  out.push('plugins: []', '');
   return out.join('\n');
 }
 

@@ -1966,6 +1966,26 @@ cli
     info(`${presets.length} endpoint presets — \`clihub endpoint use <id>\` to switch.`);
   });
 
+// ─── import (reverse-ingest existing setup) ───────────────────────────
+cli
+  .command('import', "Reverse-ingest this machine's installed CLIs/skills/MCP into a clihub.yaml")
+  .option('--out <file>', 'write to file (default: clihub.yaml)')
+  .option('--schema', 'include the yaml-language-server schema ref')
+  .option('--dry-run', 'print the yaml without writing')
+  .action(async (opts: { out?: string; schema?: boolean; dryRun?: boolean }) => {
+    await ensureProviders();
+    const { importMachine } = await import('@clihub/core');
+    const res = await importMachine({ schema: opts.schema });
+    info(`imported ${res.tools.length} CLIs, ${res.skills.length} skills, ${res.mcp.length} MCP servers`);
+    if (opts.dryRun) { console.log(res.yaml); return; }
+    const out = opts.out ?? 'clihub.yaml';
+    const fsp = await import('node:fs/promises');
+    const exists = await fsp.access(out).then(() => true).catch(() => false);
+    if (exists && !opts.out) { err(`${out} already exists — use --out <file> or --dry-run`); process.exit(1); }
+    await fsp.writeFile(out, res.yaml, 'utf8');
+    ok(`wrote ${out}  (${res.tools.length} tools, ${res.skills.length} skills, ${res.mcp.length} mcp)`);
+  });
+
 // ─── status ───────────────────────────────────────────────────────────
 cli
   .command('status', 'Check this machine against clihub.lock.json (CI compliance gate)')
