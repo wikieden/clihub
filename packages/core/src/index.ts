@@ -99,6 +99,14 @@ export {
   type AddMcpOpts,
 } from './mcp/manage.js';
 export {
+  reconcileMcpPlan,
+  reconcileMcp,
+  type McpReconcilePlan,
+  type McpReconcileItem,
+  type McpReconcileResult,
+  type McpReconcileOpts,
+} from './mcp/reconcile.js';
+export {
   GitClonePluginAdapter,
   ClaudeCodePluginAdapter,
   type PluginAdapter,

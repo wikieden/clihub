@@ -2096,13 +2096,14 @@ cli
 
 // ─── mcp <action> [id] ────────────────────────────────────────────────
 cli
-  .command('mcp <action> [id]', 'Manage MCP servers across CLIs (list | add | remove)')
+  .command('mcp <action> [id]', 'Manage MCP servers across CLIs (list | add | remove | reconcile)')
   .option('--command <cmd>', 'add: stdio command (for an MCP not in the catalog)')
   .option('--url <url>', 'add: http/sse endpoint')
   .option('--transport <t>', 'add: stdio | http | sse')
-  .action(async (action: string, id: string | undefined, opts: { command?: string; url?: string; transport?: string }) => {
+  .option('--apply', 'reconcile: converge drift (union — promote each server to every CLI)')
+  .action(async (action: string, id: string | undefined, opts: { command?: string; url?: string; transport?: string; apply?: boolean }) => {
     await ensureProviders();
-    const { listMcp, addMcp, removeMcp } = await import('@clihub/core');
+    const { listMcp, addMcp, removeMcp, reconcileMcpPlan, reconcileMcp } = await import('@clihub/core');
     switch (action) {
       case 'list': {
         const rows = await listMcp();
@@ -2132,8 +2133,25 @@ cli
         if (res.failed.length > 0) process.exit(1);
         return;
       }
+      case 'reconcile': {
+        if (opts.apply) {
+          const res = await reconcileMcp({});
+          for (const p of res.promoted) ok(`promoted ${p} → all CLIs`);
+          for (const m of res.manual) warn(`${m}: not in catalog — promote manually (clihub mcp add ${m} --command …)`);
+          if (res.promoted.length === 0 && res.manual.length === 0) info('MCP servers already in sync across CLIs.');
+          return;
+        }
+        const plan = await reconcileMcpPlan({});
+        if (plan.items.length === 0) { info('no MCP servers found across CLIs.'); return; }
+        for (const it of plan.items) {
+          if (it.state === 'synced') console.log(`  ${kleur.green('=')} ${it.id} ${kleur.dim('(all CLIs)')}`);
+          else console.log(`  ${kleur.yellow('~')} ${it.id} ${kleur.dim(`in ${it.presentIn.join(',')} — missing in ${it.absentIn.join(',')}`)}`);
+        }
+        info(`${plan.driftCount} drifting, ${plan.items.length - plan.driftCount} synced — \`clihub mcp reconcile --apply\` to converge.`);
+        return;
+      }
       default:
-        err(`Unknown mcp action: ${action}. Valid: list | add | remove`);
+        err(`Unknown mcp action: ${action}. Valid: list | add | remove | reconcile`);
         process.exit(1);
     }
   });
