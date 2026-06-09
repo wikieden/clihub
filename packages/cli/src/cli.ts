@@ -1922,18 +1922,48 @@ cli
 
 // ─── endpoint (LLM API endpoint presets) ──────────────────────────────
 cli
-  .command('endpoint', 'List LLM API endpoint presets (Anthropic, OpenAI, DeepSeek, …)')
+  .command('endpoint [action] [id]', 'LLM API endpoint presets (list | current | use <id>)')
   .option('--json', 'Output as JSON')
-  .action(async (opts: { json?: boolean }) => {
-    const { listEndpoints } = await import('@clihub/core');
-    const presets = await listEndpoints();
+  .action(async (action: string | undefined, id: string | undefined, opts: { json?: boolean }) => {
+    const core = await import('@clihub/core');
+
+    if (action === 'use') {
+      if (!id) { err('usage: clihub endpoint use <id>'); process.exit(1); }
+      const profile = await core.currentProfile();
+      if (!profile) { err('no active profile — run `clihub profile use <name>` first'); process.exit(1); }
+      let res;
+      try { res = await core.useEndpoint(id, profile); }
+      catch (e) { err(e instanceof Error ? e.message : String(e)); process.exit(1); }
+      ok(`endpoint → ${res.preset.label}  ${kleur.dim(res.preset.baseURL)}  (profile ${profile})`);
+      for (const p of res.patches) {
+        if (p.applied) ok(`  ${p.vendor}: ${p.envVar}`);
+        else err(`  ${p.vendor}: ${p.detail}`);
+      }
+      if (res.patches.length === 0) info('no base-URL injector for this family on the installed CLIs (Claude/Codex/Gemini families only); recorded in profile meta.');
+      if (res.preset.authEnv) info(`set the key with \`clihub auth set ${res.preset.authEnv}\` — it stays in the OS keychain.`);
+      return;
+    }
+
+    if (action === 'current') {
+      const profile = await core.currentProfile();
+      if (!profile) { info('no active profile'); return; }
+      const meta = await core.readProfileMeta(profile).catch(() => undefined);
+      info(`profile ${profile}`);
+      const entries = Object.entries(meta?.baseUrls ?? {});
+      if (entries.length === 0) { info('no endpoint baseURLs set — `clihub endpoint use <id>`'); return; }
+      for (const [fam, url] of entries) console.log(`  ${kleur.bold(fam)}: ${url}`);
+      return;
+    }
+
+    // default: list
+    const presets = await core.listEndpoints();
     if (opts.json) { console.log(JSON.stringify(presets, null, 2)); return; }
     if (presets.length === 0) { info('no endpoint presets in catalog'); return; }
     for (const e of presets) {
       console.log(`  ${kleur.bold(e.id)}  ${kleur.dim(e.label)}`);
       console.log(`    ${kleur.dim(`${e.family} · ${e.baseURL}${e.authEnv ? ` · key: ${e.authEnv}` : ''}`)}`);
     }
-    info(`${presets.length} endpoint presets — \`clihub endpoint use <id>\` to switch (v1.52).`);
+    info(`${presets.length} endpoint presets — \`clihub endpoint use <id>\` to switch.`);
   });
 
 // ─── status ───────────────────────────────────────────────────────────

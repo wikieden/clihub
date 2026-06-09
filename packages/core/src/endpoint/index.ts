@@ -12,6 +12,8 @@
  */
 import { CatalogLoader } from '../catalog/index.js';
 import type { EndpointPreset } from '../types.js';
+import { applyProfileBaseUrls, type BaseUrlPatch } from '../profile/baseurls.js';
+import { readProfileMeta, writeProfileMeta, type ProfileBaseUrls } from '../profile/index.js';
 
 export type { EndpointPreset };
 
@@ -60,6 +62,50 @@ export function validateEndpointPreset(p: EndpointPreset): string[] {
     errs.push(`${p.id}: preset contains an inline secret (forbidden — use authEnv NAME only)`);
   }
   return errs;
+}
+
+export interface UseEndpointResult {
+  preset: EndpointPreset;
+  profile: string;
+  patches: BaseUrlPatch[];
+}
+
+export interface UseEndpointOpts {
+  /** Profiles root override (tests). */
+  root?: string;
+  /** Catalog loader override (tests). */
+  loader?: CatalogLoader;
+}
+
+/**
+ * Switch a profile to an endpoint preset (v1.52): writes the preset's baseURL
+ * into the matching family's native CLI config via the existing base-URL
+ * injectors, and records it in the profile meta. The credential is NOT moved —
+ * it stays in the OS keychain under the preset's authEnv NAME.
+ *
+ * Only the anthropic / openai / google families have base-URL injectors today
+ * (Claude Code / Codex / Gemini); other families return zero patches.
+ */
+export async function useEndpoint(
+  id: string,
+  profileName: string,
+  opts: UseEndpointOpts = {},
+): Promise<UseEndpointResult> {
+  const preset = await findEndpoint(id, opts.loader);
+  if (!preset) throw new Error(`unknown endpoint preset "${id}" (run \`clihub endpoint\` to list)`);
+  const baseUrls: ProfileBaseUrls = { [preset.family]: preset.baseURL };
+  const patches = await applyProfileBaseUrls(profileName, baseUrls, { root: opts.root });
+  try {
+    const meta = await readProfileMeta(profileName, { root: opts.root });
+    await writeProfileMeta(
+      profileName,
+      { baseUrls: { ...meta.baseUrls, [preset.family]: preset.baseURL } },
+      { root: opts.root },
+    );
+  } catch {
+    // meta is best-effort; the settings write above is the source of truth
+  }
+  return { preset, profile: profileName, patches };
 }
 
 /** Validate every preset in the catalog; returns id→errors for any that fail. */

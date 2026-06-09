@@ -70,10 +70,12 @@ export { SKILL_ADAPTERS, skillAdapterFor, skillCapableTools } from './skill/regi
 export {
   listEndpoints,
   findEndpoint,
+  useEndpoint,
   validateEndpointPreset,
   validateEndpointCatalog,
   ENDPOINT_FAMILIES,
   type EndpointPreset,
+  type UseEndpointResult,
 } from './endpoint/index.js';
 export {
   JsonMcpAdapter,
