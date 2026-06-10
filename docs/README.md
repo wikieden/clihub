@@ -26,6 +26,10 @@
 | 19 | [CLIHUBYAML](19-CLIHUBYAML.md) | `clihub.yaml` + `clihub.lock.json` schema (Pillar II 可复现) |
 | 20 | [MARKET-RESEARCH](20-MARKET-RESEARCH.md) | HN / Reddit / V2EX 2026-05 痛点审计 + v0.5→v0.8 路线重排理据 |
 | 21 | [VALUE](21-VALUE.md) | 三类受众价值 — 小白 / 个人开发者 / 团队企业（痛点→能力→命令） |
+| 22 | [GATEWAY-SECURITY](22-GATEWAY-SECURITY.md) | 网关威胁模型（P2 安全门禁） |
+| 23 | [ARCHITECTURE](23-ARCHITECTURE.md) | 转型后架构 — 一内核多壳 / daemon / GUI / 网关 |
+| 24 | [VERSION-PLAN](24-VERSION-PLAN.md) | 转型后分阶段版本计划（P1a/P1b/P2/P3） |
+| 25 | [PROVIDER-BINDING](25-PROVIDER-BINDING.md) | **per-CLI provider+模型绑定设计**（`clihub use`，7 CLI 实证矩阵） |
 | -- | [REVIEW](REVIEW.md) | **总体目标 review** — 风险 / 决策点 / 最小切片 |
 
 ## 快速理解
