@@ -40,7 +40,7 @@
   {:else}
     <table>
       <thead>
-        <tr><th>CLI</th><th>Installed</th><th>Version</th></tr>
+        <tr><th>CLI</th><th>Installed</th><th>Version</th><th>Skills</th><th>MCP</th></tr>
       </thead>
       <tbody>
         {#each rows as row (row.id)}
@@ -48,6 +48,8 @@
             <td>{row.id}</td>
             <td>{row.installed ? '✓' : '—'}</td>
             <td>{row.version ?? '—'}</td>
+            <td>{row.skillCount ?? '—'}</td>
+            <td>{row.mcpCount ?? '—'}</td>
           </tr>
         {/each}
       </tbody>

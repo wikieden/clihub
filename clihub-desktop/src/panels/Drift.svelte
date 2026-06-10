@@ -4,32 +4,61 @@
 
   const client = new DaemonClient();
 
+  const DIR_KEY = 'clihub.drift.dir';
+
   let report = $state<StatusResponse | null>(null);
   let notConfigured = $state(false);
   let error = $state<string | null>(null);
   let loading = $state(true);
+  // The daemon's cwd is wherever the shell spawned it — let the user pin the
+  // project dir explicitly (persisted locally, sent as ?dir= to /v1/status).
+  let dir = $state(localStorage.getItem(DIR_KEY) ?? '');
+
+  async function load() {
+    loading = true;
+    notConfigured = false;
+    error = null;
+    report = null;
+    try {
+      report = await client.get<StatusResponse>(
+        dir ? `/v1/status?dir=${encodeURIComponent(dir)}` : '/v1/status',
+      );
+    } catch (e: unknown) {
+      if (e instanceof DaemonError && e.status === 400) notConfigured = true;
+      else error = e instanceof Error ? e.message : String(e);
+    } finally {
+      loading = false;
+    }
+  }
+
+  function check() {
+    localStorage.setItem(DIR_KEY, dir);
+    load();
+  }
 
   $effect(() => {
-    client
-      .get<StatusResponse>('/v1/status')
-      .then((d) => {
-        report = d;
-        loading = false;
-      })
-      .catch((e: unknown) => {
-        if (e instanceof DaemonError && e.status === 400) notConfigured = true;
-        else error = e instanceof Error ? e.message : String(e);
-        loading = false;
-      });
+    load();
   });
 </script>
 
 <section>
   <h1>Drift</h1>
+  <form
+    class="dirbar"
+    onsubmit={(e) => {
+      e.preventDefault();
+      check();
+    }}
+  >
+    <input type="text" placeholder="Project directory (absolute path, empty = daemon cwd)" bind:value={dir} />
+    <button type="submit">Check</button>
+  </form>
   {#if loading}
     <p>Computing status…</p>
   {:else if notConfigured}
-    <p class="muted">No clihub.yaml found — run <code>clihub init</code> to start pinning this machine.</p>
+    <p class="muted">
+      No clihub.yaml found{dir ? ` under ${dir}` : ''} — run <code>clihub init</code> there to start pinning.
+    </p>
   {:else if error}
     <p class="error">{error}</p>
   {:else if report}
@@ -59,6 +88,26 @@
 </section>
 
 <style>
+  .dirbar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+  }
+  .dirbar input {
+    flex: 1;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font: inherit;
+    background: #fff;
+  }
+  .dirbar button {
+    border: 1px solid #1c1c1e;
+    background: #1c1c1e;
+    color: #fff;
+    padding: 0.35rem 0.9rem;
+    border-radius: 6px;
+  }
   .banner {
     padding: 0.6rem 0.9rem;
     border-radius: 8px;

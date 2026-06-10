@@ -7,6 +7,20 @@
   let rows = $state<SkillToolRow[]>([]);
   let error = $state<string | null>(null);
   let loading = $state(true);
+  let filter = $state('');
+
+  const visible = $derived(
+    rows.map((row) => ({
+      ...row,
+      skills: filter
+        ? row.skills.filter(
+            (s) =>
+              s.id.toLowerCase().includes(filter.toLowerCase()) ||
+              s.name.toLowerCase().includes(filter.toLowerCase()),
+          )
+        : row.skills,
+    })),
+  );
 
   $effect(() => {
     client
@@ -29,7 +43,8 @@
   {:else if error}
     <p class="error">{error}</p>
   {:else}
-    {#each rows as row (row.tool)}
+    <input class="filter" type="search" placeholder="Filter skills…" bind:value={filter} />
+    {#each visible as row (row.tool)}
       <div class="tool">
         <h2>{row.tool} <span class="count">{row.skills.length}</span></h2>
         {#if !row.installed}
@@ -37,11 +52,15 @@
         {:else if row.error}
           <p class="error">{row.error}</p>
         {:else if row.skills.length === 0}
-          <p class="muted">no skills installed</p>
+          <p class="muted">{filter ? 'no match' : 'no skills installed'}</p>
         {:else}
           <ul>
             {#each row.skills as s (s.id)}
-              <li><code>{s.id}</code> {s.name !== s.id ? s.name : ''} <span class="muted">{s.version}</span></li>
+              <li>
+                <code>{s.id}</code>
+                {s.name !== s.id ? s.name : ''}
+                {#if s.version && s.version !== 'unknown'}<span class="muted">{s.version}</span>{/if}
+              </li>
             {/each}
           </ul>
         {/if}
@@ -51,6 +70,15 @@
 </section>
 
 <style>
+  .filter {
+    width: 100%;
+    padding: 0.45rem 0.7rem;
+    margin-bottom: 0.6rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font: inherit;
+    background: #fff;
+  }
   .tool {
     background: #fff;
     border-radius: 8px;

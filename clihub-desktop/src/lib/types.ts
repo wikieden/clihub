@@ -9,6 +9,8 @@ export interface HealthRow {
   id: string;
   installed?: boolean;
   version?: string | null;
+  skillCount?: number;
+  mcpCount?: number;
   [extra: string]: unknown;
 }
 
