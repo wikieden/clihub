@@ -22,6 +22,8 @@ import _endpoints from '../../../catalog/endpoints.json' with { type: 'json' };
 import { defaultCatalogDir, readCatalogManifest } from './sync.js';
 import { orderedSourceDirs } from './sources.js';
 
+const BUNDLED_ENDPOINTS = _endpoints as unknown as EndpointPreset[];
+
 export interface Catalog {
   skills: SkillManifest[];
   tools: ToolCatalogEntry[];
@@ -80,7 +82,7 @@ export class CatalogLoader {
       presets: _presets as unknown as Preset[],
       mcpServers: _mcp as unknown as McpServerManifest[],
       plugins: _plugins as unknown as PluginManifest[],
-      endpoints: _endpoints as unknown as EndpointPreset[],
+      endpoints: BUNDLED_ENDPOINTS,
     };
     return this.cache;
   }
@@ -147,9 +149,19 @@ export class CatalogLoader {
       readAt<Preset[]>('presets.json'),
       readAt<McpServerManifest[]>('mcp.json').catch(() => [] as McpServerManifest[]),
       readAt<PluginManifest[]>('plugins.json').catch(() => [] as PluginManifest[]),
-      readAt<EndpointPreset[]>('endpoints.json').catch(() => [] as EndpointPreset[]),
+      readAt<EndpointPreset[]>('endpoints.json').catch(() => undefined),
     ]);
-    return { skills, tools, presets, mcpServers, plugins, endpoints };
+    return {
+      skills,
+      tools,
+      presets,
+      mcpServers,
+      plugins,
+      // endpoints.json postdates most synced/team catalogs — an ABSENT file means
+      // "not synced yet", not "no endpoints", so the bundled verified seed fills
+      // the gap. A present-but-empty array stays authoritative.
+      endpoints: endpoints ?? BUNDLED_ENDPOINTS,
+    };
   }
 
   async findMcpServer(id: string): Promise<McpServerManifest | undefined> {

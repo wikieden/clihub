@@ -43,6 +43,7 @@ export const CATALOG_FILES = [
   'presets.json',
   'mcp.json',
   'plugins.json',
+  'endpoints.json',
   'providers.json',
 ] as const;
 
