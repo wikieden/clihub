@@ -9,7 +9,17 @@ import {
   sseFrame,
   streamKeys,
 } from '../src/index.js';
-import { listEndpoints, listProviders, reconcileMcpPlan, planApply, parseClihubYaml } from '@clihub/core';
+import {
+  listEndpoints,
+  listProviders,
+  reconcileMcpPlan,
+  planApply,
+  parseClihubYaml,
+  skillCapableTools,
+} from '@clihub/core';
+import { mkdtemp, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 
 const TOKEN = 'a'.repeat(64);
 const ctx = { token: TOKEN, version: DAEMON_VERSION };
@@ -140,6 +150,47 @@ describe('golden parity — read-only POST paths === direct kernel call', () => 
     const res = await routeRequest(postReq('/v1/apply', { plan: true, yaml }), ctx);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(await planApply(parseClihubYaml(yaml)));
+  });
+});
+
+describe('M2 read routes', () => {
+  test('GET /v1/skills covers every skill-capable CLI with an installed flag', async () => {
+    const res = await routeRequest(getReq('/v1/skills'), ctx);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      tools: Array<{ tool: string; installed: boolean; skills: unknown[] }>;
+    };
+    expect(body.tools.map((t) => t.tool).sort()).toEqual([...skillCapableTools()].sort());
+    for (const t of body.tools) {
+      expect(Array.isArray(t.skills)).toBe(true);
+      expect(typeof t.installed).toBe('boolean');
+    }
+  });
+
+  test('GET /v1/status?dir → 400 with CLIHUB-E-600 when no clihub.yaml exists there', async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), 'clihub-status-'));
+    const res = await routeRequest(getReq(`/v1/status?dir=${encodeURIComponent(tmp)}`), ctx);
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain('CLIHUB-E-600');
+  });
+
+  test('GET /v1/status rejects a relative dir', async () => {
+    const res = await routeRequest(getReq('/v1/status?dir=relative/path'), ctx);
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain('absolute');
+  });
+
+  test('GET /v1/status?dir → report shape for a minimal clihub.yaml', async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), 'clihub-status-'));
+    await writeFile(path.join(tmp, 'clihub.yaml'), 'tools: []\n');
+    const res = await routeRequest(getReq(`/v1/status?dir=${encodeURIComponent(tmp)}`), ctx);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { file: string; compliant: boolean; items: unknown[] };
+    expect(body.file.endsWith('clihub.yaml')).toBe(true);
+    expect(typeof body.compliant).toBe('boolean');
+    expect(Array.isArray(body.items)).toBe(true);
   });
 });
 

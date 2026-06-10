@@ -25,9 +25,16 @@ import {
   findClihubYaml,
   parseClihubYaml,
   appendAudit,
+  SKILL_ADAPTERS,
+  readLockfile,
+  systemPromptHash,
+  computeStatus,
+  getProvider,
+  formatErrorMessage,
   type ToolProvider,
 } from '@clihub/core';
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 export interface RouteCtx {
   /** Daemon/monorepo version, surfaced by /healthz. */
@@ -95,9 +102,9 @@ function audit(action: string, extra: Record<string, unknown>): void {
 }
 
 /** Load the clihub.yaml the CLI would discover (used when the body omits `yaml`). */
-async function discoverYaml(): Promise<string> {
-  const file = await findClihubYaml();
-  if (!file) throw new HttpError(400, 'no clihub.yaml found; pass "yaml" in the body');
+async function discoverYaml(dir?: string): Promise<string> {
+  const file = await findClihubYaml(dir);
+  if (!file) throw new HttpError(400, 'no clihub.yaml found; pass "yaml" or "dir" in the body');
   return readFile(file, 'utf8');
 }
 
@@ -112,6 +119,41 @@ export const ROUTES: Record<string, RouteHandler> = {
     profiles: await listProfiles(),
     current: (await currentProfile()) ?? null,
   }),
+  'GET /v1/skills': async () => ({
+    tools: await Promise.all(
+      Object.entries(SKILL_ADAPTERS).map(async ([tool, factory]) => {
+        // detect() distinguishes "CLI not installed" from "installed, zero
+        // skills" — adapters return [] for both, which would render identically.
+        const installed =
+          (await getProvider(tool)
+            ?.detect()
+            .then((d) => d.installed, () => false)) ?? false;
+        try {
+          return { tool, installed, skills: await factory().list() };
+        } catch (e) {
+          return { tool, installed, skills: [], error: e instanceof Error ? e.message : String(e) };
+        }
+      }),
+    ),
+  }),
+  // Mirrors `clihub status` exactly: clihub.yaml → clihub.lock.json →
+  // system-prompt hash → computeStatus (the drift/compliance gate). The CLI
+  // discovers the yaml from its cwd; a GUI daemon's cwd is wherever the shell
+  // spawned it, so `?dir=` lets the client point at a project explicitly.
+  'GET /v1/status': async (_ctx, req) => {
+    const startDir = new URL(req.url).searchParams.get('dir') ?? undefined;
+    if (startDir && !path.isAbsolute(startDir)) {
+      throw new HttpError(400, 'query "dir" must be an absolute path');
+    }
+    const file = await findClihubYaml(startDir);
+    if (!file) throw new HttpError(400, formatErrorMessage('CLIHUB-E-600'));
+    const cfg = parseClihubYaml(await readFile(file, 'utf8'));
+    const dir = path.dirname(file);
+    const lock = await readLockfile(path.join(dir, 'clihub.lock.json'));
+    const sph = await systemPromptHash(dir);
+    const report = await computeStatus(cfg, lock, { systemPromptHash: sph });
+    return { file, ...report };
+  },
 
   // ── mutations (bodies mirror the CLI 1:1; delegate to kernel + audit) ──────
   // `endpoint use <id>` — write a preset's baseURL into the active profile.
@@ -151,7 +193,9 @@ export const ROUTES: Record<string, RouteHandler> = {
   // `apply [--plan]` — plan is read-only; otherwise run the converge engine.
   'POST /v1/apply': async (_ctx, req) => {
     const body = await readJson(req);
-    const cfg = parseClihubYaml(optString(body, 'yaml') ?? (await discoverYaml()));
+    const dir = optString(body, 'dir');
+    if (dir && !path.isAbsolute(dir)) throw new HttpError(400, 'field "dir" must be an absolute path');
+    const cfg = parseClihubYaml(optString(body, 'yaml') ?? (await discoverYaml(dir)));
     if (body.plan === true) return planApply(cfg);
     const result = await runApply(cfg);
     audit('apply', { done: result.done.length, failed: result.failed.length });

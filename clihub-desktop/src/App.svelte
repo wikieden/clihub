@@ -1,15 +1,23 @@
 <script lang="ts">
   import Dashboard from './panels/Dashboard.svelte';
   import Endpoints from './panels/Endpoints.svelte';
+  import Drift from './panels/Drift.svelte';
+  import Mcp from './panels/Mcp.svelte';
+  import Skills from './panels/Skills.svelte';
+  import Profiles from './panels/Profiles.svelte';
 
-  type Panel = 'dashboard' | 'endpoints';
+  type Panel = 'dashboard' | 'drift' | 'endpoints' | 'mcp' | 'skills' | 'profiles';
 
-  // Lead panel = Dashboard (drift / health), never a provider dropdown first.
+  // Lead panels = health + drift (the moat), never a provider dropdown first.
   let panel = $state<Panel>('dashboard');
 
   const tabs: { id: Panel; label: string }[] = [
     { id: 'dashboard', label: 'Dashboard' },
+    { id: 'drift', label: 'Drift' },
     { id: 'endpoints', label: 'Endpoints' },
+    { id: 'mcp', label: 'MCP' },
+    { id: 'skills', label: 'Skills' },
+    { id: 'profiles', label: 'Profiles' },
   ];
 </script>
 
@@ -23,8 +31,16 @@
   <main>
     {#if panel === 'dashboard'}
       <Dashboard />
+    {:else if panel === 'drift'}
+      <Drift />
     {:else if panel === 'endpoints'}
       <Endpoints />
+    {:else if panel === 'mcp'}
+      <Mcp />
+    {:else if panel === 'skills'}
+      <Skills />
+    {:else if panel === 'profiles'}
+      <Profiles />
     {/if}
   </main>
 </div>

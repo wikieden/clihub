@@ -33,3 +33,74 @@ export interface ProfilesResponse {
   profiles: string[];
   current: string | null;
 }
+
+export interface McpServerRow {
+  id: string;
+  [extra: string]: unknown;
+}
+
+export interface McpToolRow {
+  tool: string;
+  servers: McpServerRow[];
+}
+
+export interface McpResponse {
+  servers: McpToolRow[];
+}
+
+export interface McpReconcileItem {
+  id: string;
+  presentIn: string[];
+  absentIn: string[];
+  state: 'synced' | 'drift';
+}
+
+export interface McpReconcilePlan {
+  tools: string[];
+  items: McpReconcileItem[];
+  driftCount: number;
+}
+
+export interface McpReconcileResult {
+  promoted: string[];
+  manual: string[];
+  /** Per-promotion kernel results — `failed` entries are partial failures. */
+  results: { done: string[]; failed: { tool: string; error: string }[] }[];
+}
+
+export interface InstalledSkillRow {
+  id: string;
+  name: string;
+  version: string;
+  path: string;
+}
+
+export interface SkillToolRow {
+  tool: string;
+  installed: boolean;
+  skills: InstalledSkillRow[];
+  error?: string;
+}
+
+export interface SkillsResponse {
+  tools: SkillToolRow[];
+}
+
+export interface StatusItemRow {
+  kind: string;
+  id: string;
+  state: string;
+  locked?: string;
+  actual?: string;
+  detail?: string;
+}
+
+export interface StatusResponse {
+  file: string;
+  items: StatusItemRow[];
+  ok: number;
+  drift: number;
+  missing: number;
+  unlocked: number;
+  compliant: boolean;
+}
