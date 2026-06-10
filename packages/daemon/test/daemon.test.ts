@@ -194,6 +194,49 @@ describe('M2 read routes', () => {
   });
 });
 
+describe('CORS for the GUI WebView', () => {
+  const ORIGIN = 'http://localhost:1420';
+
+  test('OPTIONS preflight from a known GUI origin → 204 with CORS headers, no token needed', async () => {
+    const res = await routeRequest(
+      new Request('http://127.0.0.1/v1/doctor', { method: 'OPTIONS', headers: { origin: ORIGIN } }),
+      ctx,
+    );
+    expect(res.status).toBe(204);
+    expect(res.headers.get('access-control-allow-origin')).toBe(ORIGIN);
+    expect(res.headers.get('access-control-allow-headers')).toContain('authorization');
+  });
+
+  test('OPTIONS from an unknown origin → 403', async () => {
+    const res = await routeRequest(
+      new Request('http://127.0.0.1/v1/doctor', {
+        method: 'OPTIONS',
+        headers: { origin: 'https://evil.example.com' },
+      }),
+      ctx,
+    );
+    expect(res.status).toBe(403);
+    expect(res.headers.get('access-control-allow-origin')).toBeNull();
+  });
+
+  test('authed GET from a known GUI origin echoes the CORS header', async () => {
+    const res = await routeRequest(
+      new Request('http://127.0.0.1/healthz', {
+        headers: { authorization: `Bearer ${TOKEN}`, origin: ORIGIN },
+      }),
+      ctx,
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get('access-control-allow-origin')).toBe(ORIGIN);
+  });
+
+  test('non-browser clients (no Origin) get no CORS headers and work unchanged', async () => {
+    const res = await routeRequest(getReq('/healthz'), ctx);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('access-control-allow-origin')).toBeNull();
+  });
+});
+
 describe('SSE streams', () => {
   test('sseFrame formats a data frame', () => {
     expect(sseFrame({ a: 1 })).toBe('data: {"a":1}\n\n');

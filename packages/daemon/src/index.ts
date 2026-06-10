@@ -17,6 +17,32 @@ export const DAEMON_VERSION = '1.61.0';
 
 const LOOPBACK = new Set(['127.0.0.1', '::1', 'localhost']);
 
+/**
+ * Origins the GUI is known to load from: the vite dev server (tauri dev) and
+ * the packaged Tauri WebView origins. WKWebView/WebView2 enforce CORS like a
+ * browser, so without these headers every panel fetch dies in preflight.
+ * The bearer token remains the ONLY authentication — CORS is browser-side
+ * defense-in-depth, which is why unknown origins are simply not echoed.
+ */
+const GUI_ORIGINS = new Set([
+  'http://localhost:1420',
+  'http://127.0.0.1:1420',
+  'tauri://localhost',
+  'http://tauri.localhost',
+  'https://tauri.localhost',
+]);
+
+function corsFor(req: Request): Record<string, string> | undefined {
+  const origin = req.headers.get('origin');
+  if (!origin || !GUI_ORIGINS.has(origin)) return undefined;
+  return {
+    'access-control-allow-origin': origin,
+    'access-control-allow-headers': 'authorization, content-type',
+    'access-control-allow-methods': 'GET, POST, OPTIONS',
+    vary: 'origin',
+  };
+}
+
 export interface DaemonOptions {
   /** TCP port; 0 (default) asks the OS for an ephemeral free port. */
   port?: number;
@@ -87,11 +113,24 @@ export async function routeRequest(
   const rawHost = req.headers.get('host') ?? '';
   if (rawHost && !LOOPBACK.has(hostnameOf(rawHost))) return json(403, { error: 'forbidden host' });
 
+  const cors = corsFor(req);
+  const withCors = (res: Response): Response => {
+    if (cors) for (const [k, v] of Object.entries(cors)) res.headers.set(k, v);
+    return res;
+  };
+
+  // CORS preflight: browsers send OPTIONS WITHOUT Authorization, so this must
+  // run before the bearer check. Only known GUI origins get a green light.
+  if (req.method === 'OPTIONS') {
+    if (!cors) return json(403, { error: 'forbidden origin' });
+    return new Response(null, { status: 204, headers: cors });
+  }
+
   // Bearer auth on every route (incl. /healthz).
   const auth = req.headers.get('authorization') ?? '';
   const presented = auth.startsWith('Bearer ') ? auth.slice(7) : '';
   if (!presented || !timingSafeEqual(presented, ctx.token)) {
-    return json(401, { error: 'unauthorized' });
+    return withCors(json(401, { error: 'unauthorized' }));
   }
 
   const url = new URL(req.url);
@@ -101,19 +140,19 @@ export async function routeRequest(
   const stream = STREAMS[key];
   if (stream) {
     try {
-      return stream({ version: ctx.version });
+      return withCors(stream({ version: ctx.version }));
     } catch (e) {
-      return errorResponse(e);
+      return withCors(errorResponse(e));
     }
   }
 
   const handler = ROUTES[key];
-  if (!handler) return json(404, { error: 'not found', route: key, known: knownRoutes() });
+  if (!handler) return withCors(json(404, { error: 'not found', route: key, known: knownRoutes() }));
 
   try {
-    return json(200, await handler({ version: ctx.version }, req));
+    return withCors(json(200, await handler({ version: ctx.version }, req)));
   } catch (e) {
-    return errorResponse(e);
+    return withCors(errorResponse(e));
   }
 }
 

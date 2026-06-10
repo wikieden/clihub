@@ -8,8 +8,21 @@
 
   type Panel = 'dashboard' | 'drift' | 'endpoints' | 'mcp' | 'skills' | 'profiles';
 
+  const PANELS: Panel[] = ['dashboard', 'drift', 'endpoints', 'mcp', 'skills', 'profiles'];
+
+  /** Deep-linkable panel via location.hash (#/mcp) — also lets Tauri deep links land on a panel. */
+  function panelFromHash(): Panel {
+    const h = location.hash.replace(/^#\/?/, '') as Panel;
+    return PANELS.includes(h) ? h : 'dashboard';
+  }
+
   // Lead panels = health + drift (the moat), never a provider dropdown first.
-  let panel = $state<Panel>('dashboard');
+  let panel = $state<Panel>(panelFromHash());
+
+  function select(id: Panel) {
+    panel = id;
+    location.hash = `/${id}`;
+  }
 
   const tabs: { id: Panel; label: string }[] = [
     { id: 'dashboard', label: 'Dashboard' },
@@ -25,7 +38,7 @@
   <nav>
     <span class="brand">clihub</span>
     {#each tabs as tab (tab.id)}
-      <button class:active={panel === tab.id} onclick={() => (panel = tab.id)}>{tab.label}</button>
+      <button class:active={panel === tab.id} onclick={() => select(tab.id)}>{tab.label}</button>
     {/each}
   </nav>
   <main>
