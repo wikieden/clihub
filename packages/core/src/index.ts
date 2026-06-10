@@ -71,12 +71,27 @@ export {
   listEndpoints,
   findEndpoint,
   useEndpoint,
+  endpointUrls,
   validateEndpointPreset,
   validateEndpointCatalog,
   ENDPOINT_FAMILIES,
   type EndpointPreset,
   type UseEndpointResult,
 } from './endpoint/index.js';
+export {
+  useBinding,
+  readBindings,
+  writeBindings,
+  defaultBindingsPath,
+  BINDING_ADAPTERS,
+  type CliBinding,
+  type Bindings,
+  type BindingAdapter,
+  type BindingPatch,
+  type UseBindingOpts,
+  type UseBindingResult,
+  type UseBindingTarget,
+} from './binding/index.js';
 export {
   importMachine,
   type ImportResult,

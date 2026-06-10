@@ -11,7 +11,7 @@
  * rejected, and the baseURL must be a real http(s) URL with a host.
  */
 import { CatalogLoader } from '../catalog/index.js';
-import type { EndpointPreset } from '../types.js';
+import type { EndpointPreset, EndpointProtocol } from '../types.js';
 import { applyProfileBaseUrls, type BaseUrlPatch } from '../profile/baseurls.js';
 import { readProfileMeta, writeProfileMeta, type ProfileBaseUrls } from '../profile/index.js';
 
@@ -39,18 +39,37 @@ export async function findEndpoint(
 }
 
 /** Conformance validation. Returns a list of human-readable errors (empty = ok). */
+/**
+ * Normalized protocol→URL map for a preset: v2 `urls` wins; the v1
+ * `family`+`baseURL` pair is upgraded in memory. Empty map = unusable preset.
+ */
+export function endpointUrls(p: EndpointPreset): Partial<Record<EndpointProtocol, string>> {
+  if (p.urls && Object.keys(p.urls).length > 0) return p.urls;
+  if (p.family && p.baseURL) return { [p.family]: p.baseURL };
+  return {};
+}
+
 export function validateEndpointPreset(p: EndpointPreset): string[] {
   const errs: string[] = [];
   if (!p.id) errs.push('missing id');
   if (!p.label) errs.push(`${p.id}: missing label`);
-  if (!ENDPOINT_FAMILIES.includes(p.family)) errs.push(`${p.id}: bad family "${p.family}"`);
+  if (p.family !== undefined && !ENDPOINT_FAMILIES.includes(p.family)) {
+    errs.push(`${p.id}: bad family "${p.family}"`);
+  }
 
-  try {
-    const u = new URL(p.baseURL);
-    if (u.protocol !== 'https:' && u.protocol !== 'http:') errs.push(`${p.id}: baseURL must be http(s)`);
-    if (!u.host) errs.push(`${p.id}: baseURL missing host`);
-  } catch {
-    errs.push(`${p.id}: invalid baseURL "${p.baseURL}"`);
+  const urlEntries = Object.entries(endpointUrls(p));
+  if (urlEntries.length === 0) errs.push(`${p.id}: no URLs (need urls{} or family+baseURL)`);
+  for (const [proto, raw] of urlEntries) {
+    if (!ENDPOINT_FAMILIES.includes(proto as EndpointProtocol)) {
+      errs.push(`${p.id}: bad protocol "${proto}"`);
+    }
+    try {
+      const u = new URL(raw as string);
+      if (u.protocol !== 'https:' && u.protocol !== 'http:') errs.push(`${p.id}: ${proto} baseURL must be http(s)`);
+      if (!u.host) errs.push(`${p.id}: ${proto} baseURL missing host`);
+    } catch {
+      errs.push(`${p.id}: invalid baseURL "${raw}"`);
+    }
   }
 
   // authEnv must be an env-var NAME, never an inline secret.
@@ -93,13 +112,17 @@ export async function useEndpoint(
 ): Promise<UseEndpointResult> {
   const preset = await findEndpoint(id, opts.loader);
   if (!preset) throw new Error(`unknown endpoint preset "${id}" (run \`clihub endpoint\` to list)`);
-  const baseUrls: ProfileBaseUrls = { [preset.family]: preset.baseURL };
+  const urls = endpointUrls(preset);
+  const family = preset.family ?? (Object.keys(urls)[0] as EndpointProtocol | undefined);
+  const familyUrl = family ? urls[family] : undefined;
+  if (!family || !familyUrl) throw new Error(`endpoint "${id}" has no usable URL`);
+  const baseUrls: ProfileBaseUrls = { [family]: familyUrl };
   const patches = await applyProfileBaseUrls(profileName, baseUrls, { root: opts.root });
   try {
     const meta = await readProfileMeta(profileName, { root: opts.root });
     await writeProfileMeta(
       profileName,
-      { baseUrls: { ...meta.baseUrls, [preset.family]: preset.baseURL } },
+      { baseUrls: { ...meta.baseUrls, [family]: familyUrl } },
       { root: opts.root },
     );
   } catch {

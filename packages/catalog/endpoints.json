@@ -2,6 +2,7 @@
   {
     "id": "anthropic",
     "label": "Anthropic (Claude API)",
+    "urls": { "anthropic": "https://api.anthropic.com" },
     "family": "anthropic",
     "baseURL": "https://api.anthropic.com",
     "authEnv": "ANTHROPIC_API_KEY"
@@ -9,6 +10,7 @@
   {
     "id": "openai",
     "label": "OpenAI",
+    "urls": { "openai": "https://api.openai.com/v1" },
     "family": "openai",
     "baseURL": "https://api.openai.com/v1",
     "authEnv": "OPENAI_API_KEY"
@@ -16,20 +18,27 @@
   {
     "id": "google",
     "label": "Google Gemini",
+    "urls": { "google": "https://generativelanguage.googleapis.com" },
     "family": "google",
     "baseURL": "https://generativelanguage.googleapis.com",
     "authEnv": "GEMINI_API_KEY"
   },
   {
     "id": "deepseek",
-    "label": "DeepSeek (OpenAI-compatible)",
+    "label": "DeepSeek",
+    "urls": {
+      "anthropic": "https://api.deepseek.com/anthropic",
+      "openai": "https://api.deepseek.com"
+    },
     "family": "openai",
     "baseURL": "https://api.deepseek.com",
+    "models": ["deepseek-chat", "deepseek-reasoner"],
     "authEnv": "DEEPSEEK_API_KEY"
   },
   {
     "id": "openrouter",
     "label": "OpenRouter",
+    "urls": { "openai": "https://openrouter.ai/api/v1" },
     "family": "openai",
     "baseURL": "https://openrouter.ai/api/v1",
     "authEnv": "OPENROUTER_API_KEY"
@@ -37,6 +46,7 @@
   {
     "id": "groq",
     "label": "Groq",
+    "urls": { "openai": "https://api.groq.com/openai/v1" },
     "family": "openai",
     "baseURL": "https://api.groq.com/openai/v1",
     "authEnv": "GROQ_API_KEY"
@@ -44,6 +54,7 @@
   {
     "id": "ollama",
     "label": "Ollama (local)",
+    "urls": { "openai": "http://localhost:11434/v1" },
     "family": "openai",
     "baseURL": "http://localhost:11434/v1"
   }

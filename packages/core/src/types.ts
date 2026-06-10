@@ -132,14 +132,21 @@ export interface Preset {
  * declarative CLI provider (see ToolProvider) and NOT a runtime proxy. Presets
  * carry an env-var NAME only; an inline secret is rejected by conformance.
  */
+export type EndpointProtocol = 'anthropic' | 'openai' | 'google';
+
 export interface EndpointPreset {
   id: string;
   label: string;
-  /** Wire-protocol family — selects which base-URL injector applies. */
-  family: 'anthropic' | 'openai' | 'google';
-  /** Real API base URL (https, or http for localhost). */
-  baseURL: string;
-  /** Default model hints. */
+  /**
+   * v2 (docs/25): wire protocol → base URL. One preset can serve several CLIs
+   * (e.g. DeepSeek exposes both an anthropic- and an openai-compatible URL).
+   */
+  urls?: Partial<Record<EndpointProtocol, string>>;
+  /** v1 legacy single-protocol shape — kept so older CLIs can read newer catalogs. */
+  family?: EndpointProtocol;
+  /** v1 legacy companion to `family`. */
+  baseURL?: string;
+  /** Default model hints (GUI/TUI pickers; not enforced). */
   models?: string[];
   /** NAME of the env var the credential lives under — never an inline secret. */
   authEnv?: string;

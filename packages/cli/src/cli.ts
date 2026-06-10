@@ -1934,7 +1934,8 @@ cli
       let res;
       try { res = await core.useEndpoint(id, profile); }
       catch (e) { err(e instanceof Error ? e.message : String(e)); process.exit(1); }
-      ok(`endpoint → ${res.preset.label}  ${kleur.dim(res.preset.baseURL)}  (profile ${profile})`);
+      const shownUrl = res.preset.baseURL ?? Object.values(core.endpointUrls(res.preset))[0] ?? '';
+      ok(`endpoint → ${res.preset.label}  ${kleur.dim(shownUrl)}  (profile ${profile})`);
       for (const p of res.patches) {
         if (p.applied) ok(`  ${p.vendor}: ${p.envVar}`);
         else err(`  ${p.vendor}: ${p.detail}`);
@@ -1961,10 +1962,69 @@ cli
     if (presets.length === 0) { info('no endpoint presets in catalog'); return; }
     for (const e of presets) {
       console.log(`  ${kleur.bold(e.id)}  ${kleur.dim(e.label)}`);
-      console.log(`    ${kleur.dim(`${e.family} · ${e.baseURL}${e.authEnv ? ` · key: ${e.authEnv}` : ''}`)}`);
+      const urls = core.endpointUrls(e);
+      for (const [proto, u] of Object.entries(urls)) {
+        console.log(`    ${kleur.dim(`${proto} · ${u}`)}`);
+      }
+      if (e.authEnv) console.log(`    ${kleur.dim(`key: ${e.authEnv}`)}`);
     }
-    info(`${presets.length} endpoint presets — \`clihub endpoint use <id>\` to switch.`);
+    info(`${presets.length} endpoint presets — \`clihub use <id>\` to bind per CLI.`);
   });
+
+// ─── use (per-CLI provider binding — docs/25) ─────────────────────────
+cli
+  .command('use [endpoint]', 'Bind an endpoint (+default model) to a CLI (per-CLI switching)')
+  .option('--for <cli>', 'Target one CLI (default: every CLI the endpoint serves)')
+  .option('--model <m>', 'Also set the default model')
+  .option('--skip-key', 'Bind even when no key is stored for the endpoint')
+  .option('--json', 'Output as JSON')
+  .action(async (endpoint: string | undefined, opts: { for?: string; model?: string; skipKey?: boolean; json?: boolean }) => {
+    const core = await import('@clihub/core');
+
+    if (!endpoint || endpoint === 'current') {
+      const bindings = await core.readBindings();
+      if (opts.json) { console.log(JSON.stringify(bindings, null, 2)); return; }
+      const entries = Object.entries(bindings);
+      if (entries.length === 0) { info('no bindings yet — `clihub use <endpoint> [--for <cli>]`'); return; }
+      for (const [cliId, b] of entries) {
+        console.log(`  ${kleur.bold(cliId)}: ${b.endpoint}${b.model ? kleur.dim(`  · ${b.model}`) : ''}`);
+      }
+      return;
+    }
+
+    const keyLookup = async (name: string) => {
+      const prof = (await core.currentProfile()) ?? 'default';
+      return core.getSecret(prof, name);
+    };
+    let res;
+    try {
+      res = await core.useBinding(endpoint, {
+        cli: opts.for,
+        model: opts.model,
+        keyLookup,
+        allowMissingKey: opts.skipKey,
+      });
+    } catch (e) {
+      err(e instanceof Error ? e.message : String(e));
+      process.exit(1);
+    }
+    ok(`endpoint → ${res.preset.label}`);
+    for (const t of res.targets) {
+      const keyNote = t.keyDelivered ? '' : kleur.yellow('  [no key delivered]');
+      ok(`  ${t.cli} (${t.protocol})${opts.model ? kleur.dim(` · model ${opts.model}`) : ''}${keyNote}`);
+      for (const p of t.patches) if (!p.applied) err(`    ${p.field}: ${p.detail}`);
+    }
+    info('restart the CLI to pick up the new endpoint (Claude Code hot-reloads).');
+    await core.appendAudit({
+      actor: 'cli',
+      action: 'use.bind',
+      endpoint,
+      cli: opts.for ?? res.targets.map((t) => t.cli).join(','),
+      model: opts.model ?? null,
+    }).catch(() => {});
+  });
+
+// ─── import (reverse-ingest existing setup) ───────────────────────────
 
 // ─── import (reverse-ingest existing setup) ───────────────────────────
 cli
