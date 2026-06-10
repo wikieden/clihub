@@ -36,9 +36,36 @@ fn daemon_entry() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packages/daemon/src/main.ts")
 }
 
+/// Resolve the bun binary. LaunchServices-launched apps get a minimal PATH
+/// (/usr/bin:/bin:...) that misses user installs, so probe the common install
+/// locations first and only then fall back to PATH lookup. A packaged build
+/// will ship a compiled sidecar instead (externalBin) and drop this.
+fn bun_path() -> PathBuf {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let candidates = [
+        format!("{home}/.bun/bin/bun"),
+        "/opt/homebrew/bin/bun".to_string(),
+        "/usr/local/bin/bun".to_string(),
+    ];
+    for c in &candidates {
+        if Path::new(c).exists() {
+            return PathBuf::from(c);
+        }
+    }
+    PathBuf::from("bun")
+}
+
 /// Spawn the daemon and block until its handshake line is parsed.
 fn spawn_daemon() -> Result<(DaemonInfo, Child), Box<dyn std::error::Error>> {
-    let mut child = Command::new("bun")
+    // LaunchServices hands GUI apps a minimal PATH (/usr/bin:/bin:...), so the
+    // daemon's provider.detect() would miss CLIs installed under ~/.local/bin
+    // etc. and report everything as not installed. Prepend the usual homes.
+    let home = std::env::var("HOME").unwrap_or_default();
+    let base = std::env::var("PATH").unwrap_or_else(|_| "/usr/bin:/bin".into());
+    let path = format!("{home}/.local/bin:{home}/.bun/bin:/opt/homebrew/bin:/usr/local/bin:{base}");
+
+    let mut child = Command::new(bun_path())
+        .env("PATH", path)
         .arg("run")
         .arg(daemon_entry())
         .stdout(Stdio::piped())
