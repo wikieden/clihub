@@ -2072,6 +2072,150 @@ cli
     await core.appendAudit({ actor: 'cli', action: 'model.set', cli: cliId, model }).catch(() => {});
   });
 
+// ─── daemon (loopback sidecar lifecycle — powers the GUI / HTTP clients) ──
+
+const daemonStatePath = (): string => path.join(os.homedir(), '.clihub', 'daemon.json');
+
+interface DaemonState { url: string; port: number; token: string; pid: number; startedAt: string }
+
+async function readDaemonState(): Promise<DaemonState | undefined> {
+  try {
+    const fsp = await import('node:fs/promises');
+    return JSON.parse(await fsp.readFile(daemonStatePath(), 'utf8')) as DaemonState;
+  } catch { return undefined; }
+}
+
+async function probeDaemon(state: DaemonState): Promise<{ ok: boolean; version?: string }> {
+  try {
+    const res = await fetch(`${state.url}/healthz`, {
+      headers: { authorization: `Bearer ${state.token}` },
+      signal: AbortSignal.timeout(1500),
+    });
+    if (!res.ok) return { ok: false };
+    const body = (await res.json()) as { version?: string };
+    return { ok: true, version: body.version };
+  } catch { return { ok: false }; }
+}
+
+/** The daemon is Bun.serve-based — it needs a bun runtime, resolved like the desktop shell does. */
+async function findBun(): Promise<string | undefined> {
+  const fsp = await import('node:fs/promises');
+  const candidates = [
+    process.env.CLIHUB_BUN_PATH,
+    path.join(os.homedir(), '.bun', 'bin', 'bun'),
+    path.join(os.homedir(), '.local', 'bin', 'bun'),
+    '/opt/homebrew/bin/bun',
+    '/usr/local/bin/bun',
+  ].filter((c): c is string => Boolean(c));
+  for (const c of candidates) {
+    if (await fsp.access(c).then(() => true, () => false)) return c;
+  }
+  // PATH lookup last — covers shells where bun is installed elsewhere.
+  const { execFile } = await import('node:child_process');
+  return new Promise((resolve) => {
+    execFile(process.platform === 'win32' ? 'where' : 'which', ['bun'], (e, out) => {
+      resolve(e ? undefined : out.split('\n')[0]?.trim() || undefined);
+    });
+  });
+}
+
+/** dist/daemon.js ships next to dist/cli.js; monorepo dev falls back to the source entry. */
+async function findDaemonEntry(): Promise<string | undefined> {
+  const fsp = await import('node:fs/promises');
+  const { fileURLToPath } = await import('node:url');
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    path.join(here, 'daemon.js'),
+    path.join(here, '..', 'dist', 'daemon.js'),
+    path.join(here, '..', '..', 'daemon', 'src', 'main.ts'),
+  ];
+  for (const c of candidates) {
+    if (await fsp.access(c).then(() => true, () => false)) return c;
+  }
+  return undefined;
+}
+
+cli
+  .command('daemon <action>', 'Manage the loopback GUI sidecar (start | stop | status)')
+  .option('--port <port>', 'Bind a fixed port (default: OS-assigned ephemeral)')
+  .option('--json', 'Output as JSON')
+  .action(async (action: string, opts: { port?: string; json?: boolean }) => {
+    const fsp = await import('node:fs/promises');
+
+    if (action === 'status') {
+      const state = await readDaemonState();
+      if (!state) { info('daemon not running (no ~/.clihub/daemon.json)'); return; }
+      const probe = await probeDaemon(state);
+      if (opts.json) { console.log(JSON.stringify({ ...state, token: '[redacted]', alive: probe.ok, version: probe.version ?? null })); return; }
+      if (probe.ok) ok(`daemon running at ${state.url}  (pid ${state.pid}, v${probe.version}, since ${state.startedAt})`);
+      else warn(`daemon state file exists but ${state.url} is not answering — \`clihub daemon stop\` to clean up`);
+      return;
+    }
+
+    if (action === 'stop') {
+      const state = await readDaemonState();
+      if (!state) { info('daemon not running'); return; }
+      try { process.kill(state.pid, 'SIGTERM'); ok(`stopped daemon (pid ${state.pid})`); }
+      catch { warn(`pid ${state.pid} already gone — cleaning up state file`); }
+      await fsp.rm(daemonStatePath(), { force: true });
+      await (await import('@clihub/core')).appendAudit({ actor: 'cli', action: 'daemon.stop' }).catch(() => {});
+      return;
+    }
+
+    if (action !== 'start') { err(`unknown action "${action}" (start | stop | status)`); process.exit(1); }
+
+    const existing = await readDaemonState();
+    if (existing && (await probeDaemon(existing)).ok) {
+      info(`daemon already running at ${existing.url} (pid ${existing.pid})`);
+      return;
+    }
+
+    const bun = await findBun();
+    if (!bun) { err('bun runtime not found — the daemon needs bun (https://bun.sh). Set CLIHUB_BUN_PATH to override.'); process.exit(1); }
+    const entry = await findDaemonEntry();
+    if (!entry) { err('daemon entry not found (dist/daemon.js) — reinstall clihub or build the monorepo'); process.exit(1); }
+
+    const { spawn } = await import('node:child_process');
+    const child = spawn(bun, [entry], {
+      detached: true,
+      stdio: ['ignore', 'pipe', 'ignore'],
+      env: { ...process.env, ...(opts.port ? { CLIHUB_DAEMON_PORT: String(opts.port) } : {}) },
+    });
+
+    // The daemon prints a single-line JSON handshake on stdout; everything else is logs.
+    const handshake = await new Promise<{ url: string; port: number; token: string } | undefined>((resolve) => {
+      const timer = setTimeout(() => resolve(undefined), 10_000);
+      let buf = '';
+      child.stdout!.on('data', (chunk: Buffer) => {
+        buf += chunk.toString('utf8');
+        const nl = buf.indexOf('\n');
+        if (nl < 0) return;
+        clearTimeout(timer);
+        try { resolve((JSON.parse(buf.slice(0, nl)) as { clihub_daemon: { url: string; port: number; token: string } }).clihub_daemon); }
+        catch { resolve(undefined); }
+      });
+      child.on('exit', () => { clearTimeout(timer); resolve(undefined); });
+    });
+    if (!handshake) {
+      try { child.kill(); } catch { /* already gone */ }
+      err('daemon failed to start (no handshake within 10s)');
+      process.exit(1);
+    }
+
+    const state: DaemonState = { ...handshake, pid: child.pid!, startedAt: new Date().toISOString() };
+    await fsp.mkdir(path.dirname(daemonStatePath()), { recursive: true });
+    await fsp.writeFile(daemonStatePath(), JSON.stringify(state, null, 2) + '\n', { mode: 0o600 });
+    child.stdout!.destroy();
+    child.unref();
+
+    if (opts.json) { console.log(JSON.stringify({ url: state.url, port: state.port, pid: state.pid })); }
+    else {
+      ok(`daemon started at ${state.url}  (pid ${state.pid})`);
+      info('bearer token written to ~/.clihub/daemon.json (0600) — clients read it from there.');
+    }
+    await (await import('@clihub/core')).appendAudit({ actor: 'cli', action: 'daemon.start', port: state.port }).catch(() => {});
+  });
+
 // ─── import (reverse-ingest existing setup) ───────────────────────────
 cli
   .command('import', "Reverse-ingest this machine's installed CLIs/skills/MCP into a clihub.yaml")

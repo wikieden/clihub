@@ -9,8 +9,9 @@
   "main": "./dist/cli.js",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "bun run build:bundle && bun run build:chmod",
+    "build": "bun run build:bundle && bun run build:daemon && bun run build:chmod",
     "build:bundle": "bun build --target node --bundle --outfile dist/cli.js src/cli.ts",
+    "build:daemon": "bun build --target bun --bundle --outfile dist/daemon.js ../daemon/src/main.ts",
     "build:chmod": "node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\"",
     "start": "bun src/cli.ts",
     "prepack": "node -e \"const f=require('fs');f.copyFileSync('../../README.md','./README.md');f.copyFileSync('../../LICENSE','./LICENSE')\"",
