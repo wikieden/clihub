@@ -21,14 +21,47 @@ export interface DoctorResponse {
 export interface EndpointPreset {
   id: string;
   label: string;
-  family: string;
-  baseURL: string;
+  /** v2 multi-protocol map (anthropic/openai/google → base URL). */
+  urls?: Record<string, string>;
+  /** Legacy v1 fields (still emitted for older readers). */
+  family?: string;
+  baseURL?: string;
   models?: string[];
   authEnv?: string;
 }
 
 export interface EndpointsResponse {
   endpoints: EndpointPreset[];
+}
+
+/** GET /v1/bindings — live per-CLI bindings + what each CLI can do. */
+export interface CliBindingRow {
+  endpoint?: string;
+  model?: string;
+}
+
+export interface BindingAdapterRow {
+  cli: string;
+  protocols: string[];
+  modelOnly: boolean;
+  requiresModel: boolean;
+  deliversKey: boolean;
+}
+
+export interface BindingsResponse {
+  bindings: Record<string, CliBindingRow>;
+  adapters: BindingAdapterRow[];
+}
+
+/** POST /v1/use result (subset the panel renders). */
+export interface UseResultRow {
+  targets: Array<{
+    cli: string;
+    protocol: string;
+    keyDelivered: boolean;
+    patches: Array<{ field: string; applied: boolean; detail?: string }>;
+  }>;
+  bindings: Record<string, CliBindingRow>;
 }
 
 export interface ProfilesResponse {

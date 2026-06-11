@@ -16,6 +16,7 @@ import {
   planApply,
   parseClihubYaml,
   skillCapableTools,
+  readBindings,
 } from '@clihub/core';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -107,6 +108,24 @@ describe('golden parity — read routes === direct kernel call', () => {
     const body = (await res.json()) as { providers: Array<{ id: string }> };
     expect(body.providers.map((p) => p.id)).toEqual(listProviders().map((p) => p.id));
   });
+
+  test('/v1/bindings: live bindings (read-only) + all 7 adapter capabilities', async () => {
+    const res = await routeRequest(getReq('/v1/bindings'), ctx);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      bindings: Record<string, unknown>;
+      adapters: Array<{ cli: string; modelOnly: boolean; deliversKey: boolean }>;
+    };
+    expect(body.bindings).toEqual(await readBindings());
+    expect(body.adapters.map((a) => a.cli).sort()).toEqual(
+      ['claude-code', 'codex', 'cursor', 'gemini', 'goose', 'kiro', 'qwen'],
+    );
+    // the honest flags the GUI matrix renders: kiro/cursor are model-only,
+    // goose can't carry a key in its config file.
+    expect(body.adapters.find((a) => a.cli === 'kiro')?.modelOnly).toBe(true);
+    expect(body.adapters.find((a) => a.cli === 'cursor')?.modelOnly).toBe(true);
+    expect(body.adapters.find((a) => a.cli === 'goose')?.deliversKey).toBe(false);
+  });
 });
 
 describe('mutating routes — validation (no side effects)', () => {
@@ -124,6 +143,15 @@ describe('mutating routes — validation (no side effects)', () => {
 
   test('POST /v1/profile/use {} → 400 (missing name)', async () => {
     expect((await routeRequest(postReq('/v1/profile/use', {}), ctx)).status).toBe(400);
+  });
+
+  test('POST /v1/use {} → 400 (missing endpoint)', async () => {
+    expect((await routeRequest(postReq('/v1/use', {}), ctx)).status).toBe(400);
+  });
+
+  test('POST /v1/model {} → 400 (missing cli/model)', async () => {
+    expect((await routeRequest(postReq('/v1/model', {}), ctx)).status).toBe(400);
+    expect((await routeRequest(postReq('/v1/model', { cli: 'kiro' }), ctx)).status).toBe(400);
   });
 
   // addMcp early-returns for an unknown id with no command/url — it touches no

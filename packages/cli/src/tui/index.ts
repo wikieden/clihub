@@ -18,6 +18,7 @@ import {
   note,
   select,
   spinner,
+  text,
 } from '@clack/prompts';
 import kleur from 'kleur';
 import os from 'node:os';
@@ -561,6 +562,11 @@ async function crossMenu(): Promise<void> {
         { value: 'skill.fanout', label: 'Install a skill into every supported installed CLI' },
         { value: 'doctor.all', label: 'Run doctor across every CLI' },
         { value: 'tools.status', label: 'List status of every CLI' },
+        { value: 'sepE', label: kleur.dim('───────── Endpoints (per-CLI binding)'), hint: '' },
+        { value: 'use.bind', label: `Bind endpoint → CLI(s)  ${kleur.dim('(clihub use)')}` },
+        { value: 'use.current', label: 'Show current bindings' },
+        { value: 'model.set', label: `Set default model only  ${kleur.dim('(the kiro/cursor path)')}` },
+        { value: 'use.clear', label: `Restore official defaults  ${kleur.dim('(use clear)')}` },
         { value: BACK, label: '← Back' },
       ],
     })) as string | symbol;
@@ -577,6 +583,10 @@ async function handleCrossAction(action: string): Promise<void> {
   switch (action) {
     case 'preset.apply':   return runPresetApply();
     case 'skill.fanout':   return runSkillFanout();
+    case 'use.bind':       return runUseBind();
+    case 'use.current':    return runUseCurrent();
+    case 'use.clear':      return runUseClear();
+    case 'model.set':      return runModelSet();
     case 'doctor.all': {
       const { runHealthMatrix } = await import('@clihub/core');
       const rows = await runHealthMatrix();
@@ -615,6 +625,133 @@ async function handleCrossAction(action: string): Promise<void> {
       return;
     }
   }
+}
+
+// ─── Endpoint binding (clihub use — docs/25, v1.63 TUI surface) ───────
+
+async function runUseCurrent(): Promise<void> {
+  const { readBindings } = await import('@clihub/core');
+  const entries = Object.entries(await readBindings());
+  if (entries.length === 0) { log.info('no bindings yet — pick "Bind endpoint → CLI(s)" first'); return; }
+  note(
+    entries.map(([cli, b]) => `${cli}: ${b.endpoint ?? '(model only)'}${b.model ? ` · ${b.model}` : ''}`).join('\n'),
+    'Current bindings',
+  );
+}
+
+async function runUseBind(): Promise<void> {
+  const core = await import('@clihub/core');
+  const presets = await core.listEndpoints();
+  const epPick = await select({
+    message: 'Endpoint preset (ESC = back)',
+    options: [
+      ...presets.map((p) => {
+        const urls = core.endpointUrls(p);
+        return { value: p.id, label: `${p.label}  ${kleur.dim(Object.keys(urls).join('+'))}` };
+      }),
+      { value: BACK, label: '← Back' },
+    ],
+  });
+  if (isCancel(epPick) || epPick === BACK) return;
+  const preset = presets.find((p) => p.id === epPick)!;
+  const urls = core.endpointUrls(preset);
+
+  const capable = Object.values(core.BINDING_ADAPTERS).filter((a) =>
+    a.protocols.some((proto) => urls[proto]),
+  );
+  const cliPick = await select({
+    message: 'Bind which CLI?',
+    options: [
+      { value: '*', label: `All capable  ${kleur.dim(`(${capable.map((a) => a.cli).join(', ')})`)}` },
+      ...capable.map((a) => ({ value: a.cli, label: a.cli })),
+      { value: BACK, label: '← Back' },
+    ],
+  });
+  if (isCancel(cliPick) || cliPick === BACK) return;
+
+  let model: string | undefined;
+  const models = preset.models ?? [];
+  if (models.length > 0) {
+    const m = await select({
+      message: 'Default model',
+      options: [
+        ...models.map((mm) => ({ value: mm, label: mm })),
+        { value: '', label: kleur.dim('(keep each CLI default)') },
+      ],
+    });
+    if (isCancel(m)) return;
+    model = (m as string) || undefined;
+  } else {
+    const m = await text({ message: 'Default model (empty = keep CLI default)', placeholder: 'e.g. deepseek-chat' });
+    if (isCancel(m)) return;
+    model = (m as string | undefined)?.trim() || undefined;
+  }
+
+  const keyLookup = async (name: string) =>
+    core.getSecret((await core.currentProfile()) ?? 'default', name);
+  let allowMissingKey = false;
+  if (preset.authEnv && !(await keyLookup(preset.authEnv))) {
+    const anyway = await confirm({
+      message: `No key stored for ${preset.authEnv} — bind anyway and add the key later?`,
+    });
+    if (isCancel(anyway) || !anyway) {
+      log.info(`store it first: \`clihub auth set ${preset.authEnv}\``);
+      return;
+    }
+    allowMissingKey = true;
+  }
+
+  const res = await core.useBinding(preset.id, {
+    cli: cliPick === '*' ? undefined : (cliPick as string),
+    model,
+    keyLookup,
+    allowMissingKey,
+  });
+  for (const tg of res.targets) {
+    const boundModel = res.bindings[tg.cli]?.model;
+    log.success(
+      `${tg.cli} (${tg.protocol})${boundModel ? kleur.dim(` · ${boundModel}`) : ''}${tg.keyDelivered ? '' : kleur.yellow('  [no key delivered]')}`,
+    );
+    for (const p of tg.patches) if (!p.applied && p.detail) log.warn(`  ${p.field}: ${p.detail}`);
+  }
+  log.info('restart the CLI to pick up the new endpoint (Claude Code hot-reloads).');
+}
+
+async function runUseClear(): Promise<void> {
+  const core = await import('@clihub/core');
+  const bound = Object.keys(await core.readBindings());
+  if (bound.length === 0) { log.info('nothing to clear — no bindings recorded'); return; }
+  const pick = await select({
+    message: 'Restore which CLI to official defaults?',
+    options: [
+      { value: '*', label: `All bound  ${kleur.dim(`(${bound.join(', ')})`)}` },
+      ...bound.map((c) => ({ value: c, label: c })),
+      { value: BACK, label: '← Back' },
+    ],
+  });
+  if (isCancel(pick) || pick === BACK) return;
+  const res = await core.clearBinding(pick === '*' ? undefined : (pick as string));
+  for (const tg of res.targets) log.success(`${tg.cli}: restored official defaults`);
+}
+
+async function runModelSet(): Promise<void> {
+  const core = await import('@clihub/core');
+  const pick = await select({
+    message: 'Set the default model of which CLI?',
+    options: [
+      ...Object.values(core.BINDING_ADAPTERS).map((a) => ({
+        value: a.cli,
+        label: `${a.cli}${a.protocols.length === 0 ? kleur.dim('  (model-only CLI)') : ''}`,
+      })),
+      { value: BACK, label: '← Back' },
+    ],
+  });
+  if (isCancel(pick) || pick === BACK) return;
+  const m = await text({ message: `Default model for ${String(pick)}`, placeholder: 'e.g. claude-sonnet-4.6' });
+  if (isCancel(m) || !m || !(m as string).trim()) return;
+  const res = await core.setModelBinding(pick as string, (m as string).trim());
+  log.success(`${res.cli}: default model → ${res.model}`);
+  log.info('restart the CLI to pick it up.');
 }
 
 async function adaptersForSkill(skill: SkillManifest): Promise<Array<{ toolId: string; adapter: SkillSyncAdapter }>> {

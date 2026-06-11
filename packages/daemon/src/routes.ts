@@ -31,6 +31,12 @@ import {
   computeStatus,
   getProvider,
   formatErrorMessage,
+  readBindings,
+  useBinding,
+  clearBinding,
+  setModelBinding,
+  BINDING_ADAPTERS,
+  getSecret,
   type ToolProvider,
 } from '@clihub/core';
 import { readFile } from 'node:fs/promises';
@@ -136,6 +142,19 @@ export const ROUTES: Record<string, RouteHandler> = {
       }),
     ),
   }),
+  // Mirrors `clihub use current` + adapter capabilities, in one call — the GUI
+  // matrix needs both the live bindings AND what each CLI can do (endpoint-
+  // switchable vs model-only, key deliverable or keyring-bound).
+  'GET /v1/bindings': async () => ({
+    bindings: await readBindings(),
+    adapters: Object.values(BINDING_ADAPTERS).map((a) => ({
+      cli: a.cli,
+      protocols: a.protocols,
+      modelOnly: a.protocols.length === 0,
+      requiresModel: a.requiresModel === true,
+      deliversKey: a.deliversKey === true,
+    })),
+  }),
   // Mirrors `clihub status` exactly: clihub.yaml → clihub.lock.json →
   // system-prompt hash → computeStatus (the drift/compliance gate). The CLI
   // discovers the yaml from its cwd; a GUI daemon's cwd is wherever the shell
@@ -164,6 +183,42 @@ export const ROUTES: Record<string, RouteHandler> = {
     if (!profile) throw new HttpError(400, 'no active profile; pass "profile"');
     const result = await useEndpoint(id, profile);
     audit('endpoint.use', { id, profile });
+    return result;
+  },
+
+  // `use <endpoint> [--for <cli>] [--model <m>] [--skip-key]` — per-CLI binding.
+  // Same key path as the CLI: clihub keychain via the active profile.
+  'POST /v1/use': async (_ctx, req) => {
+    const body = await readJson(req);
+    const endpoint = reqString(body, 'endpoint');
+    const cli = optString(body, 'cli');
+    const model = optString(body, 'model');
+    const result = await useBinding(endpoint, {
+      cli,
+      model,
+      keyLookup: async (name) => getSecret((await currentProfile()) ?? 'default', name),
+      allowMissingKey: body.skipKey === true,
+    });
+    audit('use.bind', { endpoint, cli: cli ?? result.targets.map((t) => t.cli).join(','), model: model ?? null });
+    return result;
+  },
+
+  // `use clear [--for <cli>]` — restore official defaults.
+  'POST /v1/use/clear': async (_ctx, req) => {
+    const body = await readJson(req);
+    const cli = optString(body, 'cli');
+    const result = await clearBinding(cli);
+    audit('use.clear', { cli: cli ?? result.targets.map((t) => t.cli).join(',') });
+    return result;
+  },
+
+  // `model <cli> <model>` — model-only binding (the kiro/cursor path).
+  'POST /v1/model': async (_ctx, req) => {
+    const body = await readJson(req);
+    const cli = reqString(body, 'cli');
+    const model = reqString(body, 'model');
+    const result = await setModelBinding(cli, model);
+    audit('model.set', { cli, model });
     return result;
   },
 

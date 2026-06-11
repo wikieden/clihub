@@ -1928,31 +1928,35 @@ cli
     const core = await import('@clihub/core');
 
     if (action === 'use') {
+      // Deprecated alias (docs/25 §5): the family-broadcast model is gone —
+      // forward to the per-CLI binding engine and say so.
       if (!id) { err('usage: clihub endpoint use <id>'); process.exit(1); }
-      const profile = await core.currentProfile();
-      if (!profile) { err('no active profile — run `clihub profile use <name>` first'); process.exit(1); }
+      warn('`clihub endpoint use` is deprecated — forwarding to `clihub use` (per-CLI binding). Use `clihub use <id> [--for <cli>] [--model <m>] [--skip-key]` for the full surface.');
+      const keyLookup = async (name: string) => {
+        const prof = (await core.currentProfile()) ?? 'default';
+        return core.getSecret(prof, name);
+      };
       let res;
-      try { res = await core.useEndpoint(id, profile); }
+      try { res = await core.useBinding(id, { keyLookup }); }
       catch (e) { err(e instanceof Error ? e.message : String(e)); process.exit(1); }
-      const shownUrl = res.preset.baseURL ?? Object.values(core.endpointUrls(res.preset))[0] ?? '';
-      ok(`endpoint → ${res.preset.label}  ${kleur.dim(shownUrl)}  (profile ${profile})`);
-      for (const p of res.patches) {
-        if (p.applied) ok(`  ${p.vendor}: ${p.envVar}`);
-        else err(`  ${p.vendor}: ${p.detail}`);
+      ok(`endpoint → ${res.preset.label}`);
+      for (const t of res.targets) {
+        const keyNote = t.keyDelivered ? '' : kleur.yellow('  [no key delivered]');
+        ok(`  ${t.cli} (${t.protocol})${res.bindings[t.cli]?.model ? kleur.dim(` · model ${res.bindings[t.cli]?.model}`) : ''}${keyNote}`);
+        for (const p of t.patches) if (!p.applied) warn(`    ${p.field}: ${p.detail}`);
       }
-      if (res.patches.length === 0) info('no base-URL injector for this family on the installed CLIs (Claude/Codex/Gemini families only); recorded in profile meta.');
-      if (res.preset.authEnv) info(`set the key with \`clihub auth set ${res.preset.authEnv}\` — it stays in the OS keychain.`);
+      await core.appendAudit({ actor: 'cli', action: 'use.bind', endpoint: id, via: 'endpoint-use-deprecated' }).catch(() => {});
       return;
     }
 
     if (action === 'current') {
-      const profile = await core.currentProfile();
-      if (!profile) { info('no active profile'); return; }
-      const meta = await core.readProfileMeta(profile).catch(() => undefined);
-      info(`profile ${profile}`);
-      const entries = Object.entries(meta?.baseUrls ?? {});
-      if (entries.length === 0) { info('no endpoint baseURLs set — `clihub endpoint use <id>`'); return; }
-      for (const [fam, url] of entries) console.log(`  ${kleur.bold(fam)}: ${url}`);
+      const bindings = await core.readBindings();
+      const entries = Object.entries(bindings);
+      if (entries.length === 0) { info('no bindings — `clihub use <endpoint> [--for <cli>]`'); return; }
+      for (const [cliId, b] of entries) {
+        console.log(`  ${kleur.bold(cliId)}: ${b.endpoint ?? kleur.dim('(model only)')}${b.model ? kleur.dim(`  · ${b.model}`) : ''}`);
+      }
+      info('(`clihub endpoint current` now mirrors `clihub use current`)');
       return;
     }
 
