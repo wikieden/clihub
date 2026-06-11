@@ -159,6 +159,36 @@ describe('mutating routes — validation (no side effects)', () => {
     expect((await routeRequest(postReq('/v1/rollback', { tool: 'nope-zzz' }), ctx)).status).toBe(400);
   });
 
+  test('POST /v1/yaml {} → 400 (missing content)', async () => {
+    expect((await routeRequest(postReq('/v1/yaml', {}), ctx)).status).toBe(400);
+  });
+
+  // ALWAYS pin `dir` to a sandbox in these tests: without it the route
+  // discovers a clihub.yaml by walking UP from the test cwd — all the way
+  // into $HOME — and a 200 means a REAL file was replaced.
+  test('POST /v1/yaml with sandbox dir but no clihub.yaml there → 400, nothing created', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'clihub-yaml-'));
+    const res = await routeRequest(postReq('/v1/yaml', { content: 'version: 1\n', dir }), ctx);
+    expect(res.status).toBe(400);
+  });
+
+  test('POST /v1/yaml round-trip in a sandbox dir (write + GET back)', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'clihub-yaml-'));
+    await writeFile(path.join(dir, 'clihub.yaml'), 'version: 1\ntools: []\n', 'utf8');
+    const res = await routeRequest(
+      postReq('/v1/yaml', { content: 'version: 1\ntools:\n  - id: codex\n', dir }),
+      ctx,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { file: string; tools: number };
+    expect(body.file).toBe(path.join(dir, 'clihub.yaml'));
+    expect(body.tools).toBe(1);
+
+    const read = await routeRequest(getReq(`/v1/yaml?dir=${encodeURIComponent(dir)}`), ctx);
+    expect(read.status).toBe(200);
+    expect(((await read.json()) as { content: string }).content).toContain('id: codex');
+  });
+
   test('GET /v1/versions covers every provider with history + rollback target fields', async () => {
     const res = await routeRequest(getReq('/v1/versions'), ctx);
     expect(res.status).toBe(200);

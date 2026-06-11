@@ -40,9 +40,10 @@ import {
   readHistory,
   previousVersion,
   recordVersion,
+  snapshotBeforeWrite,
   type ToolProvider,
 } from '@clihub/core';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile, rename } from 'node:fs/promises';
 import path from 'node:path';
 
 export interface RouteCtx {
@@ -158,6 +159,17 @@ export const ROUTES: Record<string, RouteHandler> = {
       deliversKey: a.deliversKey === true,
     })),
   }),
+  // The raw clihub.yaml for the editor panel (same discovery as `clihub status`).
+  'GET /v1/yaml': async (_ctx, req) => {
+    const startDir = new URL(req.url).searchParams.get('dir') ?? undefined;
+    if (startDir && !path.isAbsolute(startDir)) {
+      throw new HttpError(400, 'query "dir" must be an absolute path');
+    }
+    const file = await findClihubYaml(startDir);
+    if (!file) throw new HttpError(400, formatErrorMessage('CLIHUB-E-600'));
+    return { file, content: await readFile(file, 'utf8') };
+  },
+
   // Mirrors `clihub tool history` across every provider, plus the rollback
   // target `clihub tool rollback` would pick (previous distinct version).
   'GET /v1/versions': async () => ({
@@ -242,6 +254,33 @@ export const ROUTES: Record<string, RouteHandler> = {
     const result = await setModelBinding(cli, model);
     audit('model.set', { cli, model });
     return result;
+  },
+
+  // Save the edited clihub.yaml. parseClihubYaml is a LENIENT parser (it
+  // skips lines it doesn't understand — schema enforcement is `clihub
+  // schema`/conformance territory), so the parse here is a sanity pass, not
+  // a gate. The real safety net is snapshotBeforeWrite: the previous file
+  // content is snapshotted before the atomic tmp+rename replaces it.
+  'POST /v1/yaml': async (_ctx, req) => {
+    const body = await readJson(req);
+    const content = reqString(body, 'content');
+    const dir = optString(body, 'dir');
+    if (dir && !path.isAbsolute(dir)) throw new HttpError(400, 'field "dir" must be an absolute path');
+    let cfg;
+    try {
+      cfg = parseClihubYaml(content);
+    } catch (e) {
+      throw new HttpError(400, `invalid clihub.yaml: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    const file = await findClihubYaml(dir);
+    if (!file) throw new HttpError(400, formatErrorMessage('CLIHUB-E-600'));
+    const normalized = content.endsWith('\n') ? content : content + '\n';
+    await snapshotBeforeWrite(file, normalized);
+    const tmp = `${file}.tmp`;
+    await writeFile(tmp, normalized, 'utf8');
+    await rename(tmp, file);
+    audit('yaml.save', { file, tools: cfg.tools.length, skills: cfg.skills.length });
+    return { file, tools: cfg.tools.length, skills: cfg.skills.length, mcp: cfg.mcp.length, plugins: cfg.plugins.length };
   },
 
   // `tool rollback <id>` — re-install the previous recorded version.

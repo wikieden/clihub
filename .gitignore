@@ -11,3 +11,4 @@ packages/cli/README.md
 packages/cli/LICENSE
 *.tgz
 *.tsbuildinfo
+.gstack/
