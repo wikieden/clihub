@@ -4,6 +4,50 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.65.0] — per-CLI provider binding · GUI control plane · OpenCode (8th CLI)
+
+The Phase-1c batch: the endpoint model was redesigned around per-CLI bindings,
+the desktop GUI grew from scaffold to a 9-panel themed control plane, and
+OpenCode joined as the eighth managed CLI.
+
+### Added
+- **Per-CLI provider binding** (`clihub use <endpoint> [--for <cli>] [--model <m>]`,
+  `clihub use current|clear`, `clihub model <cli> <m>`): each CLI holds its own
+  (endpoint, default model) pair written in its NATIVE config idiom — claude-code
+  `env.ANTHROPIC_BASE_URL/AUTH_TOKEN`, codex `[model_providers.clihub-<id>]`,
+  gemini `~/.gemini/.env`, qwen `modelProviders` entries, goose
+  `GOOSE_PROVIDER/*_HOST`, kiro/cursor model-only. Keys come from the clihub
+  keychain, land chmod-0600, and a missing key throws unless `--skip-key`.
+  Bindings are recorded in `clihub.lock.json` and drift-gated by
+  `clihub status --strict`. `clihub endpoint use` is deprecated and forwards.
+- **OpenCode support (8th CLI)**: install/detect/version (npm `opencode-ai`,
+  pin + rollback capable), JSONC-tolerant config adapter for
+  `~/.config/opencode/opencode.json`, MCP `mcp` map adapter, skills at
+  `~/.config/opencode/skills`, AGENTS.md memory, and a binding adapter
+  (openai-compatible custom provider or built-in anthropic override, model as
+  `provider/model`).
+- **`clihub daemon start|stop|status`**: sidecar lifecycle from the CLI; the
+  npm package now ships `dist/daemon.js`, so browser/dev GUI flows don't need
+  the Tauri shell.
+- **Desktop GUI, 9 panels**: Dashboard (health matrix + endpoint column),
+  Drift, Endpoints (CLI×endpoint binding matrix), MCP, Skills, Profiles,
+  Versions (history + rollback), clihub.yaml editor (snapshot-before-save +
+  drift banner), Sync/Team — all golden-parity against the daemon HTTP surface.
+- **Tauri shell**: system tray (hide-to-tray; daemon survives window close),
+  `clihub://<panel>` deep links (single-instance), updater scaffold pinned to
+  GitHub releases with a minisign pubkey.
+- **Multi-theme design system**: console (navy+cyan, default), graphite
+  (amber), paper (warm light), phosphor (CRT green) — one token contract,
+  4-dot switcher, persisted.
+- **Brand**: eight-spoke hub logo (8 CLIs → one control plane); full Tauri
+  icon set regenerated; theme-aware sidebar lockup.
+
+### Fixed
+- Daemon `POST /v1/yaml` now snapshots the existing file before every write
+  and is exercised only against sandboxed dirs in tests.
+- GUI reacts to runtime `hashchange`, so deep links land on the right panel
+  in an already-open window.
+
 ## [1.61.0] — P1a: endpoint presets + import + MCP reconcile (+ registry dedup)
 
 Config-surface superset toward the GUI (P1a in the version plan) + a debt
