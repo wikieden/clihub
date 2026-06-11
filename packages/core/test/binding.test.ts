@@ -151,10 +151,10 @@ describe('useBinding — key preflight (never silently bind)', () => {
 });
 
 describe('useBinding — target selection', () => {
-  test('no --for: deepseek binds every capable CLI (claude-code/codex/qwen/goose)', async () => {
+  test('no --for: deepseek binds every capable CLI (claude-code/codex/qwen/goose/opencode)', async () => {
     const home = await sandbox();
     const res = await useBinding('deepseek', { home, loader, keyLookup: async () => FAKE_KEY });
-    expect(res.targets.map((t) => t.cli).sort()).toEqual(['claude-code', 'codex', 'goose', 'qwen']);
+    expect(res.targets.map((t) => t.cli).sort()).toEqual(['claude-code', 'codex', 'goose', 'opencode', 'qwen']);
     const b = await readBindings({ home });
     expect(b['claude-code']?.endpoint).toBe('deepseek');
     expect(b.codex?.endpoint).toBe('deepseek');
@@ -366,7 +366,7 @@ describe('clearBinding — restore official', () => {
     const home = await sandbox();
     await useBinding('deepseek', { home, loader, keyLookup: async () => FAKE_KEY });
     const res = await clearBinding(undefined, { home, loader });
-    expect(res.targets.map((t) => t.cli).sort()).toEqual(['claude-code', 'codex', 'goose', 'qwen']);
+    expect(res.targets.map((t) => t.cli).sort()).toEqual(['claude-code', 'codex', 'goose', 'opencode', 'qwen']);
     expect(await readBindings({ home })).toEqual({});
     const toml = await readFile(path.join(home, '.codex', 'config.toml'), 'utf8');
     expect(toml).not.toContain('model_provider');

@@ -110,7 +110,7 @@ describe('golden parity — read routes === direct kernel call', () => {
     expect(body.providers.map((p) => p.id)).toEqual(listProviders().map((p) => p.id));
   });
 
-  test('/v1/bindings: live bindings (read-only) + all 7 adapter capabilities', async () => {
+  test('/v1/bindings: live bindings (read-only) + all 8 adapter capabilities', async () => {
     const res = await routeRequest(getReq('/v1/bindings'), ctx);
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
@@ -119,7 +119,7 @@ describe('golden parity — read routes === direct kernel call', () => {
     };
     expect(body.bindings).toEqual(await readBindings());
     expect(body.adapters.map((a) => a.cli).sort()).toEqual(
-      ['claude-code', 'codex', 'cursor', 'gemini', 'goose', 'kiro', 'qwen'],
+      ['claude-code', 'codex', 'cursor', 'gemini', 'goose', 'kiro', 'opencode', 'qwen'],
     );
     // the honest flags the GUI matrix renders: kiro/cursor are model-only,
     // goose can't carry a key in its config file.

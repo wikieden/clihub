@@ -15,6 +15,7 @@ export { geminiProvider } from './tools/providers/gemini.js';
 export { qwenProvider } from './tools/providers/qwen.js';
 export { cursorProvider } from './tools/providers/cursor.js';
 export { gooseProvider } from './tools/providers/goose.js';
+export { opencodeProvider } from './tools/providers/opencode.js';
 export {
   makeProvider,
   validateProviderSpec,
@@ -32,6 +33,8 @@ export {
   type LoadExternalProvidersResult,
 } from './tools/declarative.js';
 export { JsonSettingsAdapter } from './settings/index.js';
+export { JsoncSettingsAdapter, type JsoncSettingsAdapterOpts } from './settings/jsonc.js';
+export { parseJsonc } from './utils/jsonc.js';
 export { TomlSettingsAdapter, type TomlSettingsAdapterOpts } from './settings/toml.js';
 export { YamlSettingsAdapter, type YamlSettingsAdapterOpts } from './settings/yaml.js';
 export {
@@ -108,6 +111,7 @@ export {
 export {
   JsonMcpAdapter,
   TomlMcpAdapter,
+  OpencodeMcpAdapter,
   type McpAdapter,
   type JsonMcpAdapterOpts,
 } from './mcp/index.js';

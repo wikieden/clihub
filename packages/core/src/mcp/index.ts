@@ -16,6 +16,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { TomlSettingsAdapter } from '../settings/toml.js';
+import { parseJsonc } from '../utils/jsonc.js';
 import type { InstalledMcpServer, McpServerManifest } from '../types.js';
 
 export interface McpAdapter {
@@ -175,5 +176,99 @@ export class TomlMcpAdapter implements McpAdapter {
     if (!map || !(id in map)) return;
     delete map[id];
     await this.inner.write(obj);
+  }
+}
+
+/**
+ * MCP adapter for OpenCode — `~/.config/opencode/opencode.json`, top-level
+ * `mcp` map (verified against opencode.ai/docs/mcp-servers + the live config
+ * schema 2026-06-11). Shapes differ from the mcpServers convention:
+ *   - local:  { type: "local", command: [exe, ...args], environment: {...} }
+ *     (ONE array — no separate `args`; env key is `environment`, not `env`)
+ *   - remote: { type: "remote", url, headers? }   (covers http and sse)
+ * The file is JSONC for opencode itself, so reads are comment-tolerant;
+ * writes are plain JSON (comments end up only in the pre-write snapshot).
+ */
+export class OpencodeMcpAdapter implements McpAdapter {
+  private readonly filePath: string;
+
+  constructor(opts: { path: string }) {
+    this.filePath = opts.path;
+  }
+
+  configPath(): string {
+    return this.filePath;
+  }
+
+  async list(): Promise<InstalledMcpServer[]> {
+    const obj = await this.read();
+    const servers = (obj.mcp ?? {}) as Record<
+      string,
+      { type?: string; command?: string[]; url?: string }
+    >;
+    return Object.entries(servers).map(([id, def]) => {
+      const cmd = Array.isArray(def.command) ? def.command : [];
+      return {
+        id,
+        name: id,
+        command: def.type === 'remote' ? (def.url ?? '') : (cmd[0] ?? ''),
+        args: def.type === 'remote' ? undefined : cmd.length > 1 ? cmd.slice(1) : undefined,
+      };
+    });
+  }
+
+  async install(server: McpServerManifest): Promise<void> {
+    const obj = await this.read();
+    const map = (obj.mcp ??= {}) as Record<string, unknown>;
+    const transport = server.transport ?? 'stdio';
+    let entry: Record<string, unknown>;
+    if (transport === 'http' || transport === 'sse') {
+      if (!server.url) {
+        throw new Error(`MCP server ${server.id} uses ${transport} transport but has no url`);
+      }
+      entry = { type: 'remote', url: server.url };
+      if (server.headers && Object.keys(server.headers).length > 0) {
+        entry.headers = { ...server.headers };
+      }
+    } else {
+      if (!server.command) {
+        throw new Error(`MCP server ${server.id} uses stdio transport but has no command`);
+      }
+      entry = { type: 'local', command: [server.command, ...(server.args ?? [])] };
+      if (server.env && Object.keys(server.env).length > 0) {
+        entry.environment = Object.fromEntries(
+          Object.keys(server.env).map((k) => [k, process.env[k] ?? '']),
+        );
+      }
+    }
+    map[server.id] = entry;
+    await this.write(obj);
+  }
+
+  async uninstall(id: string): Promise<void> {
+    const obj = await this.read();
+    if (!obj.mcp || typeof obj.mcp !== 'object') return;
+    const map = obj.mcp as Record<string, unknown>;
+    if (!(id in map)) return;
+    delete map[id];
+    await this.write(obj);
+  }
+
+  private async read(): Promise<Record<string, unknown>> {
+    try {
+      const raw = await fs.readFile(this.filePath, 'utf8');
+      const parsed = parseJsonc(raw);
+      return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : {};
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return {};
+      throw err;
+    }
+  }
+
+  private async write(obj: Record<string, unknown>): Promise<void> {
+    await fs.mkdir(path.dirname(this.filePath), { recursive: true });
+    await fs.writeFile(this.filePath, JSON.stringify(obj, null, 2) + '\n', 'utf8');
   }
 }

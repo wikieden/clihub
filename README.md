@@ -7,7 +7,7 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-**The reproducible control plane for AI coding CLIs.** Install Claude Code, Codex, Gemini CLI, Qwen Code, Kiro, Cursor, and Goose; keep their skills / MCP / memory / system-prompts in sync across every CLI; switch accounts and proxies; and pin it all to a signed `clihub.lock.json` with one-command rollback when an update bites.
+**The reproducible control plane for AI coding CLIs.** Install Claude Code, Codex, Gemini CLI, Qwen Code, Kiro, Cursor, Goose, and OpenCode; keep their skills / MCP / memory / system-prompts in sync across every CLI; switch accounts and proxies; and pin it all to a signed `clihub.lock.json` with one-command rollback when an update bites.
 
 ![demo](docs/assets/demo.gif)
 
@@ -88,7 +88,7 @@ clihub rollback                        # restore the most recent snapshot
 
 ## Currently supported
 
-**CLIs** (7): Claude Code, OpenAI Codex CLI, Gemini CLI, Qwen Code, Kiro CLI, Cursor CLI, Block Goose.
+**CLIs** (8): Claude Code, OpenAI Codex CLI, Gemini CLI, Qwen Code, Kiro CLI, Cursor CLI, Block Goose, OpenCode.
 
 **Skills**: 30 in the catalog — `superpowers`, `oh-my-claudecode`, `codegraph`, `tdd`, `review`, `frontend-design`, `api-design`, `database-migrations`, `caveman`, `lark-im`, `lark-doc`, `lark-wiki`, ... ([full list](packages/catalog/skills.json)).
 

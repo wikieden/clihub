@@ -6,6 +6,7 @@ import { geminiProvider } from './providers/gemini.js';
 import { cursorProvider } from './providers/cursor.js';
 import { gooseProvider } from './providers/goose.js';
 import { qwenProvider } from './providers/qwen.js';
+import { opencodeProvider } from './providers/opencode.js';
 
 const providers: Record<string, ToolProvider> = {
   [claudeCodeProvider.id]: claudeCodeProvider,
@@ -15,6 +16,7 @@ const providers: Record<string, ToolProvider> = {
   [cursorProvider.id]: cursorProvider,
   [gooseProvider.id]: gooseProvider,
   [qwenProvider.id]: qwenProvider,
+  [opencodeProvider.id]: opencodeProvider,
 };
 
 export function getProvider(id: string): ToolProvider | undefined {

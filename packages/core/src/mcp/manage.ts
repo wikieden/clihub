@@ -11,7 +11,7 @@
  */
 import os from 'node:os';
 import path from 'node:path';
-import { JsonMcpAdapter, TomlMcpAdapter, type McpAdapter, type McpDialect } from './index.js';
+import { JsonMcpAdapter, TomlMcpAdapter, OpencodeMcpAdapter, type McpAdapter, type McpDialect } from './index.js';
 import { CatalogLoader } from '../catalog/index.js';
 import { getProvider } from '../tools/registry.js';
 import type { InstalledMcpServer, McpServerManifest, McpTransport } from '../types.js';
@@ -27,11 +27,14 @@ const MCP_RELPATHS: Record<string, string> = {
   'gemini-cli': '.gemini/settings.json',
   'qwen-code': '.qwen/settings.json',
   'codex': '.codex/config.toml',
+  'opencode': '.config/opencode/opencode.json',
 };
 
-/** The right MCP adapter for a CLI: TOML for Codex, JSON (+dialect) for the rest. */
+/** The right MCP adapter for a CLI: TOML for Codex, opencode's `mcp` map for
+ *  OpenCode, JSON `mcpServers` (+dialect) for the rest. */
 function adapterFor(tool: string, p: string): McpAdapter {
   if (tool === 'codex') return new TomlMcpAdapter({ path: p });
+  if (tool === 'opencode') return new OpencodeMcpAdapter({ path: p });
   return new JsonMcpAdapter({ path: p, dialect: dialectFor(tool) });
 }
 

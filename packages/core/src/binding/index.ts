@@ -36,6 +36,7 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { JsonSettingsAdapter } from '../settings/index.js';
+import { JsoncSettingsAdapter } from '../settings/jsonc.js';
 import { TomlSettingsAdapter } from '../settings/toml.js';
 import { YamlSettingsAdapter } from '../settings/yaml.js';
 import { findEndpoint, endpointUrls } from '../endpoint/index.js';
@@ -594,6 +595,108 @@ const cursorAdapter: BindingAdapter = {
   },
 };
 
+/**
+ * opencode: ~/.config/opencode/opencode.json `provider` entries (verified
+ * against opencode.ai/docs/providers + the live config schema 2026-06-11):
+ *   openai-compatible endpoints → provider["clihub-<id>"] with
+ *     npm "@ai-sdk/openai-compatible" (the /v1/chat/completions package),
+ *     options.baseURL + options.apiKey, a models map, and the top-level
+ *     model set to "clihub-<id>/<model>"
+ *   anthropic endpoints → override the BUILT-IN provider.anthropic.options
+ *     (baseURL/apiKey) — the docs' documented way to rebind anthropic —
+ *     and set model to "anthropic/<model>"
+ * The top-level `model` key is "<provider>/<model-id>" (split on the FIRST
+ * slash), and without it opencode keeps routing to the previous provider —
+ * hence requiresModel. The file is JSONC for opencode itself: reads are
+ * comment-tolerant, writes are plain JSON (original snapshotted first).
+ */
+const opencodeAdapter: BindingAdapter = {
+  cli: 'opencode',
+  protocols: ['openai', 'anthropic'],
+  requiresModel: true,
+  deliversKey: true,
+  async apply(o) {
+    const file = path.join(o.home, '.config', 'opencode', 'opencode.json');
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    const ad = new JsoncSettingsAdapter({ path: file });
+    const current = asObject(await ad.read());
+    const providers = asObject(current.provider);
+    const patches: BindingPatch[] = [];
+    let modelRef: string;
+    if (o.protocol === 'anthropic') {
+      const anthropic = asObject(providers.anthropic);
+      const options = asObject(anthropic.options);
+      options.baseURL = o.url;
+      if (o.key) options.apiKey = o.key;
+      providers.anthropic = { ...anthropic, options };
+      modelRef = `anthropic/${o.model}`;
+      patches.push({ cli: 'opencode', file, field: 'provider.anthropic.options.baseURL', applied: true });
+      if (o.key) patches.push({ cli: 'opencode', file, field: 'provider.anthropic.options.apiKey', applied: true });
+    } else {
+      const providerId = `clihub-${o.endpointId}`;
+      providers[providerId] = {
+        npm: '@ai-sdk/openai-compatible',
+        name: o.label,
+        options: { baseURL: o.url, ...(o.key ? { apiKey: o.key } : {}) },
+        models: { [o.model as string]: {} },
+      };
+      modelRef = `${providerId}/${o.model}`;
+      patches.push({ cli: 'opencode', file, field: `provider.${providerId}`, applied: true });
+    }
+    const next: Record<string, unknown> = { ...current, provider: providers, model: modelRef };
+    patches.push({ cli: 'opencode', file, field: 'model', applied: true });
+    await ad.write(next);
+    if (o.key) await chmod600(file);
+    return patches;
+  },
+  async applyModel(o) {
+    // opencode's model key is "<provider>/<model-id>" — a bare model name has
+    // no provider to route to, so refuse instead of writing a broken value.
+    if (!o.model.includes('/')) {
+      throw new Error(
+        `opencode models are "<provider>/<model-id>" (e.g. anthropic/claude-sonnet-4-5) — got "${o.model}"`,
+      );
+    }
+    const file = path.join(o.home, '.config', 'opencode', 'opencode.json');
+    const ad = new JsoncSettingsAdapter({ path: file });
+    const current = asObject(await ad.read());
+    await ad.write({ ...current, model: o.model });
+    return [{ cli: 'opencode', file, field: 'model', applied: true }];
+  },
+  async clear(o) {
+    const file = path.join(o.home, '.config', 'opencode', 'opencode.json');
+    const ad = new JsoncSettingsAdapter({ path: file });
+    const current = asObject(await ad.read());
+    const providers = asObject(current.provider);
+    let scrubbedAnthropic = false;
+    for (const id of Object.keys(providers)) {
+      if (id.startsWith('clihub-')) delete providers[id];
+    }
+    // Only undo the exact fields our anthropic override writes.
+    const anthropic = asObject(providers.anthropic);
+    const options = asObject(anthropic.options);
+    if ('baseURL' in options || 'apiKey' in options) {
+      delete options.baseURL;
+      delete options.apiKey;
+      scrubbedAnthropic = true;
+      if (Object.keys(options).length === 0) delete anthropic.options;
+      else anthropic.options = options;
+      if (Object.keys(anthropic).length === 0) delete providers.anthropic;
+      else providers.anthropic = anthropic;
+    }
+    const next: Record<string, unknown> = { ...current, provider: providers };
+    if (Object.keys(providers).length === 0) delete next.provider;
+    if (
+      typeof current.model === 'string' &&
+      (current.model.startsWith('clihub-') || (scrubbedAnthropic && current.model.startsWith('anthropic/')))
+    ) {
+      delete next.model;
+    }
+    await ad.write(next);
+    return [{ cli: 'opencode', file, field: 'provider[clihub-*]/model', applied: true, detail: 'removed' }];
+  },
+};
+
 export const BINDING_ADAPTERS: Record<string, BindingAdapter> = {
   'claude-code': claudeCodeAdapter,
   codex: codexAdapter,
@@ -602,6 +705,7 @@ export const BINDING_ADAPTERS: Record<string, BindingAdapter> = {
   goose: gooseAdapter,
   kiro: kiroAdapter,
   cursor: cursorAdapter,
+  opencode: opencodeAdapter,
 };
 
 export interface UseBindingOpts {

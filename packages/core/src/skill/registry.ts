@@ -32,6 +32,12 @@ export const SKILL_ADAPTERS: Record<string, () => SkillSyncAdapter> = {
     }),
   'cursor': () => new CursorSkillAdapter(),
   'goose': () => new GooseSkillAdapter(),
+  // OpenCode discovers `<dir>/<id>/SKILL.md` exactly like Claude Code; its
+  // global skills root is ~/.config/opencode/skills (plural, per the docs).
+  'opencode': () =>
+    new ClaudeCodeSkillAdapter({
+      skillsDir: path.join(os.homedir(), '.config', 'opencode', 'skills'),
+    }),
 };
 
 /** Tool ids that have a skill-sync surface. */

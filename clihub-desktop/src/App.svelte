@@ -81,7 +81,7 @@
         </div>
       {/each}
     </nav>
-    <div class="foot">7 CLIs · pinned &amp; drift-gated</div>
+    <div class="foot">8 CLIs · pinned &amp; drift-gated</div>
   </aside>
   <main>
     {#key panel}

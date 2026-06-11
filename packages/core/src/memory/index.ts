@@ -77,6 +77,14 @@ export const MEMORY_TARGETS: MemoryTarget[] = [
     label: 'Kiro',
     project: path.join('.kiro', 'steering', 'clihub.md'),
   },
+  {
+    // Same project file as Codex (both read AGENTS.md) — the managed block is
+    // identical, so the second render is a no-op rather than a conflict.
+    tool: 'opencode',
+    label: 'OpenCode',
+    project: 'AGENTS.md',
+    user: path.join(os.homedir(), '.config', 'opencode', 'AGENTS.md'),
+  },
 ];
 
 /** Source files we look for, in priority order. */
