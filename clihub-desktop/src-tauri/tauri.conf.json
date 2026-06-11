@@ -15,9 +15,26 @@
       "csp": null
     }
   },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["clihub"]
+      }
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDFCQUExMkM1OENFRTI3RDMKUldUVEorNk14UktxRzVDSUVOb0YrVXZBNGtWQWhUaEJqOGx0dlhHN3Y0alFQcm9wUnBaOTV6cHMK",
+      "endpoints": [
+        "https://github.com/wikieden/clihub/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

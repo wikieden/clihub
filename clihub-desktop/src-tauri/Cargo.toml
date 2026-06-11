@@ -21,5 +21,13 @@ tauri-build = { version = "2.6.2", features = [] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
-tauri = { version = "2.11.2", features = [] }
+tauri = { version = "2.11.2", features = ["tray-icon"] }
 tauri-plugin-log = "2"
+tauri-plugin-deep-link = "2"
+
+# Desktop-only plugins (the cfg target is how the official docs scope them).
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+# "deep-link" feature: a second process spawned with a clihub:// URL (Windows/
+# Linux delivery path) forwards it to this instance's on_open_url.
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+tauri-plugin-updater = "2"
