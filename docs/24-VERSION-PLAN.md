@@ -70,6 +70,7 @@ yet (gateway-era work).
 | **v1.62b** | gemini/qwen/goose adapters · kiro/cursor model-only (`clihub model`) · `use clear` · lockfile `bindings` + `status --strict` drift gate | ✅ `a9781fe` | the moat step CC Switch lacks: bindings pinned + CI-gated |
 | **v1.63** | daemon bindings routes · GUI CLI×endpoint matrix panel · TUI binding menu · `endpoint use` deprecation | ✅ `3f1edfb` | headless-verified end-to-end (gstack browse) |
 | — | `clihub daemon start\|stop\|status` — sidecar lifecycle from the CLI; npm package ships `dist/daemon.js` | ✅ `04839b7` | browser/dev GUI flows no longer need the Tauri shell |
+| **v1.64** | Tauri shell: system tray (hide-to-tray, daemon survives close) · `clihub://<panel>` deep links (single-instance) · updater scaffold (GitHub releases + minisign pubkey pinned) | ✅ `95e4b92` | cargo check clean; runtime tray/deep-link/update needs a packaged real-machine pass; signing key outside repo (`~/.tauri/clihub.key`) |
 
 ---
 
