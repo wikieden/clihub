@@ -4,9 +4,13 @@ import os from 'node:os';
 import path from 'node:path';
 import {
   useBinding,
+  setModelBinding,
+  clearBinding,
   readBindings,
   writeBindings,
   endpointUrls,
+  generateLockfile,
+  computeStatus,
   CatalogLoader,
   type EndpointPreset,
 } from '../src/index.js';
@@ -147,19 +151,28 @@ describe('useBinding — key preflight (never silently bind)', () => {
 });
 
 describe('useBinding — target selection', () => {
-  test('no --for: deepseek binds BOTH claude-code and codex', async () => {
+  test('no --for: deepseek binds every capable CLI (claude-code/codex/qwen/goose)', async () => {
     const home = await sandbox();
     const res = await useBinding('deepseek', { home, loader, keyLookup: async () => FAKE_KEY });
-    expect(res.targets.map((t) => t.cli).sort()).toEqual(['claude-code', 'codex']);
+    expect(res.targets.map((t) => t.cli).sort()).toEqual(['claude-code', 'codex', 'goose', 'qwen']);
     const b = await readBindings({ home });
     expect(b['claude-code']?.endpoint).toBe('deepseek');
     expect(b.codex?.endpoint).toBe('deepseek');
+    expect(b.qwen?.endpoint).toBe('deepseek');
+    expect(b.goose?.endpoint).toBe('deepseek');
   });
 
-  test('anthropic-only preset targets only claude-code', async () => {
+  test('anthropic-only preset targets claude-code and goose', async () => {
     const home = await sandbox();
     const res = await useBinding('anthropic', { home, loader, keyLookup: async () => FAKE_KEY });
-    expect(res.targets.map((t) => t.cli)).toEqual(['claude-code']);
+    expect(res.targets.map((t) => t.cli).sort()).toEqual(['claude-code', 'goose']);
+  });
+
+  test('--for a model-only CLI (kiro/cursor) throws an honest pointer to `clihub model`', async () => {
+    const home = await sandbox();
+    await expect(
+      useBinding('deepseek', { cli: 'kiro', home, loader, keyLookup: async () => FAKE_KEY }),
+    ).rejects.toThrow(/model-only.*clihub model kiro/);
   });
 
   test('--for a CLI whose protocol the endpoint lacks throws', async () => {
@@ -181,5 +194,217 @@ describe('bindings io', () => {
     const home = await sandbox();
     await writeBindings({ codex: { endpoint: 'groq' } }, { home });
     expect(await readBindings({ home })).toEqual({ codex: { endpoint: 'groq' } });
+  });
+});
+
+describe('useBinding — gemini (~/.gemini/.env + settings model.name)', () => {
+  test('writes base URL + key as .env lines, preserving foreign lines; model into settings.json', async () => {
+    const home = await sandbox();
+    const envFile = path.join(home, '.gemini', '.env');
+    const fs = await import('node:fs/promises');
+    await fs.mkdir(path.dirname(envFile), { recursive: true });
+    await fs.writeFile(envFile, 'OTHER_VAR=keep-me\n', 'utf8');
+
+    const res = await useBinding('google', {
+      cli: 'gemini',
+      model: 'gemini-2.5-pro',
+      home,
+      loader,
+      keyLookup: async () => FAKE_KEY,
+    });
+    expect(res.targets[0]?.protocol).toBe('google');
+    expect(res.targets[0]?.keyDelivered).toBe(true);
+
+    const env = await readFile(envFile, 'utf8');
+    expect(env).toContain('OTHER_VAR=keep-me');
+    expect(env).toContain('GOOGLE_GEMINI_BASE_URL=https://generativelanguage.googleapis.com');
+    expect(env).toContain(`GEMINI_API_KEY=${FAKE_KEY}`);
+    expect(((await stat(envFile)).mode & 0o777)).toBe(0o600);
+
+    const settings = JSON.parse(await readFile(path.join(home, '.gemini', 'settings.json'), 'utf8'));
+    expect(settings.model.name).toBe('gemini-2.5-pro');
+  });
+
+  test('clear removes the .env lines and model.name, keeps foreign lines', async () => {
+    const home = await sandbox();
+    const envFile = path.join(home, '.gemini', '.env');
+    const fs = await import('node:fs/promises');
+    await fs.mkdir(path.dirname(envFile), { recursive: true });
+    await fs.writeFile(envFile, 'OTHER_VAR=keep-me\n', 'utf8');
+    await useBinding('google', { cli: 'gemini', model: 'gemini-2.5-pro', home, loader, keyLookup: async () => FAKE_KEY });
+
+    await clearBinding('gemini', { home, loader });
+    const env = await readFile(envFile, 'utf8');
+    expect(env).toContain('OTHER_VAR=keep-me');
+    expect(env).not.toContain('GOOGLE_GEMINI_BASE_URL');
+    expect(env).not.toContain('GEMINI_API_KEY');
+    const settings = JSON.parse(await readFile(path.join(home, '.gemini', 'settings.json'), 'utf8'));
+    expect(settings.model?.name).toBeUndefined();
+    expect((await readBindings({ home })).gemini).toBeUndefined();
+  });
+});
+
+describe('useBinding — qwen (modelProviders entries ARE models)', () => {
+  test('deepseek auto-model: entry id=model, marker name, envKey, selectedType, model.name, env key', async () => {
+    const home = await sandbox();
+    await useBinding('deepseek', { cli: 'qwen', home, loader, keyLookup: async () => FAKE_KEY });
+
+    const s = JSON.parse(await readFile(path.join(home, '.qwen', 'settings.json'), 'utf8'));
+    const entry = s.modelProviders.openai[0];
+    expect(entry).toEqual({
+      id: 'deepseek-chat', // first catalog model — model.name must match an entry id
+      name: 'clihub:deepseek',
+      baseUrl: 'https://api.deepseek.com',
+      envKey: 'DEEPSEEK_API_KEY',
+    });
+    expect(s.security.auth.selectedType).toBe('openai');
+    expect(s.model.name).toBe('deepseek-chat');
+    expect(s.env.DEEPSEEK_API_KEY).toBe(FAKE_KEY);
+    expect((await readBindings({ home })).qwen).toEqual({ endpoint: 'deepseek', model: 'deepseek-chat' });
+  });
+
+  test('--for qwen on a preset with no catalog models and no --model throws', async () => {
+    const home = await sandbox();
+    await expect(
+      useBinding('groq', { cli: 'qwen', home, loader, keyLookup: async () => FAKE_KEY }),
+    ).rejects.toThrow(/--model/);
+  });
+
+  test('clear removes only clihub-marked entries and the env key slot', async () => {
+    const home = await sandbox();
+    await useBinding('deepseek', { cli: 'qwen', home, loader, keyLookup: async () => FAKE_KEY });
+    await clearBinding('qwen', { home, loader });
+    const s = JSON.parse(await readFile(path.join(home, '.qwen', 'settings.json'), 'utf8'));
+    expect(s.modelProviders).toBeUndefined();
+    expect(s.model?.name).toBeUndefined();
+    expect(s.env?.DEEPSEEK_API_KEY).toBeUndefined();
+  });
+});
+
+describe('useBinding — goose (config.yaml built-in provider host route)', () => {
+  test('deepseek → GOOSE_PROVIDER anthropic + ANTHROPIC_HOST + GOOSE_MODEL; key NEVER written', async () => {
+    const home = await sandbox();
+    const res = await useBinding('deepseek', { cli: 'goose', home, loader, keyLookup: async () => FAKE_KEY });
+    expect(res.targets[0]?.protocol).toBe('anthropic');
+    // goose reads keys only from its keyring/env — config.yaml must stay key-free.
+    expect(res.targets[0]?.keyDelivered).toBe(false);
+
+    const yaml = await readFile(path.join(home, '.config', 'goose', 'config.yaml'), 'utf8');
+    expect(yaml).toContain('GOOSE_PROVIDER: anthropic');
+    expect(yaml).toContain('ANTHROPIC_HOST: https://api.deepseek.com/anthropic');
+    expect(yaml).toContain('GOOSE_MODEL: deepseek-chat');
+    expect(yaml).not.toContain(FAKE_KEY);
+
+    const keyNote = res.targets[0]?.patches.find((p) => p.field === 'key');
+    expect(keyNote?.applied).toBe(false);
+    expect(keyNote?.detail).toContain('ANTHROPIC_API_KEY');
+  });
+
+  test('clear removes provider/model/host keys, keeps the rest of config.yaml', async () => {
+    const home = await sandbox();
+    const file = path.join(home, '.config', 'goose', 'config.yaml');
+    const fs = await import('node:fs/promises');
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    await fs.writeFile(file, 'extensions:\n  - name: dev\n', 'utf8');
+    await useBinding('deepseek', { cli: 'goose', home, loader, keyLookup: async () => FAKE_KEY });
+    await clearBinding('goose', { home, loader });
+    const yaml = await readFile(file, 'utf8');
+    expect(yaml).toContain('extensions:');
+    expect(yaml).not.toContain('GOOSE_PROVIDER');
+    expect(yaml).not.toContain('ANTHROPIC_HOST');
+  });
+});
+
+describe('setModelBinding — the kiro/cursor model-only path', () => {
+  test('kiro writes the flat dotted key chat.defaultModel', async () => {
+    const home = await sandbox();
+    const res = await setModelBinding('kiro', 'claude-sonnet-4.6', { home });
+    expect(res.patches[0]?.field).toBe('chat.defaultModel');
+    const s = JSON.parse(await readFile(path.join(home, '.kiro', 'settings', 'cli.json'), 'utf8'));
+    expect(s['chat.defaultModel']).toBe('claude-sonnet-4.6');
+    // model-only binding: no endpoint recorded
+    expect((await readBindings({ home })).kiro).toEqual({ model: 'claude-sonnet-4.6' });
+  });
+
+  test('cursor writes model.modelId + hasChangedDefaultModel', async () => {
+    const home = await sandbox();
+    await setModelBinding('cursor', 'composer-3', { home });
+    const s = JSON.parse(await readFile(path.join(home, '.cursor', 'cli-config.json'), 'utf8'));
+    expect(s.model.modelId).toBe('composer-3');
+    expect(s.hasChangedDefaultModel).toBe(true);
+  });
+
+  test('kiro clear removes the key (service-side default resumes)', async () => {
+    const home = await sandbox();
+    await setModelBinding('kiro', 'claude-sonnet-4.6', { home });
+    await clearBinding('kiro', { home, loader });
+    const s = JSON.parse(await readFile(path.join(home, '.kiro', 'settings', 'cli.json'), 'utf8'));
+    expect(s['chat.defaultModel']).toBeUndefined();
+  });
+});
+
+describe('clearBinding — restore official', () => {
+  test('claude-code: env keys + model removed, unrelated settings preserved, binding entry dropped', async () => {
+    const home = await sandbox();
+    await useBinding('deepseek', { cli: 'claude-code', model: 'deepseek-chat', home, loader, keyLookup: async () => FAKE_KEY });
+    const file = path.join(home, '.claude', 'settings.json');
+    const fs = await import('node:fs/promises');
+    const before = JSON.parse(await readFile(file, 'utf8'));
+    before.permissions = { allow: ['Bash'] };
+    await fs.writeFile(file, JSON.stringify(before));
+
+    await clearBinding('claude-code', { home, loader });
+    const after = JSON.parse(await readFile(file, 'utf8'));
+    expect(after.env.ANTHROPIC_BASE_URL).toBeUndefined();
+    expect(after.env.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
+    expect(after.model).toBeUndefined();
+    expect(after.permissions).toEqual({ allow: ['Bash'] });
+    expect(await readBindings({ home })).toEqual({});
+  });
+
+  test('clear with no cli id restores every bound CLI', async () => {
+    const home = await sandbox();
+    await useBinding('deepseek', { home, loader, keyLookup: async () => FAKE_KEY });
+    const res = await clearBinding(undefined, { home, loader });
+    expect(res.targets.map((t) => t.cli).sort()).toEqual(['claude-code', 'codex', 'goose', 'qwen']);
+    expect(await readBindings({ home })).toEqual({});
+    const toml = await readFile(path.join(home, '.codex', 'config.toml'), 'utf8');
+    expect(toml).not.toContain('model_provider');
+  });
+});
+
+describe('lockfile bindings drift gate (status --strict)', () => {
+  const emptyCfg = { version: 1, tools: [], skills: [], presets: [], mcp: [], plugins: [] } as never;
+
+  test('generateLockfile pins live bindings; computeStatus reports ok / drift / missing', async () => {
+    const home = await sandbox();
+    await writeBindings({ 'claude-code': { endpoint: 'deepseek', model: 'deepseek-chat' } }, { home });
+    const lock = await generateLockfile(emptyCfg, '1.62.0', loader, { home });
+    expect(lock.bindings).toEqual({ 'claude-code': { endpoint: 'deepseek', model: 'deepseek-chat' } });
+
+    // ok: live matches the pin
+    let r = await computeStatus(emptyCfg, lock, { home });
+    expect(r.items.find((i) => i.kind === 'binding')?.state).toBe('ok');
+    expect(r.compliant).toBe(true);
+
+    // drift: someone re-bound to another endpoint
+    await writeBindings({ 'claude-code': { endpoint: 'groq', model: 'llama-4' } }, { home });
+    r = await computeStatus(emptyCfg, lock, { home });
+    expect(r.items.find((i) => i.kind === 'binding')?.state).toBe('drift');
+    expect(r.compliant).toBe(false);
+
+    // missing: binding cleared entirely
+    await writeBindings({}, { home });
+    r = await computeStatus(emptyCfg, lock, { home });
+    expect(r.items.find((i) => i.kind === 'binding')?.state).toBe('missing');
+    expect(r.compliant).toBe(false);
+  });
+
+  test('lockfile without bindings adds no binding items', async () => {
+    const home = await sandbox();
+    const lock = await generateLockfile(emptyCfg, '1.62.0', loader, { home });
+    expect(lock.bindings).toBeUndefined();
+    const r = await computeStatus(emptyCfg, lock, { home });
+    expect(r.items.find((i) => i.kind === 'binding')).toBeUndefined();
   });
 });

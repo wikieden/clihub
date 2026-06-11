@@ -80,10 +80,14 @@ export {
 } from './endpoint/index.js';
 export {
   useBinding,
+  setModelBinding,
+  clearBinding,
   readBindings,
   writeBindings,
   defaultBindingsPath,
   BINDING_ADAPTERS,
+  upsertEnvLine,
+  removeEnvLine,
   type CliBinding,
   type Bindings,
   type BindingAdapter,
@@ -91,6 +95,9 @@ export {
   type UseBindingOpts,
   type UseBindingResult,
   type UseBindingTarget,
+  type SetModelResult,
+  type ClearBindingResult,
+  type ClearBindingOpts,
 } from './binding/index.js';
 export {
   importMachine,

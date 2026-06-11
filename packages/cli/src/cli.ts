@@ -1973,7 +1973,7 @@ cli
 
 // ─── use (per-CLI provider binding — docs/25) ─────────────────────────
 cli
-  .command('use [endpoint]', 'Bind an endpoint (+default model) to a CLI (per-CLI switching)')
+  .command('use [endpoint]', 'Bind an endpoint (+default model) to a CLI (per-CLI switching); `use clear` restores official')
   .option('--for <cli>', 'Target one CLI (default: every CLI the endpoint serves)')
   .option('--model <m>', 'Also set the default model')
   .option('--skip-key', 'Bind even when no key is stored for the endpoint')
@@ -1987,8 +1987,31 @@ cli
       const entries = Object.entries(bindings);
       if (entries.length === 0) { info('no bindings yet — `clihub use <endpoint> [--for <cli>]`'); return; }
       for (const [cliId, b] of entries) {
-        console.log(`  ${kleur.bold(cliId)}: ${b.endpoint}${b.model ? kleur.dim(`  · ${b.model}`) : ''}`);
+        console.log(`  ${kleur.bold(cliId)}: ${b.endpoint ?? kleur.dim('(model only)')}${b.model ? kleur.dim(`  · ${b.model}`) : ''}`);
       }
+      return;
+    }
+
+    if (endpoint === 'clear') {
+      let res;
+      try {
+        res = await core.clearBinding(opts.for);
+      } catch (e) {
+        err(e instanceof Error ? e.message : String(e));
+        process.exit(1);
+      }
+      if (opts.json) { console.log(JSON.stringify(res, null, 2)); return; }
+      if (res.targets.length === 0) { info('nothing to clear — no bindings recorded'); return; }
+      for (const t of res.targets) {
+        ok(`${t.cli}: restored official defaults`);
+        for (const p of t.patches) if (!p.applied && p.detail) warn(`  ${p.field}: ${p.detail}`);
+      }
+      info('restart the CLI to pick up the change (Claude Code hot-reloads).');
+      await core.appendAudit({
+        actor: 'cli',
+        action: 'use.clear',
+        cli: opts.for ?? res.targets.map((t) => t.cli).join(','),
+      }).catch(() => {});
       return;
     }
 
@@ -2011,8 +2034,9 @@ cli
     ok(`endpoint → ${res.preset.label}`);
     for (const t of res.targets) {
       const keyNote = t.keyDelivered ? '' : kleur.yellow('  [no key delivered]');
-      ok(`  ${t.cli} (${t.protocol})${opts.model ? kleur.dim(` · model ${opts.model}`) : ''}${keyNote}`);
-      for (const p of t.patches) if (!p.applied) err(`    ${p.field}: ${p.detail}`);
+      const model = res.bindings[t.cli]?.model;
+      ok(`  ${t.cli} (${t.protocol})${model ? kleur.dim(` · model ${model}`) : ''}${keyNote}`);
+      for (const p of t.patches) if (!p.applied) warn(`    ${p.field}: ${p.detail}`);
     }
     info('restart the CLI to pick up the new endpoint (Claude Code hot-reloads).');
     await core.appendAudit({
@@ -2024,7 +2048,25 @@ cli
     }).catch(() => {});
   });
 
-// ─── import (reverse-ingest existing setup) ───────────────────────────
+// ─── model (model-only binding — the kiro/cursor path) ────────────────
+cli
+  .command('model <cli> <model>', "Set one CLI's default model (the only switch kiro/cursor support)")
+  .option('--json', 'Output as JSON')
+  .action(async (cliId: string, model: string, opts: { json?: boolean }) => {
+    const core = await import('@clihub/core');
+    let res;
+    try {
+      res = await core.setModelBinding(cliId, model);
+    } catch (e) {
+      err(e instanceof Error ? e.message : String(e));
+      process.exit(1);
+    }
+    if (opts.json) { console.log(JSON.stringify(res, null, 2)); return; }
+    ok(`${cliId}: default model → ${model}`);
+    for (const p of res.patches) console.log(`  ${kleur.dim(`${p.field} (${p.file})`)}`);
+    info('restart the CLI to pick it up.');
+    await core.appendAudit({ actor: 'cli', action: 'model.set', cli: cliId, model }).catch(() => {});
+  });
 
 // ─── import (reverse-ingest existing setup) ───────────────────────────
 cli

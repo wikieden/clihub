@@ -21,6 +21,7 @@ import { ClaudeCodePluginAdapter } from '../plugin/index.js';
 import { addMcp } from '../mcp/manage.js';
 import { recordVersion } from '../version/index.js';
 import { systemPromptHash } from '../sysprompt/index.js';
+import { readBindings, type Bindings } from '../binding/index.js';
 import type { SkillSyncAdapter } from '../tools/types.js';
 
 
@@ -185,13 +186,15 @@ export interface Lockfile {
   provider?: { id: string; baseURL?: string };
   /** sha256 of the resolved clihub.systemprompt.md body, if any (v1.60). */
   systemPromptHash?: string;
+  /** Per-CLI endpoint/model bindings pinned at lock time (`clihub use`, v1.62). */
+  bindings?: Bindings;
 }
 
 export async function generateLockfile(
   cfg: ClihubYamlConfig,
   clihubVersion: string,
   loader = new CatalogLoader(),
-  opts: { cwd?: string } = {},
+  opts: { cwd?: string; home?: string } = {},
 ): Promise<Lockfile> {
   const catalog = await loader.load();
   const tools: Lockfile['tools'] = {};
@@ -218,6 +221,8 @@ export async function generateLockfile(
   for (const p of cfg.plugins) plugins[p.id] = {};
 
   const promptHash = await systemPromptHash(opts.cwd);
+  // Pin this machine's live per-CLI bindings (the drift gate CC Switch lacks).
+  const bindings = await readBindings({ home: opts.home });
 
   return {
     version: 1,
@@ -229,6 +234,7 @@ export async function generateLockfile(
     mcp,
     plugins,
     ...(promptHash ? { systemPromptHash: promptHash } : {}),
+    ...(Object.keys(bindings).length > 0 ? { bindings } : {}),
   };
 }
 

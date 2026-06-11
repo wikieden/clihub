@@ -15,11 +15,12 @@
 import type { ClihubYamlConfig } from '../clihubyaml/full.js';
 import type { Lockfile } from '../apply/index.js';
 import { getProvider } from '../tools/registry.js';
+import { readBindings, type CliBinding } from '../binding/index.js';
 
 export type ComplianceState = 'ok' | 'drift' | 'missing' | 'unlocked';
 
 export interface StatusItem {
-  kind: 'tool' | 'skill' | 'prompt';
+  kind: 'tool' | 'skill' | 'prompt' | 'binding';
   id: string;
   state: ComplianceState;
   /** Version pinned in the lockfile (if any). */
@@ -44,7 +45,7 @@ export interface StatusReport {
 export async function computeStatus(
   cfg: ClihubYamlConfig,
   lock?: Lockfile,
-  opts: { systemPromptHash?: string } = {},
+  opts: { systemPromptHash?: string; home?: string } = {},
 ): Promise<StatusReport> {
   const items: StatusItem[] = [];
 
@@ -90,6 +91,23 @@ export async function computeStatus(
       items.push({ kind: 'prompt', id: 'system-prompt', state: 'drift', locked: short(lock.systemPromptHash), actual: short(actual) });
     } else {
       items.push({ kind: 'prompt', id: 'system-prompt', state: 'ok', locked: short(lock.systemPromptHash) });
+    }
+  }
+
+  // bindings: drift-gate pinned per-CLI endpoint/model pairs (v1.62).
+  if (lock?.bindings && Object.keys(lock.bindings).length > 0) {
+    const actual = await readBindings({ home: opts.home });
+    const fmt = (b: CliBinding): string =>
+      `${b.endpoint ?? '(model-only)'}${b.model ? ` · ${b.model}` : ''}`;
+    for (const [cliId, pinned] of Object.entries(lock.bindings)) {
+      const a = actual[cliId];
+      if (!a) {
+        items.push({ kind: 'binding', id: cliId, state: 'missing', locked: fmt(pinned), detail: 'no binding on this machine' });
+      } else if (a.endpoint !== pinned.endpoint || (pinned.model ? a.model !== pinned.model : false)) {
+        items.push({ kind: 'binding', id: cliId, state: 'drift', locked: fmt(pinned), actual: fmt(a) });
+      } else {
+        items.push({ kind: 'binding', id: cliId, state: 'ok', locked: fmt(pinned) });
+      }
     }
   }
 

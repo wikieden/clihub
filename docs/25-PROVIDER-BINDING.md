@@ -94,8 +94,8 @@ Each is the CLI's native idiom — we invent nothing. All writes atomic
 | claude-code | settings.json `env.ANTHROPIC_BASE_URL` | `env.ANTHROPIC_AUTH_TOKEN` (default; gateway-compatible) | settings.json `model` |
 | codex | config.toml `[model_providers.clihub-<id>]` `base_url`/`env_key`/`wire_api` + `model_provider` | `env_key = "<authEnv>"`; key carrier decided at impl (`experimental_bearer_token` keeps ChatGPT OAuth intact — CC Switch's opt-in mode) | config.toml `model` |
 | gemini-cli | `~/.gemini/.env` `GOOGLE_GEMINI_BASE_URL` | `~/.gemini/.env` `GEMINI_API_KEY` | settings.json `model.name` |
-| qwen-code | settings.json `modelProviders.<proto>[]` entry (id `clihub-<endpoint>`) | entry `envKey` + `env` field fallback | settings.json `model.name` |
-| goose | `custom_providers/clihub-<id>.json` (`engine` from protocol) | provider `api_key_env` + goose keyring when available | config.yaml `GOOSE_PROVIDER`/`GOOSE_MODEL` |
+| qwen-code | settings.json `modelProviders.<authType>[]` entry — **entry id = MODEL id** (`model.name` must match it; entries are models, unique by id+baseUrl), marker `name: "clihub:<endpoint>"`; binding therefore requires a model (`--model` or first catalog model) | entry `envKey` (NAME) + key value in the settings.json `env` map (qwen's documented plain-text slot, lowest precedence) | settings.json `model.name` |
+| goose | config.yaml `GOOSE_PROVIDER` + `ANTHROPIC_HOST`/`OPENAI_HOST` (bare host, source-verified). ~~custom_providers JSON~~ rejected at impl: its `base_url` wants a full chat-completions path for openai and is unverified for anthropic — we don't guess | **not file-delivered** — goose reads keys only from its keyring or the provider's fixed env (`ANTHROPIC_API_KEY`/`OPENAI_API_KEY`); the bind reports the exact `export` to run | config.yaml `GOOSE_MODEL` |
 | kiro-cli | — (report "endpoint: unsupported") | — | settings key `chat.defaultModel` |
 | cursor-cli | — (report "endpoint: unsupported") | — | cli-config.json `model.modelId` (+`hasChangedDefaultModel`) |
 
@@ -129,8 +129,8 @@ same 1:1 kernel delegation rules.
 
 | Slice | Content | Size |
 |---|---|---|
-| **v1.62a** | catalog schema v2 + loader shim; `bindings.json`; `src/binding/` kernel module; claude-code + codex adapters; `clihub use` CLI; tests (sandbox HOME) | M |
-| **v1.62b** | gemini/qwen/goose adapters; kiro/cursor model-only; `use clear`; lockfile bindings + status gate | M |
+| **v1.62a** ✅ | catalog schema v2 + loader shim; `bindings.json`; `src/binding/` kernel module; claude-code + codex adapters; `clihub use` CLI; tests (sandbox HOME) | M |
+| **v1.62b** ✅ | gemini/qwen/goose adapters; kiro/cursor model-only (`clihub model <cli> <m>`); `use clear [--for]`; lockfile `bindings` + `status --strict` gate; auto fan-out skips a model-requiring CLI when the preset lists no models (explicit `--for` still fails loud) | M |
 | **v1.63** | daemon routes + GUI matrix panel + TUI menu; `endpoint` deprecation notice | S–M |
 
 Out of scope: per-request routing/failover (gateway territory, P2-gated);
