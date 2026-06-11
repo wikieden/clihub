@@ -37,6 +37,29 @@
     location.hash = `/${id}`;
   }
 
+  // Multi-theme: four palettes share one token contract (app.css); switching
+  // data-theme on <html> restyles every panel. Persisted across launches.
+  type Theme = 'console' | 'graphite' | 'paper' | 'phosphor';
+  const THEMES: { id: Theme; swatch: string }[] = [
+    { id: 'console', swatch: '#4fd6c4' },
+    { id: 'graphite', swatch: '#e2a33c' },
+    { id: 'paper', swatch: '#c9402a' },
+    { id: 'phosphor', swatch: '#3df28a' },
+  ];
+  const THEME_KEY = 'clihub.theme';
+
+  function initialTheme(): Theme {
+    const saved = localStorage.getItem(THEME_KEY) as Theme | null;
+    return saved && THEMES.some((t) => t.id === saved) ? saved : 'console';
+  }
+
+  let theme = $state<Theme>(initialTheme());
+
+  $effect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem(THEME_KEY, theme);
+  });
+
   const groups: { label: string; items: { id: Panel; label: string }[] }[] = [
     {
       label: 'observe',
@@ -81,6 +104,21 @@
         </div>
       {/each}
     </nav>
+    <div class="theme">
+      <span class="label">theme</span>
+      <div class="swatches">
+        {#each THEMES as t (t.id)}
+          <button
+            class="swatch"
+            class:on={theme === t.id}
+            style={`--sw: ${t.swatch}`}
+            title={t.id}
+            aria-label={`theme: ${t.id}`}
+            onclick={() => (theme = t.id)}
+          ></button>
+        {/each}
+      </div>
+    </div>
     <div class="foot">8 CLIs · pinned &amp; drift-gated</div>
   </aside>
   <main>
@@ -210,6 +248,46 @@
     color: var(--accent-bright);
     background: var(--accent-bg);
     border-left-color: var(--accent);
+  }
+
+  .theme {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 0.5rem 0.6rem;
+  }
+
+  .theme .label {
+    padding: 0;
+  }
+
+  .swatches {
+    display: flex;
+    gap: 0.35rem;
+  }
+
+  .swatch {
+    width: 14px;
+    height: 14px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--sw);
+    border: 1px solid transparent;
+    opacity: 0.55;
+    transition:
+      opacity 120ms ease,
+      box-shadow 120ms ease;
+  }
+
+  .swatch:hover:not(:disabled) {
+    opacity: 1;
+    border-color: transparent;
+    color: inherit;
+  }
+
+  .swatch.on {
+    opacity: 1;
+    box-shadow: 0 0 0 2px var(--bg-raised), 0 0 0 3px var(--sw);
   }
 
   .foot {

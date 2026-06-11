@@ -1,33 +1,35 @@
-/* clihub — control-plane industrial theme.
-   Dark graphite surfaces, one amber signal color, IBM Plex mono/sans.
-   Panels consume these tokens; never hardcode colors in panel styles. */
+/* clihub — multi-theme control-plane design system.
+   Four palettes share one token contract; panels consume tokens only and
+   never hardcode colors, so switching data-theme restyles the whole app:
+     console  — deep navy + electric cyan (default; mission-control)
+     graphite — dark graphite + amber signal (v1 industrial look)
+     paper    — warm paper + ink + vermilion (light editorial)
+     phosphor — pure black + phosphor green, zero radius (CRT brutal)
+   Theme is set via <html data-theme="...">, persisted by App.svelte. */
 
 :root {
-  /* surfaces, darkest → lightest */
-  --bg: #0f1113;
-  --bg-raised: #141719;
-  --surface: #191d21;
-  --surface-2: #20252b;
-  --border: #272d34;
-  --border-strong: #39414b;
+  /* console (default) — surfaces darkest → lightest */
+  --bg: #0a0e14;
+  --bg-raised: #0d1219;
+  --surface: #111923;
+  --surface-2: #16202c;
+  --border: #1a2230;
+  --border-strong: #2b3a4e;
 
-  /* text */
-  --text: #d7dde3;
-  --text-dim: #8d97a1;
-  --text-faint: #5c656f;
+  --text: #dbe4ee;
+  --text-dim: #7a8aa0;
+  --text-faint: #46566c;
 
-  /* signal */
-  --accent: #e2a33c;
-  --accent-bright: #f0b657;
-  --accent-bg: rgba(226, 163, 60, 0.1);
+  --accent: #4fd6c4;
+  --accent-bright: #6fe3d2;
+  --accent-bg: rgba(79, 214, 196, 0.1);
 
-  /* status */
-  --ok: #5dc88f;
-  --ok-bg: rgba(93, 200, 143, 0.09);
-  --warn: #e2a33c;
-  --warn-bg: rgba(226, 163, 60, 0.09);
-  --err: #e16a56;
-  --err-bg: rgba(225, 106, 86, 0.09);
+  --ok: #5dd6a2;
+  --ok-bg: rgba(93, 214, 162, 0.09);
+  --warn: #ffb454;
+  --warn-bg: rgba(255, 180, 84, 0.09);
+  --err: #ff6b5d;
+  --err-bg: rgba(255, 107, 93, 0.09);
 
   --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
@@ -35,8 +37,88 @@
 
   font-family: var(--sans);
   font-size: 15px;
-  color: var(--text);
-  background: var(--bg);
+  color-scheme: dark;
+}
+
+:root[data-theme='graphite'] {
+  --bg: #0f1113;
+  --bg-raised: #141719;
+  --surface: #191d21;
+  --surface-2: #20252b;
+  --border: #272d34;
+  --border-strong: #39414b;
+
+  --text: #d7dde3;
+  --text-dim: #8d97a1;
+  --text-faint: #5c656f;
+
+  --accent: #e2a33c;
+  --accent-bright: #f0b657;
+  --accent-bg: rgba(226, 163, 60, 0.1);
+
+  --ok: #5dc88f;
+  --ok-bg: rgba(93, 200, 143, 0.09);
+  --warn: #e2a33c;
+  --warn-bg: rgba(226, 163, 60, 0.09);
+  --err: #e16a56;
+  --err-bg: rgba(225, 106, 86, 0.09);
+
+  --radius: 6px;
+  color-scheme: dark;
+}
+
+:root[data-theme='paper'] {
+  --bg: #f7f4ec;
+  --bg-raised: #f1ede1;
+  --surface: #fffdf7;
+  --surface-2: #f1ede1;
+  --border: #e3dccb;
+  --border-strong: #c9c0aa;
+
+  --text: #211d15;
+  --text-dim: #6b6353;
+  --text-faint: #a89f8c;
+
+  /* on light ground, "bright" = the stronger/darker ink of the pair */
+  --accent: #c9402a;
+  --accent-bright: #a93521;
+  --accent-bg: rgba(201, 64, 42, 0.08);
+
+  --ok: #47703f;
+  --ok-bg: rgba(71, 112, 63, 0.08);
+  --warn: #b07818;
+  --warn-bg: rgba(176, 120, 24, 0.09);
+  --err: #c9402a;
+  --err-bg: rgba(201, 64, 42, 0.08);
+
+  --radius: 4px;
+  color-scheme: light;
+}
+
+:root[data-theme='phosphor'] {
+  --bg: #050705;
+  --bg-raised: #070b08;
+  --surface: #0a100c;
+  --surface-2: #0f1812;
+  --border: #1d3327;
+  --border-strong: #2c5039;
+
+  --text: #b8d9c6;
+  --text-dim: #6fae8a;
+  --text-faint: #3d6b4f;
+
+  --accent: #3df28a;
+  --accent-bright: #7dffb5;
+  --accent-bg: rgba(61, 242, 138, 0.1);
+
+  --ok: #3df28a;
+  --ok-bg: rgba(61, 242, 138, 0.09);
+  --warn: #ffc14d;
+  --warn-bg: rgba(255, 193, 77, 0.09);
+  --err: #ff5d5d;
+  --err-bg: rgba(255, 93, 93, 0.1);
+
+  --radius: 0px;
   color-scheme: dark;
 }
 
@@ -46,7 +128,10 @@
 
 body {
   margin: 0;
+  background: var(--bg);
+  color: var(--text);
   -webkit-font-smoothing: antialiased;
+  transition: background 160ms ease;
 }
 
 ::selection {
