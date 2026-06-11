@@ -17,6 +17,7 @@ import {
   parseClihubYaml,
   skillCapableTools,
   readBindings,
+  listTeams,
 } from '@clihub/core';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -161,6 +162,19 @@ describe('mutating routes — validation (no side effects)', () => {
 
   test('POST /v1/yaml {} → 400 (missing content)', async () => {
     expect((await routeRequest(postReq('/v1/yaml', {}), ctx)).status).toBe(400);
+  });
+
+  test('POST /v1/team/* and /v1/sync/export validate required fields → 400', async () => {
+    expect((await routeRequest(postReq('/v1/team/add', { name: 'x' }), ctx)).status).toBe(400);
+    expect((await routeRequest(postReq('/v1/team/pull', {}), ctx)).status).toBe(400);
+    expect((await routeRequest(postReq('/v1/team/rm', {}), ctx)).status).toBe(400);
+    expect((await routeRequest(postReq('/v1/sync/export', {}), ctx)).status).toBe(400);
+  });
+
+  test('GET /v1/teams matches listTeams()', async () => {
+    const res = await routeRequest(getReq('/v1/teams'), ctx);
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { teams: string[] }).teams).toEqual(await listTeams());
   });
 
   // ALWAYS pin `dir` to a sandbox in these tests: without it the route

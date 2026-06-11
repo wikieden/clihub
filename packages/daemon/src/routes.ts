@@ -41,8 +41,16 @@ import {
   previousVersion,
   recordVersion,
   snapshotBeforeWrite,
+  listTeams,
+  addTeam,
+  pullTeam,
+  removeTeam,
+  collectBundle,
+  encryptBundle,
   type ToolProvider,
 } from '@clihub/core';
+import os from 'node:os';
+import { mkdir } from 'node:fs/promises';
 import { readFile, writeFile, rename } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -159,6 +167,9 @@ export const ROUTES: Record<string, RouteHandler> = {
       deliversKey: a.deliversKey === true,
     })),
   }),
+  // `team list` — registered team config repos.
+  'GET /v1/teams': async () => ({ teams: await listTeams() }),
+
   // The raw clihub.yaml for the editor panel (same discovery as `clihub status`).
   'GET /v1/yaml': async (_ctx, req) => {
     const startDir = new URL(req.url).searchParams.get('dir') ?? undefined;
@@ -281,6 +292,50 @@ export const ROUTES: Record<string, RouteHandler> = {
     await rename(tmp, file);
     audit('yaml.save', { file, tools: cfg.tools.length, skills: cfg.skills.length });
     return { file, tools: cfg.tools.length, skills: cfg.skills.length, mcp: cfg.mcp.length, plugins: cfg.plugins.length };
+  },
+
+  // `team add <name> <git-url>` — clone a shared team config repo.
+  'POST /v1/team/add': async (_ctx, req) => {
+    const body = await readJson(req);
+    const name = reqString(body, 'name');
+    const gitUrl = reqString(body, 'gitUrl');
+    const dir = await addTeam(name, gitUrl);
+    audit('team.add', { name, gitUrl });
+    return { name, dir };
+  },
+
+  // `team pull <name>` — fetch the latest shared config.
+  'POST /v1/team/pull': async (_ctx, req) => {
+    const body = await readJson(req);
+    const name = reqString(body, 'name');
+    await pullTeam(name);
+    audit('team.pull', { name });
+    return { name, pulled: true };
+  },
+
+  // `team rm <name>`.
+  'POST /v1/team/rm': async (_ctx, req) => {
+    const body = await readJson(req);
+    const name = reqString(body, 'name');
+    const removed = await removeTeam(name);
+    if (removed) audit('team.rm', { name });
+    return { name, removed };
+  },
+
+  // `sync export` — E2E-encrypted config bundle written under ~/.clihub/
+  // (never a user-chosen arbitrary path from the GUI). The passphrase rides
+  // the loopback request body only — it is NOT audited or logged.
+  'POST /v1/sync/export': async (ctx, req) => {
+    const body = await readJson(req);
+    const passphrase = reqString(body, 'passphrase');
+    const bundle = await collectBundle(ctx.version);
+    const encrypted = encryptBundle(bundle, passphrase);
+    const dir = path.join(os.homedir(), '.clihub');
+    await mkdir(dir, { recursive: true });
+    const file = path.join(dir, `sync-export-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
+    await writeFile(file, encrypted, { mode: 0o600 });
+    audit('sync.export', { file, files: bundle.files.length });
+    return { file, files: bundle.files.length };
   },
 
   // `tool rollback <id>` — re-install the previous recorded version.
