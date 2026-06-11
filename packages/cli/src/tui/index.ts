@@ -567,6 +567,8 @@ async function crossMenu(): Promise<void> {
         { value: 'use.current', label: 'Show current bindings' },
         { value: 'model.set', label: `Set default model only  ${kleur.dim('(the kiro/cursor path)')}` },
         { value: 'use.clear', label: `Restore official defaults  ${kleur.dim('(use clear)')}` },
+        { value: 'sepD', label: kleur.dim('───────── GUI sidecar'), hint: '' },
+        { value: 'daemon', label: `Daemon control  ${kleur.dim('(start/stop the GUI sidecar)')}` },
         { value: BACK, label: '← Back' },
       ],
     })) as string | symbol;
@@ -587,6 +589,7 @@ async function handleCrossAction(action: string): Promise<void> {
     case 'use.current':    return runUseCurrent();
     case 'use.clear':      return runUseClear();
     case 'model.set':      return runModelSet();
+    case 'daemon':         return runDaemonCtl();
     case 'doctor.all': {
       const { runHealthMatrix } = await import('@clihub/core');
       const rows = await runHealthMatrix();
@@ -752,6 +755,55 @@ async function runModelSet(): Promise<void> {
   const res = await core.setModelBinding(pick as string, (m as string).trim());
   log.success(`${res.cli}: default model → ${res.model}`);
   log.info('restart the CLI to pick it up.');
+}
+
+/** GUI sidecar control — same lifecycle module the `clihub daemon` command uses. */
+async function runDaemonCtl(): Promise<void> {
+  const ctl = await import('../daemon-ctl.js');
+  const state = await ctl.readDaemonState();
+  const probe = state ? await ctl.probeDaemon(state) : { ok: false as const };
+  if (state && probe.ok) {
+    log.info(`daemon running at ${state.url}  ${kleur.dim(`(pid ${state.pid}, since ${state.startedAt})`)}`);
+  } else if (state) {
+    log.warn(`state file exists but ${state.url} is not answering (stale)`);
+  } else {
+    log.info('daemon not running');
+  }
+
+  const action = await select({
+    message: 'Daemon action',
+    options: [
+      state && probe.ok
+        ? { value: 'stop', label: 'Stop the daemon' }
+        : { value: 'start', label: 'Start the daemon' },
+      ...(state && !probe.ok ? [{ value: 'stop', label: 'Clean up stale state' }] : []),
+      { value: BACK, label: '← Back' },
+    ],
+  });
+  if (isCancel(action) || action === BACK) return;
+
+  if (action === 'start') {
+    const s = spinner();
+    s.start('starting daemon…');
+    try {
+      const res = await ctl.startDaemon();
+      s.stop(
+        res.kind === 'already-running'
+          ? `already running at ${res.state.url}`
+          : `daemon started at ${res.state.url}  ${kleur.dim(`(pid ${res.state.pid})`)}`,
+      );
+      log.info('bearer token in ~/.clihub/daemon.json (0600) — GUI/clients read it from there.');
+    } catch (e) {
+      s.stop('failed');
+      log.error(e instanceof Error ? e.message : String(e));
+    }
+    return;
+  }
+
+  const res = await ctl.stopDaemon();
+  if (res.kind === 'not-running') log.info('daemon not running');
+  else if (res.kind === 'stopped') log.success(`stopped daemon (pid ${res.pid})`);
+  else log.success(`cleaned up stale state (pid ${res.pid} already gone)`);
 }
 
 async function adaptersForSkill(skill: SkillManifest): Promise<Array<{ toolId: string; adapter: SkillSyncAdapter }>> {
