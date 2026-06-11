@@ -154,6 +154,24 @@ describe('mutating routes — validation (no side effects)', () => {
     expect((await routeRequest(postReq('/v1/model', { cli: 'kiro' }), ctx)).status).toBe(400);
   });
 
+  test('POST /v1/rollback {} / unknown tool → 400 (no install attempted)', async () => {
+    expect((await routeRequest(postReq('/v1/rollback', {}), ctx)).status).toBe(400);
+    expect((await routeRequest(postReq('/v1/rollback', { tool: 'nope-zzz' }), ctx)).status).toBe(400);
+  });
+
+  test('GET /v1/versions covers every provider with history + rollback target fields', async () => {
+    const res = await routeRequest(getReq('/v1/versions'), ctx);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      tools: Array<{ id: string; current: string | null; target: string | null; records: unknown[] }>;
+    };
+    expect(body.tools.map((t) => t.id).sort()).toEqual(listProviders().map((p) => p.id).sort());
+    for (const t of body.tools) {
+      expect(Array.isArray(t.records)).toBe(true);
+      expect('target' in t).toBe(true);
+    }
+  });
+
   // addMcp early-returns for an unknown id with no command/url — it touches no
   // config file, so this exercises POST→kernel delegation + the no-op audit path
   // (audit is skipped when done is empty) without mutating real config.

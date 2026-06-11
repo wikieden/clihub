@@ -37,6 +37,9 @@ import {
   setModelBinding,
   BINDING_ADAPTERS,
   getSecret,
+  readHistory,
+  previousVersion,
+  recordVersion,
   type ToolProvider,
 } from '@clihub/core';
 import { readFile } from 'node:fs/promises';
@@ -155,6 +158,25 @@ export const ROUTES: Record<string, RouteHandler> = {
       deliversKey: a.deliversKey === true,
     })),
   }),
+  // Mirrors `clihub tool history` across every provider, plus the rollback
+  // target `clihub tool rollback` would pick (previous distinct version).
+  'GET /v1/versions': async () => ({
+    tools: await Promise.all(
+      listProviders().map(async (p) => {
+        const det = await p.detect().catch(() => ({ installed: false, version: undefined }));
+        const history = await readHistory(p.id);
+        const current = det.installed ? (det.version ?? null) : null;
+        return {
+          id: p.id,
+          name: p.name,
+          installed: Boolean(det.installed),
+          current,
+          target: previousVersion(history, current ?? undefined) ?? null,
+          records: history.records,
+        };
+      }),
+    ),
+  }),
   // Mirrors `clihub status` exactly: clihub.yaml → clihub.lock.json →
   // system-prompt hash → computeStatus (the drift/compliance gate). The CLI
   // discovers the yaml from its cwd; a GUI daemon's cwd is wherever the shell
@@ -220,6 +242,24 @@ export const ROUTES: Record<string, RouteHandler> = {
     const result = await setModelBinding(cli, model);
     audit('model.set', { cli, model });
     return result;
+  },
+
+  // `tool rollback <id>` — re-install the previous recorded version.
+  'POST /v1/rollback': async (_ctx, req) => {
+    const body = await readJson(req);
+    const tool = reqString(body, 'tool');
+    const provider = getProvider(tool);
+    if (!provider) throw new HttpError(400, `unknown tool "${tool}"`);
+    const det = await provider.detect();
+    const history = await readHistory(tool);
+    const target = previousVersion(history, det.version);
+    if (!target) {
+      throw new HttpError(400, `no prior version recorded for ${tool} — clihub only knows versions it installed`);
+    }
+    await provider.install({ version: target, dryRun: false });
+    await recordVersion(tool, { version: target, method: 'npm', rolledBack: true });
+    audit('tool.rollback', { tool, from: det.version ?? null, to: target });
+    return { tool, from: det.version ?? null, to: target };
   },
 
   // `mcp add <id> [--command|--url|--transport]`.

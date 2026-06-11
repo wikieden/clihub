@@ -5,10 +5,11 @@
   import Mcp from './panels/Mcp.svelte';
   import Skills from './panels/Skills.svelte';
   import Profiles from './panels/Profiles.svelte';
+  import Versions from './panels/Versions.svelte';
 
-  type Panel = 'dashboard' | 'drift' | 'endpoints' | 'mcp' | 'skills' | 'profiles';
+  type Panel = 'dashboard' | 'drift' | 'endpoints' | 'mcp' | 'skills' | 'profiles' | 'versions';
 
-  const PANELS: Panel[] = ['dashboard', 'drift', 'endpoints', 'mcp', 'skills', 'profiles'];
+  const PANELS: Panel[] = ['dashboard', 'drift', 'endpoints', 'mcp', 'skills', 'profiles', 'versions'];
 
   /** Deep-linkable panel via location.hash (#/mcp) — also lets Tauri deep links land on a panel. */
   function panelFromHash(): Panel {
@@ -31,6 +32,7 @@
     { id: 'mcp', label: 'MCP' },
     { id: 'skills', label: 'Skills' },
     { id: 'profiles', label: 'Profiles' },
+    { id: 'versions', label: 'Versions' },
   ];
 </script>
 
@@ -54,6 +56,8 @@
       <Skills />
     {:else if panel === 'profiles'}
       <Profiles />
+    {:else if panel === 'versions'}
+      <Versions />
     {/if}
   </main>
 </div>

@@ -121,6 +121,33 @@ export interface SkillsResponse {
   tools: SkillToolRow[];
 }
 
+/** GET /v1/versions — per-tool install history + the rollback target. */
+export interface VersionRecordRow {
+  version: string;
+  at: string;
+  method?: string;
+  rolledBack?: boolean;
+}
+
+export interface VersionToolRow {
+  id: string;
+  name: string;
+  installed: boolean;
+  current: string | null;
+  target: string | null;
+  records: VersionRecordRow[];
+}
+
+export interface VersionsResponse {
+  tools: VersionToolRow[];
+}
+
+export interface RollbackResult {
+  tool: string;
+  from: string | null;
+  to: string;
+}
+
 export interface StatusItemRow {
   kind: string;
   id: string;
