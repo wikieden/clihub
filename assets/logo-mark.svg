@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="clihub mark">
+  <title>clihub mark — eight-spoke hub (currentColor)</title>
+  <g fill="currentColor">
+    <rect x="27" y="27" width="10" height="10" rx="2"/>
+    <rect x="29.75" y="8" width="4.5" height="12" rx="2"/>
+    <rect x="29.75" y="8" width="4.5" height="12" rx="2" transform="rotate(45 32 32)"/>
+    <rect x="29.75" y="8" width="4.5" height="12" rx="2" transform="rotate(90 32 32)"/>
+    <rect x="29.75" y="8" width="4.5" height="12" rx="2" transform="rotate(135 32 32)"/>
+    <rect x="29.75" y="8" width="4.5" height="12" rx="2" transform="rotate(180 32 32)"/>
+    <rect x="29.75" y="8" width="4.5" height="12" rx="2" transform="rotate(225 32 32)"/>
+    <rect x="29.75" y="8" width="4.5" height="12" rx="2" transform="rotate(270 32 32)"/>
+    <rect x="29.75" y="8" width="4.5" height="12" rx="2" transform="rotate(315 32 32)"/>
+  </g>
+</svg>

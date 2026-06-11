@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo.svg" width="92" alt="clihub — eight-spoke hub logo"></p>
+
 # clihub
 
 [![npm version](https://img.shields.io/npm/v/@wikieden/clihub.svg?label=npm)](https://www.npmjs.com/package/@wikieden/clihub)

@@ -91,7 +91,22 @@
 <div class="shell">
   <aside>
     <div class="brand">
-      <span class="mark">clihub</span><span class="caret">▮</span>
+      <div class="lockup">
+        <svg class="glyph" viewBox="0 0 64 64" aria-hidden="true">
+          <g fill="currentColor">
+            <rect x="27" y="27" width="10" height="10" rx="2" />
+            <rect x="29.75" y="8" width="4.5" height="12" rx="2" />
+            <rect x="29.75" y="8" width="4.5" height="12" rx="2" transform="rotate(45 32 32)" />
+            <rect x="29.75" y="8" width="4.5" height="12" rx="2" transform="rotate(90 32 32)" />
+            <rect x="29.75" y="8" width="4.5" height="12" rx="2" transform="rotate(135 32 32)" />
+            <rect x="29.75" y="8" width="4.5" height="12" rx="2" transform="rotate(180 32 32)" />
+            <rect x="29.75" y="8" width="4.5" height="12" rx="2" transform="rotate(225 32 32)" />
+            <rect x="29.75" y="8" width="4.5" height="12" rx="2" transform="rotate(270 32 32)" />
+            <rect x="29.75" y="8" width="4.5" height="12" rx="2" transform="rotate(315 32 32)" />
+          </g>
+        </svg>
+        <span class="mark">clihub</span><span class="caret">▮</span>
+      </div>
       <span class="tag">ai-cli control plane</span>
     </div>
     <nav>
@@ -171,6 +186,19 @@
 
   .brand {
     padding: 0 0.5rem 1.1rem;
+  }
+
+  .lockup {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .glyph {
+    width: 19px;
+    height: 19px;
+    flex: none;
+    color: var(--accent);
   }
 
   .mark {
