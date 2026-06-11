@@ -22,6 +22,16 @@
   // Lead panels = health + drift (the moat), never a provider dropdown first.
   let panel = $state<Panel>(panelFromHash());
 
+  // React to runtime hash changes too — a Tauri deep link landing on an
+  // already-open window must switch panels, not just a fresh page load.
+  $effect(() => {
+    const onHash = () => {
+      panel = panelFromHash();
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  });
+
   function select(id: Panel) {
     panel = id;
     location.hash = `/${id}`;
