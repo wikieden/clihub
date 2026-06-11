@@ -54,6 +54,25 @@ yet (gateway-era work).
 
 ---
 
+## Phase 1c — Per-CLI provider binding + GUI pull-forward ✅ SHIPPED (2026-06)
+
+> Reality update: after the v1.61.0 npm release wrapped Phase 1, the **GUI thin
+> shell (Phase 3) was pulled forward** ahead of the gateway, and the endpoint
+> model was redesigned per owner decision ([`25-PROVIDER-BINDING.md`](25-PROVIDER-BINDING.md)).
+> The v1.61–v1.63 labels below therefore belong to THIS work — the gateway
+> versions in Phase 2 are **vacated** and will be renumbered when the P2 gate opens.
+
+| Ver | Deliverable | Shipped | Notes |
+|---|---|---|---|
+| **v1.61.0** | Phase-1 wrap npm release | ✅ released | last published version; later work unreleased on main |
+| — | `@clihub/daemon` sidecar (bearer + CORS + SSE) · Tauri 2 + Svelte 5 desktop scaffold · 6 GUI panels | ✅ `222472f`…`04cfa07` | golden parity (daemon == CLI == kernel); LaunchServices PATH fixes |
+| **v1.62a** | catalog v2 multi-protocol `urls` + `src/binding/` kernel + claude-code/codex adapters + `clihub use` | ✅ `eb36f6e` | replaces the v1.52 family-broadcast `endpoint use` |
+| **v1.62b** | gemini/qwen/goose adapters · kiro/cursor model-only (`clihub model`) · `use clear` · lockfile `bindings` + `status --strict` drift gate | ✅ `a9781fe` | the moat step CC Switch lacks: bindings pinned + CI-gated |
+| **v1.63** | daemon bindings routes · GUI CLI×endpoint matrix panel · TUI binding menu · `endpoint use` deprecation | ✅ `3f1edfb` | headless-verified end-to-end (gstack browse) |
+| — | `clihub daemon start\|stop\|status` — sidecar lifecycle from the CLI; npm package ships `dist/daemon.js` | ✅ `04839b7` | browser/dev GUI flows no longer need the Tauri shell |
+
+---
+
 ## P2 GATE ⛔ (decision, not a version)
 
 Start the gateway **only if**: (a) Phase 1 shows real adoption, **and** (b) there is
@@ -65,6 +84,9 @@ default, not in the default install.**
 ---
 
 ## Phase 2 — Local gateway (pass-through only, security-gated) 📋⛔
+
+> **Version labels below are vacated** (taken by Phase 1c) — read them as
+> deliverable slots, renumbered when the P2 gate opens.
 
 | Ver | Deliverable | Reuses | New | Headless | Acceptance gate |
 |---|---|---|---|---|---|
@@ -88,14 +110,14 @@ default, not in the default install.**
 
 ---
 
-## Phase 3 — Native desktop GUI (v2.0, thin shell) 📋
+## Phase 3 — Native desktop GUI (v2.0, thin shell) 🚧 (pulled forward, see Phase 1c)
 
-| Component | Deliverable | Reuses | New | Headless |
-|---|---|---|---|---|
-| `@clihub/daemon` | Bun HTTP+WS sidecar, 1:1 kernel route table, loopback+token, SSE/WS streams | full `@clihub/core` API | route table (mechanical) | YES (golden parity: daemon == CLI == kernel) |
-| Tauri 2 Rust shell | window/tray/single-instance/`clihub://` deep-link/auto-update/sidecar supervisor | v1.59 update channel | boilerplate Rust | shell NO (human QA); deep-link parse YES |
-| Frontend SPA (~9 panels) | Dashboard·Switch·MCP·Skills·**Gateway**·Profiles/Auth·Versions/Rollback·yaml-editor(drift banner)·Sync/Team/Catalog | all kernel functions; i18n | all-new UI | render NO (Playwright click-paths + human pixels) |
-| Packaging | notarized dmg / signed nsis+msi / AppImage+deb + Tauri updater + minisign | `pack/` patterns | Apple Dev ID + Windows EV (**funded**) | artifact build in CI YES; notarize NO |
+| Component | Deliverable | Reuses | New | Headless | Status |
+|---|---|---|---|---|---|
+| `@clihub/daemon` | Bun HTTP+WS sidecar, 1:1 kernel route table, loopback+token, SSE/WS streams | full `@clihub/core` API | route table (mechanical) | YES (golden parity: daemon == CLI == kernel) | ✅ shipped (29 routes incl. bindings) |
+| Tauri 2 Rust shell | window/tray/single-instance/`clihub://` deep-link/auto-update/sidecar supervisor | v1.59 update channel | boilerplate Rust | shell NO (human QA); deep-link parse YES | 🚧 window + sidecar supervisor done; tray/deep-link/auto-update pending |
+| Frontend SPA (~9 panels) | Dashboard·Endpoints(CLI×endpoint matrix)·MCP·Skills·Drift·Profiles·Versions/Rollback·yaml-editor(drift banner)·Sync/Team/Catalog | all kernel functions; i18n | all-new UI (Svelte 5) | render via gstack-browse click-paths + human pixels | 🚧 6 panels live incl. the binding matrix |
+| Packaging | notarized dmg / signed nsis+msi / AppImage+deb + Tauri updater + minisign | `pack/` patterns | Apple Dev ID + Windows EV (**funded**) | artifact build in CI YES; notarize NO | 📋 certs pending (user-side) |
 
 **Invariants:** lead panels = drift/lockfile/gateway (never provider-dropdown-first);
 golden parity tests; **CLI/TUI stay co-equal, never the only entry point.**

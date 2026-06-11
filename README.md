@@ -162,6 +162,14 @@ clihub sync import <FILE> [--plan]         restore on another machine (passphras
 clihub provider list                       declarative providers (user + catalog)
 clihub provider add <spec.json>            teach clihub a new CLI from a JSON spec — no fork
 clihub provider remove <id>
+clihub use <endpoint> [--for <cli>] [--model <m>] [--skip-key]   bind an endpoint + default model PER CLI (writes its native config; key from keychain, 0600)
+clihub use current                         one line per CLI: endpoint · model
+clihub use clear [--for <cli>]             restore official defaults (claude-code: OAuth resumes)
+clihub model <cli> <model>                 set one CLI's default model only (the kiro/cursor path)
+clihub endpoint [list]                     endpoint preset catalog (`endpoint use` → deprecated alias of `use`)
+clihub prompt <set|show|sync>              one system prompt → every CLI (managed block)
+clihub usage [--json]                      cross-CLI token rollup (tokens only, never $)
+clihub daemon <start|stop|status>          loopback GUI sidecar (bearer token in ~/.clihub/daemon.json, 0600)
 clihub self-update
 ```
 
