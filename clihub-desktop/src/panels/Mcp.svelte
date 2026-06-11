@@ -114,14 +114,16 @@
 
 <style>
   .tool {
-    background: #fff;
-    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     padding: 0.5rem 0.75rem;
     margin-bottom: 0.5rem;
   }
   .tool h2 {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     margin: 0 0 0.25rem;
+    color: var(--text);
   }
   ul {
     margin: 0;
@@ -132,42 +134,25 @@
     display: flex;
     gap: 0.5rem;
   }
-  button {
-    border: 1px solid #1c1c1e;
-    background: #fff;
-    padding: 0.35rem 0.9rem;
-    border-radius: 6px;
-  }
   button.primary {
-    background: #1c1c1e;
-    color: #fff;
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    color: var(--accent-bright);
   }
-  button:disabled {
-    opacity: 0.5;
-  }
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    background: #fff;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  th,
-  td {
-    text-align: left;
-    padding: 0.4rem 0.6rem;
-    border-bottom: 1px solid #eee;
+  button.primary:hover:not(:disabled) {
+    background: var(--accent);
+    color: var(--bg);
   }
   tr.drift td {
-    background: #fff7ed;
+    background: var(--warn-bg);
   }
   .muted {
-    color: #888;
+    color: var(--text-dim);
   }
   .error {
-    color: #c0392b;
+    color: var(--err);
   }
   .status {
-    color: #1e7e34;
+    color: var(--ok);
   }
 </style>

@@ -37,80 +37,205 @@
     location.hash = `/${id}`;
   }
 
-  const tabs: { id: Panel; label: string }[] = [
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'drift', label: 'Drift' },
-    { id: 'endpoints', label: 'Endpoints' },
-    { id: 'mcp', label: 'MCP' },
-    { id: 'skills', label: 'Skills' },
-    { id: 'profiles', label: 'Profiles' },
-    { id: 'versions', label: 'Versions' },
-    { id: 'yaml', label: 'Yaml' },
-    { id: 'sync', label: 'Sync/Team' },
+  const groups: { label: string; items: { id: Panel; label: string }[] }[] = [
+    {
+      label: 'observe',
+      items: [
+        { id: 'dashboard', label: 'Dashboard' },
+        { id: 'drift', label: 'Drift' },
+        { id: 'versions', label: 'Versions' },
+      ],
+    },
+    {
+      label: 'control',
+      items: [
+        { id: 'endpoints', label: 'Endpoints' },
+        { id: 'mcp', label: 'MCP' },
+        { id: 'skills', label: 'Skills' },
+        { id: 'profiles', label: 'Profiles' },
+      ],
+    },
+    {
+      label: 'source',
+      items: [
+        { id: 'yaml', label: 'clihub.yaml' },
+        { id: 'sync', label: 'Sync / Team' },
+      ],
+    },
   ];
 </script>
 
 <div class="shell">
-  <nav>
-    <span class="brand">clihub</span>
-    {#each tabs as tab (tab.id)}
-      <button class:active={panel === tab.id} onclick={() => select(tab.id)}>{tab.label}</button>
-    {/each}
-  </nav>
+  <aside>
+    <div class="brand">
+      <span class="mark">clihub</span><span class="caret">▮</span>
+      <span class="tag">ai-cli control plane</span>
+    </div>
+    <nav>
+      {#each groups as group (group.label)}
+        <div class="group">
+          <span class="label">{group.label}</span>
+          {#each group.items as tab (tab.id)}
+            <button class:active={panel === tab.id} onclick={() => select(tab.id)}>{tab.label}</button>
+          {/each}
+        </div>
+      {/each}
+    </nav>
+    <div class="foot">7 CLIs · pinned &amp; drift-gated</div>
+  </aside>
   <main>
-    {#if panel === 'dashboard'}
-      <Dashboard />
-    {:else if panel === 'drift'}
-      <Drift />
-    {:else if panel === 'endpoints'}
-      <Endpoints />
-    {:else if panel === 'mcp'}
-      <Mcp />
-    {:else if panel === 'skills'}
-      <Skills />
-    {:else if panel === 'profiles'}
-      <Profiles />
-    {:else if panel === 'versions'}
-      <Versions />
-    {:else if panel === 'yaml'}
-      <Yaml />
-    {:else if panel === 'sync'}
-      <SyncTeam />
-    {/if}
+    {#key panel}
+      <div class="page">
+        {#if panel === 'dashboard'}
+          <Dashboard />
+        {:else if panel === 'drift'}
+          <Drift />
+        {:else if panel === 'endpoints'}
+          <Endpoints />
+        {:else if panel === 'mcp'}
+          <Mcp />
+        {:else if panel === 'skills'}
+          <Skills />
+        {:else if panel === 'profiles'}
+          <Profiles />
+        {:else if panel === 'versions'}
+          <Versions />
+        {:else if panel === 'yaml'}
+          <Yaml />
+        {:else if panel === 'sync'}
+          <SyncTeam />
+        {/if}
+      </div>
+    {/key}
   </main>
 </div>
 
 <style>
   .shell {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 200px 1fr;
     min-height: 100vh;
   }
-  nav {
+
+  /* -- sidebar: raised dark column with faint scanlines ------------------ */
+  aside {
     display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.5rem 1rem;
-    background: #fff;
-    border-bottom: 1px solid #e3e3e6;
+    flex-direction: column;
+    background:
+      repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px),
+      var(--bg-raised);
+    border-right: 1px solid var(--border);
+    padding: 1rem 0.7rem 0.8rem;
+    position: sticky;
+    top: 0;
+    height: 100vh;
   }
+
   .brand {
-    font-weight: 700;
-    margin-right: 1rem;
+    padding: 0 0.5rem 1.1rem;
   }
-  nav button {
-    border: none;
-    background: transparent;
-    padding: 0.4rem 0.8rem;
-    border-radius: 6px;
-    color: #444;
+
+  .mark {
+    font-family: var(--mono);
+    font-size: 1.12rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
   }
-  nav button.active {
-    background: #1c1c1e;
-    color: #fff;
+
+  .caret {
+    color: var(--accent);
+    font-size: 1rem;
+    animation: blink 1.2s steps(2) infinite;
   }
-  main {
+
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  .tag {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-top: 0.15rem;
+  }
+
+  nav {
     flex: 1;
-    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .label {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 0 0.5rem 0.3rem;
+  }
+
+  nav button {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    background: transparent;
+    border: none;
+    border-left: 2px solid transparent;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 0.34rem 0.55rem;
+    transition:
+      color 120ms ease,
+      background 120ms ease,
+      border-color 120ms ease;
+  }
+
+  nav button:hover:not(:disabled) {
+    color: var(--text);
+    border-left-color: var(--border-strong);
+  }
+
+  nav button.active {
+    color: var(--accent-bright);
+    background: var(--accent-bg);
+    border-left-color: var(--accent);
+  }
+
+  .foot {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    padding: 0.8rem 0.5rem 0;
+    border-top: 1px solid var(--border);
+  }
+
+  /* -- content ------------------------------------------------------------ */
+  main {
+    padding: 1.4rem 1.6rem 2rem;
+    min-width: 0;
+  }
+
+  .page {
+    max-width: 1100px;
+    animation: rise 220ms ease both;
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
   }
 </style>

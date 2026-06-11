@@ -102,38 +102,17 @@
 <style>
   .hint {
     font-size: 0.8rem;
-    color: #888;
+    color: var(--text-dim);
     margin: 0.25rem 0 0.75rem;
   }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    background: #fff;
-  }
-  th {
-    text-align: left;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #999;
-    padding: 0.4rem 0.6rem;
-    border-bottom: 1px solid #eee;
-  }
   td {
-    padding: 0.5rem 0.6rem;
-    border-bottom: 1px solid #f2f2f2;
     vertical-align: top;
-    font-size: 0.85rem;
   }
   tr.dim td {
-    opacity: 0.55;
-  }
-  code {
-    font-size: 0.8rem;
-    color: #555;
+    opacity: 0.5;
   }
   .none {
-    color: #aaa;
+    color: var(--text-faint);
     font-size: 0.8rem;
     font-style: italic;
   }
@@ -146,15 +125,17 @@
     padding: 0.15rem 0;
   }
   .at {
-    color: #aaa;
-    font-size: 0.72rem;
+    color: var(--text-faint);
+    font-family: var(--mono);
+    font-size: 0.7rem;
     margin-left: 0.5rem;
   }
   .rb {
     margin-left: 0.5rem;
-    font-size: 0.68rem;
-    color: #9a6700;
-    border: 1px solid #e3c98a;
+    font-family: var(--mono);
+    font-size: 0.64rem;
+    color: var(--warn);
+    border: 1px solid var(--warn);
     border-radius: 4px;
     padding: 0.05rem 0.3rem;
   }
@@ -162,28 +143,31 @@
     white-space: nowrap;
   }
   button {
-    border: 1px solid #1c1c1e;
-    background: #1c1c1e;
-    color: #fff;
-    padding: 0.3rem 0.7rem;
-    border-radius: 6px;
-    font-size: 0.8rem;
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    color: var(--accent-bright);
   }
-  button:disabled {
-    opacity: 0.5;
+  button:hover:not(:disabled) {
+    background: var(--accent);
+    color: var(--bg);
   }
   button.link {
     border: none;
     background: transparent;
-    color: #1c1c1e;
+    color: var(--text);
     padding: 0;
     text-decoration: underline;
-    font-size: 0.8rem;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--border-strong);
+  }
+  button.link:hover:not(:disabled) {
+    background: transparent;
+    color: var(--accent-bright);
   }
   .error {
-    color: #c0392b;
+    color: var(--err);
   }
   .status {
-    color: #1e7e34;
+    color: var(--ok);
   }
 </style>

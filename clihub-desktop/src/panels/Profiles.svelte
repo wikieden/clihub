@@ -70,36 +70,46 @@
     list-style: none;
     padding: 0;
     margin: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
   }
   li {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0.6rem 0.75rem;
-    background: #fff;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border);
+    border-left: 2px solid transparent;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+  }
+  li:last-child {
+    border-bottom: none;
   }
   li.active {
-    background: #e6f4ea;
+    border-left-color: var(--ok);
+    background: var(--ok-bg);
+    color: var(--ok);
     font-weight: 600;
   }
   button {
-    border: 1px solid #1c1c1e;
-    background: #1c1c1e;
-    color: #fff;
-    padding: 0.35rem 0.9rem;
-    border-radius: 6px;
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    color: var(--accent-bright);
   }
-  button:disabled {
-    opacity: 0.5;
+  button:hover:not(:disabled) {
+    background: var(--accent);
+    color: var(--bg);
   }
   .muted {
-    color: #888;
+    color: var(--text-dim);
   }
   .error {
-    color: #c0392b;
+    color: var(--err);
   }
   .status {
-    color: #1e7e34;
+    color: var(--ok);
   }
 </style>

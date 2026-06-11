@@ -72,26 +72,23 @@
 <style>
   .filter {
     width: 100%;
-    padding: 0.45rem 0.7rem;
     margin-bottom: 0.6rem;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font: inherit;
-    background: #fff;
   }
   .tool {
-    background: #fff;
-    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     padding: 0.5rem 0.75rem;
     margin-bottom: 0.5rem;
   }
   .tool h2 {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     margin: 0 0 0.25rem;
+    color: var(--text);
   }
   .count {
-    font-size: 0.8rem;
-    color: #888;
+    font-size: 0.74rem;
+    color: var(--accent);
     font-weight: 400;
   }
   ul {
@@ -101,9 +98,9 @@
     overflow-y: auto;
   }
   .muted {
-    color: #888;
+    color: var(--text-dim);
   }
   .error {
-    color: #c0392b;
+    color: var(--err);
   }
 </style>

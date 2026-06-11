@@ -77,30 +77,12 @@
 </section>
 
 <style>
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    background: #fff;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  th,
-  td {
-    text-align: left;
-    padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid #eee;
-  }
-  th {
-    background: #fafafa;
-    font-size: 0.85rem;
-    color: #666;
-  }
   .error {
-    color: #c0392b;
+    color: var(--err);
   }
   .bound {
-    font-family: ui-monospace, monospace;
+    font-family: var(--mono);
     font-size: 0.8rem;
-    color: #6b21a8;
+    color: var(--accent-bright);
   }
 </style>

@@ -120,16 +120,15 @@
 
 <style>
   h2 {
-    font-size: 0.95rem;
     margin: 1.2rem 0 0.2rem;
   }
   .hint {
     font-size: 0.8rem;
-    color: #888;
+    color: var(--text-dim);
     margin: 0.15rem 0 0.6rem;
   }
   .none {
-    color: #aaa;
+    color: var(--text-faint);
     font-size: 0.85rem;
     font-style: italic;
   }
@@ -137,15 +136,22 @@
     list-style: none;
     margin: 0 0 0.6rem;
     padding: 0;
-    background: #fff;
-    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
   }
   .teams li {
     display: flex;
     align-items: center;
     gap: 0.4rem;
     padding: 0.5rem 0.7rem;
-    border-bottom: 1px solid #f2f2f2;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+  }
+  .teams li:last-child {
+    border-bottom: none;
   }
   .grow {
     flex: 1;
@@ -155,37 +161,40 @@
     gap: 0.4rem;
     margin-bottom: 0.5rem;
   }
-  input {
-    font: inherit;
-    font-size: 0.82rem;
-    padding: 0.3rem 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-  }
+  /* Add team / Export are primary actions — amber signal. */
   button {
-    border: 1px solid #1c1c1e;
-    background: #1c1c1e;
-    color: #fff;
-    padding: 0.3rem 0.8rem;
-    border-radius: 6px;
-    font-size: 0.82rem;
     white-space: nowrap;
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    color: var(--accent-bright);
+  }
+  button:hover:not(:disabled) {
+    background: var(--accent);
+    color: var(--bg);
   }
   button.ghost {
-    background: #fff;
-    color: #1c1c1e;
+    border-color: var(--border-strong);
+    background: transparent;
+    color: var(--text-dim);
+  }
+  button.ghost:hover:not(:disabled) {
+    background: transparent;
+    border-color: var(--accent);
+    color: var(--accent-bright);
   }
   button.ghost.danger {
-    color: #c0392b;
-    border-color: #c0392b;
+    color: var(--err);
+    border-color: var(--err);
   }
-  button:disabled {
-    opacity: 0.5;
+  button.ghost.danger:hover:not(:disabled) {
+    background: var(--err-bg);
+    border-color: var(--err);
+    color: var(--err);
   }
   .error {
-    color: #c0392b;
+    color: var(--err);
   }
   .status {
-    color: #1e7e34;
+    color: var(--ok);
   }
 </style>

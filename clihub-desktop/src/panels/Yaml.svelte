@@ -98,7 +98,7 @@
 <style>
   .hint {
     font-size: 0.8rem;
-    color: #888;
+    color: var(--text-dim);
     margin: 0.25rem 0 0.75rem;
   }
   .toolbar {
@@ -108,64 +108,61 @@
   }
   .toolbar input {
     flex: 1;
-    font: inherit;
-    font-size: 0.82rem;
-    padding: 0.3rem 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 6px;
   }
   .banner {
-    background: #fff8e1;
-    border: 1px solid #e3c98a;
-    color: #9a6700;
-    border-radius: 6px;
+    background: var(--warn-bg);
+    border: 1px solid var(--warn);
+    color: var(--warn);
+    border-radius: var(--radius);
     padding: 0.45rem 0.7rem;
     font-size: 0.82rem;
   }
   .banner.ok {
-    background: #f0fff4;
-    border-color: #bde5c8;
-    color: #1e7e34;
+    background: var(--ok-bg);
+    border-color: var(--ok);
+    color: var(--ok);
   }
   .file {
     font-size: 0.78rem;
-    color: #888;
+    color: var(--text-dim);
     margin: 0.4rem 0;
   }
   .dirty {
-    color: #9a6700;
+    color: var(--warn);
   }
   textarea {
     width: 100%;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-family: var(--mono);
     font-size: 0.82rem;
-    line-height: 1.45;
+    line-height: 1.5;
     padding: 0.6rem;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background: #fff;
     resize: vertical;
     box-sizing: border-box;
   }
+  /* Save is the page's primary action — amber signal. */
   button {
-    border: 1px solid #1c1c1e;
-    background: #1c1c1e;
-    color: #fff;
-    padding: 0.3rem 0.8rem;
-    border-radius: 6px;
-    font-size: 0.82rem;
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    color: var(--accent-bright);
+  }
+  button:hover:not(:disabled) {
+    background: var(--accent);
+    color: var(--bg);
   }
   button.ghost {
-    background: #fff;
-    color: #1c1c1e;
+    border-color: var(--border-strong);
+    background: transparent;
+    color: var(--text-dim);
   }
-  button:disabled {
-    opacity: 0.5;
+  button.ghost:hover:not(:disabled) {
+    background: transparent;
+    border-color: var(--accent);
+    color: var(--accent-bright);
   }
   .error {
-    color: #c0392b;
+    color: var(--err);
   }
   .status {
-    color: #1e7e34;
+    color: var(--ok);
   }
 </style>

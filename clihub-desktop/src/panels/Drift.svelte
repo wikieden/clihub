@@ -95,22 +95,13 @@
   }
   .dirbar input {
     flex: 1;
-    padding: 0.45rem 0.7rem;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font: inherit;
-    background: #fff;
-  }
-  .dirbar button {
-    border: 1px solid #1c1c1e;
-    background: #1c1c1e;
-    color: #fff;
-    padding: 0.35rem 0.9rem;
-    border-radius: 6px;
   }
   .banner {
     padding: 0.6rem 0.9rem;
-    border-radius: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 0.85rem;
     font-weight: 600;
     margin-bottom: 0.5rem;
     display: flex;
@@ -118,38 +109,25 @@
     align-items: center;
   }
   .banner.ok {
-    background: #e6f4ea;
-    color: #1e7e34;
+    background: var(--ok-bg);
+    color: var(--ok);
   }
   .banner.bad {
-    background: #fdecea;
-    color: #c0392b;
+    background: var(--err-bg);
+    color: var(--err);
   }
   .counts {
-    font-size: 0.8rem;
+    font-size: 0.74rem;
     font-weight: 400;
-    color: #555;
-  }
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    background: #fff;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  th,
-  td {
-    text-align: left;
-    padding: 0.4rem 0.6rem;
-    border-bottom: 1px solid #eee;
+    color: var(--text-dim);
   }
   tr.bad td {
-    background: #fdecea;
+    background: var(--err-bg);
   }
   .muted {
-    color: #888;
+    color: var(--text-dim);
   }
   .error {
-    color: #c0392b;
+    color: var(--err);
   }
 </style>

@@ -212,90 +212,70 @@
 <style>
   .hint {
     font-size: 0.8rem;
-    color: #888;
+    color: var(--text-dim);
     margin: 0.25rem 0 0.75rem;
   }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    background: #fff;
-  }
-  th {
-    text-align: left;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #999;
-    padding: 0.4rem 0.6rem;
-    border-bottom: 1px solid #eee;
-  }
   td {
-    padding: 0.5rem 0.6rem;
-    border-bottom: 1px solid #f2f2f2;
     vertical-align: middle;
-    font-size: 0.85rem;
   }
   tr.dim td {
-    opacity: 0.55;
+    opacity: 0.5;
   }
   .badge {
     margin-left: 0.4rem;
-    font-size: 0.68rem;
-    color: #999;
-    border: 1px solid #ddd;
+    font-family: var(--mono);
+    font-size: 0.64rem;
+    color: var(--text-faint);
+    border: 1px solid var(--border-strong);
     border-radius: 4px;
     padding: 0.05rem 0.3rem;
   }
   .badge.warn {
-    color: #9a6700;
-    border-color: #e3c98a;
+    color: var(--warn);
+    border-color: var(--warn);
   }
   .official {
-    color: #1e7e34;
-    font-size: 0.8rem;
+    color: var(--ok);
+    font-family: var(--mono);
+    font-size: 0.78rem;
   }
   .unsupported {
-    color: #999;
+    color: var(--text-faint);
     font-size: 0.8rem;
     font-style: italic;
   }
-  code {
-    font-size: 0.8rem;
-    color: #555;
-  }
   select,
   input {
-    font: inherit;
-    font-size: 0.82rem;
-    padding: 0.25rem 0.4rem;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    background: #fff;
     max-width: 11rem;
   }
   .actions {
     white-space: nowrap;
   }
+  /* Bind / Set model are the row's primary action — amber signal. */
   button {
-    border: 1px solid #1c1c1e;
-    background: #1c1c1e;
-    color: #fff;
-    padding: 0.3rem 0.7rem;
-    border-radius: 6px;
-    font-size: 0.8rem;
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    color: var(--accent-bright);
+  }
+  button:hover:not(:disabled) {
+    background: var(--accent);
+    color: var(--bg);
   }
   button.ghost {
-    background: #fff;
-    color: #1c1c1e;
+    border-color: var(--border-strong);
+    background: transparent;
+    color: var(--text-dim);
     margin-left: 0.3rem;
   }
-  button:disabled {
-    opacity: 0.5;
+  button.ghost:hover:not(:disabled) {
+    background: transparent;
+    border-color: var(--accent);
+    color: var(--accent-bright);
   }
   .error {
-    color: #c0392b;
+    color: var(--err);
   }
   .status {
-    color: #1e7e34;
+    color: var(--ok);
   }
 </style>
