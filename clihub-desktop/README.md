@@ -50,8 +50,26 @@ bun tauri build
 
 The keypair was generated with `tauri signer generate`. The private key lives
 outside the repo (`~/.tauri/clihub.key`, 0600) — **never commit it**; losing it
-means existing installs can never update again. CI release wiring (tauri-action
-uploading `latest.json` + signed artifacts to GitHub Releases) is a follow-up.
+means existing installs can never update again.
+
+## CI release (v1.67)
+
+`.github/workflows/desktop-release.yml` builds macOS (universal) / Windows /
+Linux bundles via `tauri-action` and publishes them to a **draft** GitHub
+Release with the updater `latest.json` the app polls. It's a separate lane from
+the npm release (`release.yml`):
+
+```sh
+git tag desktop-v1.66.0
+git push origin desktop-v1.66.0   # → builds 3 platforms, opens a draft release
+```
+
+(or run the workflow manually with a `tag` input). Requires two repo secrets —
+`TAURI_SIGNING_PRIVATE_KEY` (content of `~/.tauri/clihub.key`) and
+`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (empty for this key). The release is created
+as a draft so a human reviews artifacts before publishing — and the updater only
+reads `latest.json` from the **published** `releases/latest`, so the rollout is
+gated on that manual publish.
 
 ## Not yet wired
 

@@ -1,0 +1,100 @@
+name: Desktop Release
+
+# Build the clihub-desktop Tauri bundles (macOS / Windows / Linux) and publish
+# them to a GitHub Release, generating the updater `latest.json` the app polls
+# (tauri.conf.json → plugins.updater.endpoints). Triggered by a `desktop-vX.Y.Z`
+# tag so it never collides with the npm `vX.Y.Z` release (release.yml).
+#
+# Required repo secrets:
+#   TAURI_SIGNING_PRIVATE_KEY          — minisign private key (content of ~/.tauri/clihub.key)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD — its password ("" if none)
+#
+# NOT yet wired (documented limitations, tracked for a later version):
+#   · Packaged daemon sidecar (externalBin) — bundles still resolve `bun` and
+#     run the daemon from source, so a packaged install needs bun + the repo.
+#   · macOS notarization / Windows code-signing certificates (user-side, funded).
+#     Unsigned bundles still build and the updater signature still verifies.
+
+on:
+  push:
+    tags:
+      - 'desktop-v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to create (e.g. desktop-v1.66.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            label: macOS (universal)
+            args: '--target universal-apple-darwin'
+            rust-targets: 'aarch64-apple-darwin,x86_64-apple-darwin'
+          - platform: ubuntu-22.04
+            label: Linux (x64)
+            args: ''
+            rust-targets: ''
+          - platform: windows-latest
+            label: Windows (x64)
+            args: ''
+            rust-targets: ''
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+
+      - name: Cache cargo
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: clihub-desktop/src-tauri
+
+      # Tauri's Linux bundling needs the WebKitGTK + AppIndicator (tray) libs.
+      - name: Install Linux deps
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install JS deps
+        run: bun install
+
+      - name: Build bundles + publish release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: clihub-desktop
+          tagName: ${{ github.event.inputs.tag || github.ref_name }}
+          releaseName: 'clihub desktop ${{ github.event.inputs.tag || github.ref_name }}'
+          releaseBody: 'clihub-desktop Tauri build. The updater reads latest.json from this release.'
+          releaseDraft: true
+          prerelease: false
+          includeUpdaterJson: true
+          args: ${{ matrix.args }}
