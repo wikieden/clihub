@@ -83,8 +83,14 @@ jobs:
             librsvg2-dev \
             patchelf
 
+      # Root workspaces are packages/* only; clihub-desktop has its own npm
+      # lockfile and is NOT a workspace member. Install both: root (the daemon
+      # sidecar the shell spawns) and the desktop frontend (svelte + tauri CLI,
+      # which `npm run tauri build` resolves from node_modules/.bin).
       - name: Install JS deps
-        run: bun install
+        run: |
+          bun install
+          npm --prefix clihub-desktop ci
 
       # Unsigned packaging: no TAURI_SIGNING_* env, no updater latest.json.
       # Produces installers only (dmg / nsis / deb / AppImage). Auto-update
