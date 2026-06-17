@@ -35,17 +35,20 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # --config disables updater artifacts so the build needs no signing
+          # key (unsigned packaging). Re-enable + supply TAURI_SIGNING_* secrets
+          # once notarization/cert work lands to ship auto-updates.
           - platform: macos-latest
             label: macOS (universal)
-            args: '--target universal-apple-darwin'
+            args: '--target universal-apple-darwin --config {"bundle":{"createUpdaterArtifacts":false}}'
             rust-targets: 'aarch64-apple-darwin,x86_64-apple-darwin'
           - platform: ubuntu-22.04
             label: Linux (x64)
-            args: ''
+            args: '--config {"bundle":{"createUpdaterArtifacts":false}}'
             rust-targets: ''
           - platform: windows-latest
             label: Windows (x64)
-            args: ''
+            args: '--config {"bundle":{"createUpdaterArtifacts":false}}'
             rust-targets: ''
     runs-on: ${{ matrix.platform }}
     steps:
@@ -83,18 +86,19 @@ jobs:
       - name: Install JS deps
         run: bun install
 
+      # Unsigned packaging: no TAURI_SIGNING_* env, no updater latest.json.
+      # Produces installers only (dmg / nsis / deb / AppImage). Auto-update
+      # stays off until signing keys + notarization land.
       - name: Build bundles + publish release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: clihub-desktop
           tagName: ${{ github.event.inputs.tag || github.ref_name }}
           releaseName: 'clihub desktop ${{ github.event.inputs.tag || github.ref_name }}'
-          releaseBody: 'clihub-desktop Tauri build. The updater reads latest.json from this release.'
+          releaseBody: 'clihub-desktop Tauri build (unsigned, no auto-update artifacts).'
           releaseDraft: true
           prerelease: false
-          includeUpdaterJson: true
+          includeUpdaterJson: false
           args: ${{ matrix.args }}
