@@ -35,8 +35,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
+
+      # Trusted Publishing (OIDC) authenticates the publish itself, not just
+      # the provenance signature — it requires npm >= 11.5.1, newer than the
+      # npm bundled with Node 24. Upgrade before publishing.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest
 
       - name: Install
         run: bun install
@@ -64,11 +70,14 @@ jobs:
       - name: Smoke test built binary
         run: node packages/cli/dist/cli.js --version
 
+      # Trusted Publishing: no NODE_AUTH_TOKEN — npm authenticates via the
+      # workflow's OIDC id-token (id-token: write above), which the npm
+      # registry trusts per the GitHub Actions publisher configured on the
+      # package. --provenance is implied under trusted publishing but kept
+      # explicit.
       - name: Publish to npm
         working-directory: packages/cli
         run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
         if: github.event_name == 'push'
