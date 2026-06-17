@@ -72,7 +72,9 @@ yet (gateway-era work).
 | — | `clihub daemon start\|stop\|status` — sidecar lifecycle from the CLI; npm package ships `dist/daemon.js` | ✅ `04839b7` | browser/dev GUI flows no longer need the Tauri shell |
 | **v1.64** | Tauri shell: system tray (hide-to-tray, daemon survives close) · `clihub://<panel>` deep links (single-instance) · updater scaffold (GitHub releases + minisign pubkey pinned) | ✅ `95e4b92` | cargo check clean; runtime tray/deep-link/update needs a packaged real-machine pass; signing key outside repo (`~/.tauri/clihub.key`) |
 | — | GUI redesign — control-plane industrial theme (graphite + amber tokens, IBM Plex, grouped sidebar) | ✅ `05177c5` | svelte-check + build + headless screenshots |
-| **v1.65** | **OpenCode (8th CLI)** — provider (`opencode-ai` npm, pin/rollback) · JSONC config adapter · `mcp` map adapter · binding (openai-compat custom provider / anthropic override + `provider/model`) · skills `~/.config/opencode/skills` · AGENTS.md memory | ✅ `eee7104` | all paths doc/schema-verified (anomalyco/opencode); tsc ×3 + 239/239 tests |
+| **v1.65** | **OpenCode (8th CLI)** — provider (`opencode-ai` npm, pin/rollback) · JSONC config adapter · `mcp` map adapter · binding (openai-compat custom provider / anthropic override + `provider/model`) · skills `~/.config/opencode/skills` · AGENTS.md memory | ✅ `eee7104` | all paths doc/schema-verified (anomalyco/opencode); tsc ×3 + 239/239 tests. **npm published `b4b8bb9`→OIDC trusted publishing `5c8ba85`** |
+| **v1.66** | OpenCode parity tail — catalog `mcp.json` supports opencode on all 14 servers · `usage` reports opencode (honest unsupported) · catalog-integrity + usage tests | ✅ `d3e3256` | tsc + 240/240; tools.json/skills.json unchanged (installs via provider registry, like qwen) |
+| **v1.67** | Desktop release pipeline — `desktop-release.yml` tauri-action matrix (macOS univ / Win / Linux) on `desktop-v*` tag → draft GitHub Release + signed updater `latest.json`; app version 0.1.0→1.66.0 | ✅ `784f494` | cargo check clean; runtime tray/deep-link/update = real-machine QA; packaged sidecar + notarization still pending |
 
 ---
 
