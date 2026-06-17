@@ -41,3 +41,10 @@ test('every MCP entry is launchable (command or url) with a unique id', () => {
     expect(Object.keys(m.supports ?? {}).length).toBeGreaterThan(0);
   }
 });
+
+test('every MCP server lists opencode in its supports map (8th-CLI parity)', () => {
+  const mcp = load('mcp.json') as Array<{ id: string; supports?: Record<string, boolean> }>;
+  for (const m of mcp) {
+    expect({ id: m.id, opencode: m.supports?.opencode === true }).toEqual({ id: m.id, opencode: true });
+  }
+});

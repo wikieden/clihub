@@ -103,6 +103,7 @@ const OTHER_TOOLS: Array<{ tool: string; label: string }> = [
   { tool: 'cursor', label: 'Cursor' },
   { tool: 'goose', label: 'Goose' },
   { tool: 'kiro-cli', label: 'Kiro' },
+  { tool: 'opencode', label: 'OpenCode' },
 ];
 
 export interface UsageResult {
