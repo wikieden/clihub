@@ -20,6 +20,7 @@ use std::sync::Mutex;
 
 use tauri::menu::{MenuBuilder, SubmenuBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Manager, Url, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_deep_link::DeepLinkExt;
 
@@ -54,10 +55,20 @@ struct DaemonInfo {
     token: String,
 }
 
-/// Daemon entrypoint for `tauri dev` runs (CARGO_MANIFEST_DIR = src-tauri).
-/// A packaged build will instead ship a compiled sidecar binary (externalBin);
-/// wiring that is a later step.
-fn daemon_entry() -> PathBuf {
+/// Resolve the daemon entrypoint at RUNTIME.
+///
+/// A packaged build bundles `daemon.js` (a `bun build` of the daemon) as a
+/// Tauri resource — `env!("CARGO_MANIFEST_DIR")` is a COMPILE-TIME path that
+/// points at the build machine and does not exist on a user's machine, so the
+/// packaged app must resolve its own resource dir. `tauri dev` has no bundled
+/// resource, so we fall back to the daemon's TypeScript source in the repo.
+/// (Both run under `bun`; a bun-less compiled sidecar is the remaining TODO.)
+fn daemon_entry(app: &AppHandle) -> PathBuf {
+    if let Ok(res) = app.path().resolve("daemon.js", BaseDirectory::Resource) {
+        if res.exists() {
+            return res;
+        }
+    }
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packages/daemon/src/main.ts")
 }
 
@@ -81,7 +92,7 @@ fn bun_path() -> PathBuf {
 }
 
 /// Spawn the daemon and block until its handshake line is parsed.
-fn spawn_daemon() -> Result<(DaemonInfo, Child), Box<dyn std::error::Error>> {
+fn spawn_daemon(app: &AppHandle) -> Result<(DaemonInfo, Child), Box<dyn std::error::Error>> {
     // LaunchServices hands GUI apps a minimal PATH (/usr/bin:/bin:...), so the
     // daemon's provider.detect() would miss CLIs installed under ~/.local/bin
     // etc. and report everything as not installed. Prepend the usual homes.
@@ -92,7 +103,7 @@ fn spawn_daemon() -> Result<(DaemonInfo, Child), Box<dyn std::error::Error>> {
     let mut child = Command::new(bun_path())
         .env("PATH", path)
         .arg("run")
-        .arg(daemon_entry())
+        .arg(daemon_entry(app))
         .stdout(Stdio::piped())
         .spawn()?;
 
@@ -217,7 +228,7 @@ pub fn run() {
             app.handle()
                 .plugin(tauri_plugin_updater::Builder::new().build())?;
 
-            let (info, child) = spawn_daemon()?;
+            let (info, child) = spawn_daemon(app.handle())?;
             app.state::<DaemonState>().0.lock().unwrap().replace(child);
 
             // Inject the daemon endpoint + bearer before any SPA JS executes.
