@@ -92,6 +92,26 @@ jobs:
           bun install
           npm --prefix clihub-desktop ci
 
+      # The daemon ships as a bun-less standalone binary (bun --compile embeds
+      # the runtime). Linux/Windows build the host-arch sidecar inside
+      # beforeBuildCommand. macOS bundles a UNIVERSAL .app, so its sidecar must
+      # run on both arches — pre-build both + lipo here, and set
+      # CLIHUB_SIDECAR_SKIP so beforeBuildCommand doesn't clobber it.
+      - name: Build universal macOS daemon sidecar
+        if: matrix.platform == 'macos-latest'
+        working-directory: clihub-desktop
+        run: |
+          mkdir -p src-tauri/binaries
+          bun build --compile --target=bun-darwin-arm64 \
+            --outfile src-tauri/binaries/clihub-daemon-arm64 ../packages/daemon/src/main.ts
+          bun build --compile --target=bun-darwin-x64 \
+            --outfile src-tauri/binaries/clihub-daemon-x64 ../packages/daemon/src/main.ts
+          lipo -create -output src-tauri/binaries/clihub-daemon \
+            src-tauri/binaries/clihub-daemon-arm64 src-tauri/binaries/clihub-daemon-x64
+          rm src-tauri/binaries/clihub-daemon-arm64 src-tauri/binaries/clihub-daemon-x64
+          lipo -info src-tauri/binaries/clihub-daemon
+          echo "CLIHUB_SIDECAR_SKIP=1" >> "$GITHUB_ENV"
+
       # Unsigned packaging: no TAURI_SIGNING_* env, no updater latest.json.
       # Produces installers only (dmg / nsis / deb / AppImage). Auto-update
       # stays off until signing keys + notarization land.

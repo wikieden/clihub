@@ -13,6 +13,7 @@
 //! `clihub://<panel>` deep links route the SPA via location.hash (App.svelte
 //! listens for hashchange).
 
+use std::fs;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -55,21 +56,32 @@ struct DaemonInfo {
     token: String,
 }
 
-/// Resolve the daemon entrypoint at RUNTIME.
+/// How to launch the daemon, resolved at RUNTIME.
+enum DaemonCmd {
+    /// Packaged: a `bun --compile` standalone binary bundled as a Tauri
+    /// resource. Self-contained (embeds the bun runtime) — exec it directly,
+    /// so a user machine needs neither bun nor the repo source.
+    Sidecar(PathBuf),
+    /// Dev: no bundled resource, run the daemon's TypeScript source under bun.
+    BunSource(PathBuf),
+}
+
+/// Resolve how to launch the daemon.
 ///
-/// A packaged build bundles `daemon.js` (a `bun build` of the daemon) as a
-/// Tauri resource — `env!("CARGO_MANIFEST_DIR")` is a COMPILE-TIME path that
-/// points at the build machine and does not exist on a user's machine, so the
-/// packaged app must resolve its own resource dir. `tauri dev` has no bundled
-/// resource, so we fall back to the daemon's TypeScript source in the repo.
-/// (Both run under `bun`; a bun-less compiled sidecar is the remaining TODO.)
-fn daemon_entry(app: &AppHandle) -> PathBuf {
-    if let Ok(res) = app.path().resolve("daemon.js", BaseDirectory::Resource) {
+/// `env!("CARGO_MANIFEST_DIR")` is a COMPILE-TIME path pointing at the build
+/// machine, useless on a user's machine — so a packaged build resolves its own
+/// resource dir for the compiled sidecar. `tauri dev` has no bundled resource,
+/// so it falls back to the repo source under bun.
+fn resolve_daemon(app: &AppHandle) -> DaemonCmd {
+    let bin = if cfg!(windows) { "clihub-daemon.exe" } else { "clihub-daemon" };
+    if let Ok(res) = app.path().resolve(format!("binaries/{bin}"), BaseDirectory::Resource) {
         if res.exists() {
-            return res;
+            return DaemonCmd::Sidecar(res);
         }
     }
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packages/daemon/src/main.ts")
+    DaemonCmd::BunSource(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packages/daemon/src/main.ts"),
+    )
 }
 
 /// Resolve the bun binary. LaunchServices-launched apps get a minimal PATH
@@ -100,10 +112,27 @@ fn spawn_daemon(app: &AppHandle) -> Result<(DaemonInfo, Child), Box<dyn std::err
     let base = std::env::var("PATH").unwrap_or_else(|_| "/usr/bin:/bin".into());
     let path = format!("{home}/.local/bin:{home}/.bun/bin:/opt/homebrew/bin:/usr/local/bin:{base}");
 
-    let mut child = Command::new(bun_path())
+    let mut command = match resolve_daemon(app) {
+        // Standalone binary — exec directly, no bun needed. Tauri resource copy
+        // may drop the exec bit; restore it before spawn.
+        DaemonCmd::Sidecar(bin) => {
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let _ = fs::set_permissions(&bin, fs::Permissions::from_mode(0o755));
+            }
+            Command::new(bin)
+        }
+        // Dev: bun runs the TypeScript source.
+        DaemonCmd::BunSource(src) => {
+            let mut c = Command::new(bun_path());
+            c.arg("run").arg(src);
+            c
+        }
+    };
+
+    let mut child = command
         .env("PATH", path)
-        .arg("run")
-        .arg(daemon_entry(app))
         .stdout(Stdio::piped())
         .spawn()?;
 

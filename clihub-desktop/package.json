@@ -1,6 +1,6 @@
 {
   "name": "clihub-desktop",
-  "version": "1.67.0",
+  "version": "1.68.0",
   "private": true,
   "type": "module",
   "description": "clihub desktop GUI (Tauri 2 + Svelte 5) — binds to the @clihub/daemon sidecar",
@@ -8,7 +8,7 @@
     "dev": "vite",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "build": "svelte-check --tsconfig ./tsconfig.json && vite build",
-    "build:daemon": "bun build --target bun --bundle --outfile src-tauri/daemon.js ../packages/daemon/src/main.ts",
+    "build:sidecar": "node scripts/build-sidecar.mjs",
     "test": "vitest run",
     "tauri": "tauri"
   },

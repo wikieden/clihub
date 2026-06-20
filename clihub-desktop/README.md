@@ -71,8 +71,16 @@ as a draft so a human reviews artifacts before publishing — and the updater on
 reads `latest.json` from the **published** `releases/latest`, so the rollout is
 gated on that manual publish.
 
+## Packaged daemon sidecar (v1.68)
+
+The daemon ships as a **bun-less standalone binary**: `bun build --compile`
+embeds the bun runtime into a ~64 MB executable (`scripts/build-sidecar.mjs` →
+`src-tauri/binaries/clihub-daemon[.exe]`), bundled as a Tauri resource. The
+shell execs it directly — a user machine needs neither bun nor the repo source.
+`tauri dev` still falls back to running the TypeScript source under bun (no
+recompile on every dev start). macOS ships a universal (lipo'd arm64+x64)
+sidecar built in CI.
+
 ## Not yet wired
 
-- Packaged sidecar (`externalBin`) — packaged builds still resolve `bun` from
-  the usual install paths and run the daemon from source.
 - macOS notarization / Windows code signing certificates (user-side).

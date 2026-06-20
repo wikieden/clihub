@@ -1,13 +1,13 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "clihub",
-  "version": "1.67.0",
+  "version": "1.68.0",
   "identifier": "org.clihub.desktop",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build && npm run build:daemon"
+    "beforeBuildCommand": "npm run build && npm run build:sidecar"
   },
   "app": {
     "windows": [],
@@ -35,9 +35,9 @@
     "active": true,
     "targets": "all",
     "createUpdaterArtifacts": true,
-    "resources": {
-      "daemon.js": "daemon.js"
-    },
+    "resources": [
+      "binaries/clihub-daemon*"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
