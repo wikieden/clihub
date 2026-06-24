@@ -94,6 +94,13 @@ default, not in the default install.**
 
 > **Version labels below are vacated** (taken by Phase 1c) — read them as
 > deliverable slots, renumbered when the P2 gate opens.
+>
+> **Build-ready design landed (gate still closed):** package skeleton, type
+> contracts, request lifecycle (per-request zeroize point), `gateway:` clihub.yaml +
+> lockfile schema, net-new egress client, per-CLI takeover matrix, CLI surface, and
+> the test plan mapped to the slots below are in
+> [`26-GATEWAY-DESIGN.md`](26-GATEWAY-DESIGN.md). **Design only** — no
+> `packages/gateway/` code until this gate opens.
 
 | Ver | Deliverable | Reuses | New | Headless | Acceptance gate |
 |---|---|---|---|---|---|

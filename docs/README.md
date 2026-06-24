@@ -30,6 +30,7 @@
 | 23 | [ARCHITECTURE](23-ARCHITECTURE.md) | 转型后架构 — 一内核多壳 / daemon / GUI / 网关 |
 | 24 | [VERSION-PLAN](24-VERSION-PLAN.md) | 转型后分阶段版本计划（P1a/P1b/P2/P3） |
 | 25 | [PROVIDER-BINDING](25-PROVIDER-BINDING.md) | **per-CLI provider+模型绑定设计**（`clihub use`，7 CLI 实证矩阵） |
+| 26 | [GATEWAY-DESIGN](26-GATEWAY-DESIGN.md) | **网关实现设计**（P2 门禁未开 — 设计不写码）：包骨架 / 类型契约 / 请求生命周期 / `gateway:` schema / egress / 接管矩阵 / 测试计划 |
 | -- | [REVIEW](REVIEW.md) | **总体目标 review** — 风险 / 决策点 / 最小切片 |
 
 ## 快速理解
