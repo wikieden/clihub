@@ -1,5 +1,7 @@
 # clihub gateway — threat model & security design
 
+> 🌐 中文: [`22-GATEWAY-SECURITY.zh.md`](22-GATEWAY-SECURITY.zh.md)
+
 > **Design-first, not release-afterthought.** clihub's local gateway is the first
 > component to hold live provider API keys in the request path, inverting the
 > prior "keys never leave the keychain" posture. This threat model is a **design

@@ -1,5 +1,7 @@
 # clihub architecture (post-pivot)
 
+> 🌐 中文: [`23-ARCHITECTURE.zh.md`](23-ARCHITECTURE.zh.md)
+
 > The technical design for clihub as a **reproducible control plane** = one kernel,
 > many thin shells, an opt-in local gateway, and a desktop GUI. Companion to
 > [`00-VISION.md`](00-VISION.md), [`11-ROADMAP.md`](11-ROADMAP.md) (phases),

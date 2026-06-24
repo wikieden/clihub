@@ -1,5 +1,7 @@
 # clihub gateway — build-ready implementation design
 
+> 🌐 中文: [`26-GATEWAY-DESIGN.zh.md`](26-GATEWAY-DESIGN.zh.md)
+
 > **GATE NOT CLEARED — this is design, not a build order.** Per
 > [`24-VERSION-PLAN.md`](24-VERSION-PLAN.md) the P2 gate opens only when (a) Phase 1
 > shows real adoption **and** (b) there is budget for a 3–4-month key-holding-daemon
