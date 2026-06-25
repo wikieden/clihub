@@ -127,6 +127,19 @@ describe('golden parity — read routes === direct kernel call', () => {
     expect(body.adapters.find((a) => a.cli === 'cursor')?.modelOnly).toBe(true);
     expect(body.adapters.find((a) => a.cli === 'goose')?.deliversKey).toBe(false);
   });
+
+  test('/v1/proxy: tool ids match listProviders(); goose (YAML) is unsupported', async () => {
+    const res = await routeRequest(getReq('/v1/proxy'), ctx);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      system: { source: string };
+      tools: Array<{ id: string; supported: boolean }>;
+    };
+    expect(body.tools.map((t) => t.id)).toEqual(listProviders().map((p) => p.id));
+    // goose stores config as YAML → clihub can't inject HTTP(S)_PROXY env there.
+    expect(body.tools.find((t) => t.id === 'goose')?.supported).toBe(false);
+    expect(body.tools.find((t) => t.id === 'claude-code')?.supported).toBe(true);
+  });
 });
 
 describe('mutating routes — validation (no side effects)', () => {
@@ -153,6 +166,13 @@ describe('mutating routes — validation (no side effects)', () => {
   test('POST /v1/model {} → 400 (missing cli/model)', async () => {
     expect((await routeRequest(postReq('/v1/model', {}), ctx)).status).toBe(400);
     expect((await routeRequest(postReq('/v1/model', { cli: 'kiro' }), ctx)).status).toBe(400);
+  });
+
+  test('POST /v1/proxy: missing tool / unknown tool / YAML CLI → 400 (no write)', async () => {
+    expect((await routeRequest(postReq('/v1/proxy', {}), ctx)).status).toBe(400);
+    expect((await routeRequest(postReq('/v1/proxy', { tool: 'nope-zzz' }), ctx)).status).toBe(400);
+    // goose is YAML — rejected with shell-export guidance, never a 500.
+    expect((await routeRequest(postReq('/v1/proxy', { tool: 'goose', url: 'http://h:1' }), ctx)).status).toBe(400);
   });
 
   test('POST /v1/rollback {} / unknown tool → 400 (no install attempted)', async () => {

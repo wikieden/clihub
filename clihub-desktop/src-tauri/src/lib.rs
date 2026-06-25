@@ -29,13 +29,14 @@ const WINDOW_LABEL: &str = "main";
 
 /// Panel ids + tray labels. Single source of truth for tray shortcuts and
 /// clihub:// deep-link validation — ids must match App.svelte's PANELS.
-const PANELS: [(&str, &str); 9] = [
+const PANELS: [(&str, &str); 10] = [
     ("dashboard", "Dashboard"),
     ("drift", "Drift"),
     ("endpoints", "Endpoints"),
     ("mcp", "MCP"),
     ("skills", "Skills"),
     ("profiles", "Profiles"),
+    ("proxy", "Proxy"),
     ("versions", "Versions"),
     ("yaml", "Yaml"),
     ("sync", "Sync/Team"),

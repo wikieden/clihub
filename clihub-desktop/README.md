@@ -2,8 +2,8 @@
 
 Tauri 2 + Svelte 5 desktop shell for clihub. A thin supervisor: it spawns the
 `@clihub/daemon` sidecar, injects `window.__CLIHUB__ = { baseUrl, token }` into
-the WebView before any SPA code runs, and renders 9 panels (Dashboard, Drift,
-Endpoints, MCP, Skills, Profiles, Versions, Yaml, Sync/Team) against the
+the WebView before any SPA code runs, and renders 10 panels (Dashboard, Drift,
+Endpoints, MCP, Skills, Profiles, Proxy, Versions, Yaml, Sync/Team) against the
 daemon's HTTP surface. All logic lives in `@clihub/core` — golden parity:
 daemon == CLI == kernel.
 

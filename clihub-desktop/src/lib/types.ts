@@ -166,3 +166,31 @@ export interface StatusResponse {
   unlocked: number;
   compliant: boolean;
 }
+
+/** GET /v1/proxy — detected system proxy + each CLI's own HTTP(S)_PROXY env. */
+export interface SystemProxyRow {
+  url?: string;
+  http?: string;
+  https?: string;
+  source: 'env' | 'macos' | 'none';
+}
+
+export interface ProxyToolRow {
+  id: string;
+  name: string;
+  installed: boolean;
+  /** false for YAML-config CLIs (goose) — clihub can't inject env there. */
+  supported: boolean;
+  configPath: string;
+  proxy: string | null;
+}
+
+export interface ProxyResponse {
+  system: SystemProxyRow;
+  tools: ProxyToolRow[];
+}
+
+export interface ProxySetResult {
+  tool: string;
+  proxy: string | null;
+}

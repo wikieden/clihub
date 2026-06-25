@@ -30,6 +30,9 @@ import {
   systemPromptHash,
   computeStatus,
   getProvider,
+  getToolProxy,
+  setToolProxy,
+  detectSystemProxy,
   formatErrorMessage,
   readBindings,
   useBinding,
@@ -170,6 +173,30 @@ export const ROUTES: Record<string, RouteHandler> = {
   // `team list` — registered team config repos.
   'GET /v1/teams': async () => ({ teams: await listTeams() }),
 
+  // Mirrors the `clihub` status PROXY column + `clihub proxy show`: each CLI's
+  // own HTTP(S)_PROXY env (getToolProxy) plus the detected system proxy for a
+  // one-click prefill. YAML-config CLIs (goose) can't take JSON env-injection,
+  // so they report `supported: false` instead of a misleading empty proxy.
+  'GET /v1/proxy': async () => {
+    const system = await detectSystemProxy().catch(() => ({ source: 'none' as const }));
+    const tools = await Promise.all(
+      listProviders().map(async (p) => {
+        const configPath = p.settingsAdapter.configPath();
+        const supported = !/\.ya?ml$/i.test(configPath);
+        const det = await p.detect().catch(() => ({ installed: false }));
+        return {
+          id: p.id,
+          name: p.name,
+          installed: Boolean(det.installed),
+          supported,
+          configPath,
+          proxy: supported ? ((await getToolProxy(p.id).catch(() => undefined)) ?? null) : null,
+        };
+      }),
+    );
+    return { system, tools };
+  },
+
   // The raw clihub.yaml for the editor panel (same discovery as `clihub status`).
   'GET /v1/yaml': async (_ctx, req) => {
     const startDir = new URL(req.url).searchParams.get('dir') ?? undefined;
@@ -265,6 +292,28 @@ export const ROUTES: Record<string, RouteHandler> = {
     const result = await setModelBinding(cli, model);
     audit('model.set', { cli, model });
     return result;
+  },
+
+  // `clihub proxy` per-CLI — write (or clear, when `url` is omitted/blank) the
+  // HTTP(S)_PROXY env into one CLI's native config. Mirrors the TUI "Set proxy"
+  // action 1:1 (setToolProxy → settingsAdapter env). YAML CLIs are rejected
+  // with a 400 + shell-export guidance rather than a cryptic 500.
+  'POST /v1/proxy': async (_ctx, req) => {
+    const body = await readJson(req);
+    const tool = reqString(body, 'tool');
+    const provider = getProvider(tool);
+    if (!provider) throw new HttpError(400, `unknown tool: ${tool}`);
+    if (/\.ya?ml$/i.test(provider.settingsAdapter.configPath())) {
+      throw new HttpError(
+        400,
+        `${tool} stores config as YAML; clihub can't inject proxy env there — set HTTPS_PROXY in your shell instead`,
+      );
+    }
+    const raw = optString(body, 'url');
+    const url = raw && raw.trim().length > 0 ? raw.trim() : undefined;
+    await setToolProxy(tool, url);
+    audit('proxy.set', { tool, url: url ?? null });
+    return { tool, proxy: url ?? null };
   },
 
   // Save the edited clihub.yaml. parseClihubYaml is a LENIENT parser (it
