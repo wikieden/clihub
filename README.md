@@ -114,9 +114,9 @@ All four share the same `@clihub/core` kernel — **golden parity**: a GUI panel
 
 ### Terminal TUI
 
-Run `clihub` with no arguments for the interactive menu — install CLIs, fan out skills, set a proxy or endpoint per CLI, all guided.
+Run `clihub` with no arguments for the interactive menu — install CLIs, fan out skills, set a proxy or endpoint per CLI, all guided. And `clihub doctor` gives a one-glance cross-CLI health matrix: install status, version, native settings path, skills/MCP counts, and the active proxy per CLI.
 
-![clihub TUI menu](docs/assets/tui-menu.png)
+![clihub doctor — cross-CLI health matrix](docs/assets/tui-menu.png)
 
 ### Desktop GUI
 

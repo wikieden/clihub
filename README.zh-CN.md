@@ -114,9 +114,9 @@ clihub rollback                        # 恢复最近一次快照
 
 ### 终端 TUI
 
-不带参数跑 `clihub` 进交互菜单 —— 装 CLI、铺 skill、逐 CLI 设代理或端点，全程引导。
+不带参数跑 `clihub` 进交互菜单 —— 装 CLI、铺 skill、逐 CLI 设代理或端点，全程引导。`clihub doctor` 则一屏给出跨 CLI 健康矩阵：安装状态、版本、原生配置路径、skills/MCP 数、以及每个 CLI 的当前代理。
 
-![clihub TUI 菜单](docs/assets/tui-menu.png)
+![clihub doctor —— 跨 CLI 健康矩阵](docs/assets/tui-menu.png)
 
 ### 桌面 GUI
 
