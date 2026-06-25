@@ -9,9 +9,18 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-**The reproducible control plane for AI coding CLIs.** Install Claude Code, Codex, Gemini CLI, Qwen Code, Kiro, Cursor, Goose, and OpenCode; keep their skills / MCP / memory / system-prompts in sync across every CLI; switch accounts and proxies; and pin it all to a signed `clihub.lock.json` with one-command rollback when an update bites.
+**The reproducible control plane for AI coding CLIs.** One tool to install Claude Code, Codex, Gemini CLI, Qwen Code, Kiro, Cursor, Goose, and OpenCode — keep their skills / MCP / memory / system-prompts in sync across every CLI, switch accounts · endpoints · proxies per CLI, and pin the whole stack to a signed `clihub.lock.json` with one-command rollback when an update bites. Drive it from a **terminal TUI**, a scriptable **CLI**, or a native **desktop GUI** — all three share one kernel.
 
-![demo](docs/assets/demo.gif)
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/gui.png" alt="clihub desktop GUI — control-plane dashboard"></td>
+    <td width="50%"><img src="docs/assets/tui.png" alt="clihub terminal TUI — interactive menu"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Desktop GUI</b> — Tauri 2 + Svelte 5</td>
+    <td align="center"><b>Terminal TUI</b> — <code>clihub</code></td>
+  </tr>
+</table>
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/wikieden/clihub/main/scripts/install.sh | sh
@@ -29,7 +38,7 @@ That's it. Your stack installed, core skills fanned out to every CLI, your prior
 Every AI coding CLI ships its own bespoke skill / plugin / MCP layout. If you run more than one, you end up:
 
 - Re-installing the same skill four times in four different folders.
-- Hand-syncing `superpowers` into seven different layouts — `~/.claude/skills/`, `~/.codex/skills/`, `~/.gemini/commands/*.toml`, `~/.qwen/commands/*.toml`, `~/.kiro/steering/`, `~/.cursor/commands/*.md`, `~/.config/goose/recipes/*.yaml`.
+- Hand-syncing `superpowers` into eight different layouts — `~/.claude/skills/`, `~/.codex/skills/`, `~/.gemini/commands/*.toml`, `~/.qwen/commands/*.toml`, `~/.kiro/steering/`, `~/.cursor/commands/*.md`, `~/.config/goose/recipes/*.yaml`, `~/.config/opencode/skills/`.
 - Nuking your config on an unrelated upgrade and having no way back.
 
 clihub solves all three:
@@ -37,19 +46,21 @@ clihub solves all three:
 | | clihub | claude-skills | multica | ccpi | oh-my-claudecode |
 | --- | --- | --- | --- | --- | --- |
 | Installs the CLIs themselves | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Cross-CLI skill fan-out | ✅ | ✅ | partial | ❌ (CC only) | ❌ |
+| Cross-CLI skill fan-out (8 CLIs) | ✅ | ✅ | partial | ❌ (CC only) | ❌ |
 | Presets that bundle tools + skills + MCP | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Backup / one-command rollback of `~/.claude` & siblings | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Per-tool version pin + rollback | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Multi-account profile switching | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Per-CLI endpoint + model binding | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Per-CLI + GUI proxy management | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Multi-source catalog federation | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Skill security audit | ✅ | ❌ | ❌ | ❌ | ❌ |
-| One memory source → every CLI's file | ✅ | ❌ | ❌ | ❌ | ❌ |
+| One memory / system-prompt source → every CLI | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Cross-machine E2E-encrypted config sync | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Signed catalogs (ed25519 supply-chain trust) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Add a new CLI via JSON spec (no fork) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Lockfile compliance / CI drift gate | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Interactive TUI onboarding | ✅ | ❌ | partial | ❌ | ❌ |
+| Terminal TUI **+ native desktop GUI** | ✅ | ❌ | partial | ❌ | ❌ |
 | Single-binary distribution | npm | shell | npm | npm | CC plugin |
 
 ## Install
@@ -70,7 +81,9 @@ docker run --rm -it -v ~/.claude:/root/.claude wikieden/clihub
 docker run --rm -it wikieden/clihub doctor
 ```
 
-Requirements: Node ≥ 18 (or Bun). On Linux/macOS/WSL.
+**Desktop app:** download the unsigned macOS / Windows / Linux build from [Releases](https://github.com/wikieden/clihub/releases) (tag `desktop-v*`). It bundles a standalone daemon — no bun or repo checkout needed. Code-signing / notarization is pending, so you may need to allow it past Gatekeeper / SmartScreen on first launch.
+
+Requirements: Node ≥ 18 (or Bun), on Linux / macOS / WSL.
 
 ## Quickstart
 
@@ -88,11 +101,50 @@ clihub backup                          # snapshot ~/.claude before risky upgrade
 clihub rollback                        # restore the most recent snapshot
 ```
 
+## Three+1 faces of clihub
+
+All four share the same `@clihub/core` kernel — **golden parity**: a GUI panel, a CLI command, and a direct kernel call return identical results. No logic forks.
+
+1. **CLI** — `clihub <subcommand>`, headless/CI-friendly. The scriptable face.
+2. **Terminal TUI** — bare `clihub` opens an interactive menu (`@clack/prompts`). The guided face.
+3. **Desktop GUI** — a native Tauri 2 + Svelte 5 app (10 panels). Spawns a loopback `@clihub/daemon` sidecar and binds each panel to the same kernel functions. The visual face.
+4. **Claude Code skill** — installed at `~/.claude/skills/clihub/`; `/clihub` inside Claude Code opens the menu and the model runs operations on your behalf. The in-agent face.
+
+## Walkthrough
+
+### Terminal TUI
+
+Run `clihub` with no arguments for the interactive menu — install CLIs, fan out skills, set a proxy or endpoint per CLI, all guided.
+
+![clihub TUI menu](docs/assets/tui-menu.png)
+
+### Desktop GUI
+
+The desktop app leads with the moat — health, drift, and lockfile compliance — not a provider dropdown. Ten panels, four themes.
+
+**Dashboard** — cross-CLI health + version matrix at a glance:
+
+![GUI Dashboard panel](docs/assets/gui-dashboard.png)
+
+**Drift** — does this machine still match the signed `clihub.lock.json`? (ok / drift / missing):
+
+![GUI Drift panel](docs/assets/gui-drift.png)
+
+**Endpoints** — bind each CLI to an LLM endpoint + default model; keys come from the keychain and land in each CLI's native config (0600):
+
+![GUI Endpoints panel](docs/assets/gui-endpoints.png)
+
+**Proxy** — set each CLI's `HTTP(S)_PROXY` (or apply the detected system proxy to all) — the same `clihub proxy` action, in the GUI:
+
+![GUI Proxy panel](docs/assets/gui-proxy.png)
+
 ## Currently supported
 
 **CLIs** (8): Claude Code, OpenAI Codex CLI, Gemini CLI, Qwen Code, Kiro CLI, Cursor CLI, Block Goose, OpenCode.
 
-**Skills**: 30 in the catalog — `superpowers`, `oh-my-claudecode`, `codegraph`, `tdd`, `review`, `frontend-design`, `api-design`, `database-migrations`, `caveman`, `lark-im`, `lark-doc`, `lark-wiki`, ... ([full list](packages/catalog/skills.json)).
+**Surfaces**: scriptable **CLI**, interactive **TUI**, native **desktop GUI** (10 panels: Dashboard · Drift · Endpoints · MCP · Skills · Profiles · Proxy · Versions · clihub.yaml · Sync/Team), and a **Claude Code skill** (`/clihub`). All over one `@clihub/core` kernel via a loopback `@clihub/daemon`.
+
+**Skills**: 30 in the catalog — `superpowers`, `oh-my-claudecode`, `codegraph`, `tdd`, `review`, `frontend-design`, `api-design`, `database-migrations`, `caveman`, `lark-im`, `lark-doc`, `lark-wiki`, … ([full list](packages/catalog/skills.json)).
 
 **MCP servers**: 14 — `filesystem`, `github`, `gitlab`, `postgres`, `sqlite`, `git`, `slack`, `brave-search`, `fetch`, `playwright`, `memory`, `sequential-thinking`, `context7`, `deepwiki` ([full list](packages/catalog/mcp.json)).
 
@@ -103,6 +155,10 @@ clihub rollback                        # restore the most recent snapshot
 - `research` — web search + synthesis + planning + docs.
 - `devops` — deploy, security, performance, git.
 - `lark-office` — Lark / Feishu collaboration suite.
+
+**Config management** (CLI + GUI, per CLI): version pin/rollback · `~/.claude` backup/rollback · multi-account profiles + keychain · endpoint + model binding · proxy + CA bundle · MCP servers · skills · system-prompt + memory fan-out.
+
+**Reproducibility**: `clihub.yaml` → signed `clihub.lock.json` → `status --strict` CI drift gate · `clihub diff` · `clihub ci` (GitHub/GitLab) · `clihub team` (git-backed shared config) · cross-machine E2E-encrypted `sync`.
 
 **Languages**: English, 简体中文, 日本語, 한국어, Español (auto-detected from `$LANG`, override via `CLIHUB_LANG`).
 
@@ -152,13 +208,15 @@ clihub lock                                pin resolved versions to clihub.lock.
 clihub install [--frozen]                  install from clihub.yaml (or lockfile)
 clihub status [--json] [--strict]          check this machine vs clihub.lock.json (CI gate)
 clihub diff <a> [b]                        diff two clihub.lock.json (added/removed/upgraded)
-clihub mcp <list|add|remove> [id]          manage MCP servers across CLIs (Claude Code / Gemini / Qwen JSON · Codex TOML)
+clihub mcp <list|add|remove|reconcile> [id]  manage MCP servers across CLIs (JSON · Codex TOML)
 clihub schema [--out FILE]                  emit clihub.yaml JSON Schema (editor autocomplete)
 clihub ci [github|gitlab] [--out FILE]       generate a CI workflow that validates clihub.yaml
 clihub team <add|list|pull|use|push|rm>      share clihub config across a team via a git repo
 clihub pack <docker|brew|scoop> [--out FILE] generate a distribution manifest
 clihub conformance [dir] [--json]            validate a catalog against the clihub specs
 clihub memory <generate|plan> [--user] [--all] [--check]   one source → every CLI's memory file
+clihub prompt <set|show|sync>              one system prompt → every CLI (managed block)
+clihub usage [--json]                      cross-CLI token rollup (tokens only, never $)
 clihub sync export [--out FILE]            E2E-encrypted config bundle (profiles + sources + config)
 clihub sync import <FILE> [--plan]         restore on another machine (passphrase-protected)
 clihub provider list                       declarative providers (user + catalog)
@@ -169,34 +227,39 @@ clihub use current                         one line per CLI: endpoint · model
 clihub use clear [--for <cli>]             restore official defaults (claude-code: OAuth resumes)
 clihub model <cli> <model>                 set one CLI's default model only (the kiro/cursor path)
 clihub endpoint [list]                     endpoint preset catalog (`endpoint use` → deprecated alias of `use`)
-clihub prompt <set|show|sync>              one system prompt → every CLI (managed block)
-clihub usage [--json]                      cross-CLI token rollup (tokens only, never $)
 clihub daemon <start|stop|status>          loopback GUI sidecar (bearer token in ~/.clihub/daemon.json, 0600)
 clihub self-update
 ```
 
 Full reference: [`docs/02-CLI-COMMANDS.md`](docs/02-CLI-COMMANDS.md).
 
-## Three faces of clihub
-
-1. **CLI** — `clihub <subcommand>` in your terminal.
-2. **Claude Code skill** — installed at `~/.claude/skills/clihub/`; the model invokes the same operations on your behalf.
-3. **Slash command** — `/clihub` inside Claude Code opens the menu.
-
-All three share the same `@clihub/core` kernel.
-
 ## Repo layout
 
 ```
 clihub/
 ├── packages/
-│   ├── core/        @clihub/core — providers, settings, backup, skill adapters, catalog, i18n
-│   ├── cli/         clihub binary (cac + @clack/prompts TUI)
+│   ├── core/        @clihub/core — providers, settings, backup, skill adapters, catalog, binding, proxy, i18n
+│   ├── cli/         @wikieden/clihub — clihub binary (cac + @clack/prompts TUI)
+│   ├── daemon/      @clihub/daemon — loopback HTTP+WS sidecar (1:1 kernel route table; the GUI's only IPC surface)
 │   ├── skill/       SKILL.md + /clihub slash command (installed to ~/.claude/)
 │   ├── statusline/  statusline installer (preserved from v0.0)
-│   └── catalog/     skills.json / tools.json / presets.json
+│   └── catalog/     skills.json / tools.json / presets.json / mcp.json / endpoints.json (signed)
+├── clihub-desktop/  Tauri 2 (Rust shell) + Svelte 5 SPA — the desktop GUI
 ├── scripts/         install.sh, dev-test.sh (sandboxed manual test), test-install.sh
-└── docs/            architecture, commands, i18n, security/backup
+└── docs/            architecture, commands, version plan, gateway design, i18n, security/backup
+```
+
+## Develop
+
+```bash
+bun install
+bun packages/cli/src/cli.ts        # run CLI from source
+bun run typecheck                  # tsc across workspaces
+bun test                           # @clihub/core + daemon test suites
+bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't touch your real config)
+
+# desktop GUI
+cd clihub-desktop && bun tauri dev # vite + Rust shell; spawns the daemon
 ```
 
 ## Statusline
@@ -207,41 +270,16 @@ The two-line statusline from v0.0 lives at `packages/statusline/`:
 bash packages/statusline/install.sh
 ```
 
-## Develop
-
-```bash
-bun install
-bun packages/cli/src/cli.ts        # run CLI from source
-bun run typecheck                  # tsc across workspaces
-bash scripts/dev-test.sh           # interactive TUI in an isolated $HOME (won't touch your real config)
-```
-
 ## Roadmap
 
-- **v0.1–0.3** ✅ — providers (Claude Code / Codex / Kiro / Gemini), 30 skills, presets, cross-tool fan-out, i18n, per-CLI TUI, MCP catalog.
-- **v0.4** ✅ — agentskills.io SKILL.md installer (`clihub skill install <git-url>`), plugin install (Claude Code), remote catalog sync with sha256, Codex TOML, Windows-safe paths.
-- **v0.5** ✅ — `watch` / `search` / shell completion / man; proxy + CA bundle; `doctor --fix` + error codes; **multi-account profiles** + keychain vault + per-profile `BASE_URL` injection; `clihub.yaml` + audit log; per-tool **version pin/rollback**; **skill audit**.
-- **v0.6** ✅ — multi-source **catalog federation** (`catalog add`), **Cursor + Goose** providers (6 CLIs total), **HTTP/SSE MCP** transport.
-- **v0.6.1** ✅ — `clihub apply --plan` / `lock` / `install --frozen` (full `clihub.yaml` schema + `clihub.lock.json`).
-- **v0.7** ✅ — **`clihub memory generate`**: one source (`clihub.memory.md` → `AGENTS.md` → `CLAUDE.md`) fans out to `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` / `.cursor/rules/*.mdc` / `.goosehints` / `.kiro/steering/*.md`, managed-block markers preserve hand-edits, `--check` for CI.
-- **v0.8** ✅ — **`clihub sync`**: cross-machine, end-to-end-encrypted config bundle (global config + catalog sources + profile metadata). scrypt + AES-256-GCM, passphrase-only, zero backend — move the bundle however you like.
-- **v0.9** ✅ — **signed catalogs**: ed25519 `catalog keygen` / `sign` + a local trust store (`catalog trust add --source`). `catalog verify` checks both the sha256 checksums (integrity) and the publisher signature (authenticity) — a forged manifest can't be re-signed without the private key. Pure `node:crypto`, no cosign dependency.
-- **v0.10** ✅ — **declarative provider SDK**: teach clihub a new AI CLI with a JSON spec (`~/.clihub/providers.json` or a catalog's `providers.json`) — detection + npm/bun/brew install with no code or fork. `provider list|add|remove`. Shell-command installs are gated behind `--allow-scripts`; built-in providers can't be shadowed.
-- **v0.11** ✅ — **`clihub status`**: compliance gate that diffs this machine against the pinned `clihub.lock.json` (ok / drift / missing / unlocked). `--json` for dashboards, `--strict` to fail CI when a teammate drifts off the agreed toolchain.
-- **v0.12** ✅ — **`clihub schema`**: emit a draft-07 JSON Schema for `clihub.yaml` so editors (yaml-language-server) give autocomplete + inline validation.
-- **v1.0.0** ✅ — **stable**. Frozen surface: `clihub.yaml` schema v1, `clihub.lock.json` v1, `@clihub/core` public API, and the `clihub` command set. See [`CHANGELOG.md`](CHANGELOG.md).
-- **v1.1.0** ✅ — **`clihub ci`**: generate a GitHub Actions / GitLab workflow that validates `clihub.yaml` on every push (with commented opt-ins for memory `--check` and `status --strict`).
-- **v1.2.0** ✅ — **`clihub team`**: share a reproducible toolchain through a plain git repo. `team add <name> <git-url>` clones it; `team push` commits your `clihub.yaml` / lock / memory / schema; `team use` pulls them into a project. No clihub backend.
-- **v1.3.0** ✅ — **`clihub auth status`**: cross-CLI login + token-expiry visibility (best-effort, read-only; never prints token contents).
-- **v1.4.0** ✅ — **`clihub pack`**: generate distribution manifests — `pack docker` / `pack brew` / `pack scoop`. Reach beyond npm.
-- **v1.5.0** ✅ — **`clihub auth login`**: OAuth 2.0 device-grant login (RFC 8628, headless/CI-friendly). Vendor-neutral BYO config; token written to the CLI's native credential file (0600). Security-reviewed.
-- **v1.6.0** ✅ — **`clihub auth login --refresh`**: token-expiry recovery via the RFC 6749 refresh-token grant — re-mint an access token from the stored `refresh_token`, no browser. Completes the auth pillar.
-- **v1.7.0** ✅ — **`clihub conformance`**: validate a catalog against the published clihub specs. The machine-checkable basis for a `clihub-compatible` badge.
-- **v1.8.0** ✅ — **`clihub auth login --browser`**: OAuth Authorization Code + PKCE (RFC 7636) via a 127.0.0.1 loopback redirect, for providers without a device flow. CSPRNG `state` (CSRF), S256 challenge; security-reviewed. Completes the three login modes (device / browser / refresh).
-- **v1.10–1.50** ✅ (current, `@wikieden/clihub@1.50.0` on npm) — discovery (`recommend`), `cd`-aware profile auto-switch, lockfile `diff`, **unified `clihub mcp`** across CLIs, first-run **wizard** + scaffold, per-CLI proxy injection, opt-in config **auto-backup**, plus a real-CLI **podman test harness** that ground-truthed every config path. Coverage grew to **7 CLIs**: **Qwen Code** (v1.44) joined at full parity, **Codex MCP** landed via a TOML adapter (v1.46), and **Cursor + Goose skill** sync arrived (v1.50, `~/.cursor/commands/*.md` + `~/.config/goose/recipes/*.yaml`). 6 of 7 CLIs now have skill sync; MCP fans out across all four JSON/TOML CLIs.
-- **post-1.50 (external-infra blocked)** — registry *server* (`clihub.dev`) + VS Code/JetBrains marketplace clients. See [`docs/spec/`](docs/spec/).
+- **v0.1–0.12** ✅ — providers, 30 skills, presets, cross-tool fan-out, i18n, per-CLI TUI, MCP catalog; `watch` / `search` / completion / man; proxy + CA; `doctor --fix`; **multi-account profiles** + keychain + per-profile `BASE_URL`; per-tool **version pin/rollback**; **skill audit**; **catalog federation**; Cursor + Goose providers; HTTP/SSE MCP; `apply` / `lock` / `install --frozen`; **memory generate**; E2E-encrypted **sync**; **signed catalogs** (ed25519 + trust store); **declarative provider SDK**; **`status`** drift gate; **`schema`**.
+- **v1.0–1.50** ✅ — **stable** frozen surface (`clihub.yaml` v1 · `clihub.lock.json` v1 · `@clihub/core` API). `ci` (GitHub/GitLab) · `team` (git-backed) · `auth status` · `pack` (docker/brew/scoop) · `auth login` (device / browser-PKCE / refresh) · `conformance` · discovery `recommend` · `cd`-aware profile auto-switch · lockfile `diff` · unified `clihub mcp` · first-run **wizard** + scaffold · per-CLI proxy injection · opt-in config auto-backup · podman real-CLI test harness. Coverage to **7 CLIs** (Qwen Code, Codex MCP, Cursor + Goose skill sync).
+- **v1.55–1.60** ✅ — `clihub prompt` (one system-prompt → every CLI) · `clihub usage` (token rollup, tokens-only) · cloud-folder sync transport + `sync --watch` redaction guard · `self-update` · lockfile provider + system-prompt hashes feed `status --strict`.
+- **v1.61–1.65** ✅ — **`@clihub/daemon`** loopback sidecar (bearer + CORS + SSE) · **Tauri 2 + Svelte 5 desktop GUI** · **per-CLI provider binding** (`clihub use` — catalog v2 multi-protocol `urls`, claude/codex/gemini/qwen/goose adapters, kiro/cursor model-only, lockfile `bindings` + `status --strict` gate) · GUI redesign (multi-theme control-plane) · **OpenCode** as the **8th CLI**.
+- **v1.66–1.68** ✅ — OpenCode parity (catalog MCP + usage) · desktop release pipeline (`tauri-action`, macOS-universal / Windows / Linux, unsigned) · packaged-app crash fix (runtime daemon resolution) · **bun-less compiled daemon sidecar** (a user machine needs neither bun nor the repo).
+- **next** — per-CLI **proxy in the GUI** (CLI ↔ GUI parity, landed on `main`) · macOS notarization / Windows code-signing (funded) · the optional, off-by-default **local gateway** is gated behind an adoption + budget review (design only — see [`docs/26-GATEWAY-DESIGN.md`](docs/26-GATEWAY-DESIGN.md)).
 
-See [`docs/11-ROADMAP.md`](docs/11-ROADMAP.md) and [`docs/20-MARKET-RESEARCH.md`](docs/20-MARKET-RESEARCH.md).
+See [`docs/24-VERSION-PLAN.md`](docs/24-VERSION-PLAN.md), [`docs/23-ARCHITECTURE.md`](docs/23-ARCHITECTURE.md), and [`CHANGELOG.md`](CHANGELOG.md).
 
 ## License
 
