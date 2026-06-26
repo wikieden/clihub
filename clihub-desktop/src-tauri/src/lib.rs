@@ -42,6 +42,21 @@ const PANELS: [(&str, &str); 10] = [
     ("sync", "Sync/Team"),
 ];
 
+/// Tray "Launch" submenu clients: (provider id, display name, optional GUI app
+/// id). Clients with a desktop app get an "App" item (proxy-launched); all get
+/// a "Terminal" item. Mirrors @clihub/core's launch registry — the actual
+/// launch runs through the daemon via `window.__clihubLaunch` (no logic fork).
+const LAUNCH_CLIENTS: [(&str, &str, Option<&str>); 8] = [
+    ("claude-code", "Claude", Some("claude-desktop")),
+    ("codex", "Codex", Some("codex-desktop")),
+    ("kiro-cli", "Kiro", Some("kiro-desktop")),
+    ("cursor", "Cursor", Some("cursor-desktop")),
+    ("gemini-cli", "Gemini", None),
+    ("qwen-code", "Qwen", None),
+    ("goose", "Goose", None),
+    ("opencode", "OpenCode", None),
+];
+
 /// Holds the daemon child so it can be killed on exit.
 #[derive(Default)]
 struct DaemonState(Mutex<Option<Child>>);
@@ -298,9 +313,25 @@ pub fn run() {
                 panels = panels.text(format!("panel:{id}"), label);
             }
             let panels = panels.build()?;
+
+            // "Launch" submenu: one-click open each client's desktop app
+            // (proxy) and/or CLI in a terminal — the CodexBar-style launcher,
+            // mirrored from the in-window dropdown.
+            let mut launch = SubmenuBuilder::new(app, "Launch");
+            for (prov, name, gui) in LAUNCH_CLIENTS {
+                let mut sub = SubmenuBuilder::new(app, name);
+                if let Some(g) = gui {
+                    sub = sub.text(format!("launch:gui:{g}"), "App");
+                }
+                sub = sub.text(format!("launch:cli:{prov}"), "Terminal");
+                launch = launch.item(&sub.build()?);
+            }
+            let launch = launch.build()?;
+
             let menu = MenuBuilder::new(app)
                 .text("open", "Open clihub")
                 .item(&panels)
+                .item(&launch)
                 .separator()
                 .text("update", "Check for updates…")
                 .separator()
@@ -333,6 +364,18 @@ pub fn run() {
                     other => {
                         if let Some(p) = other.strip_prefix("panel:") {
                             show_window(app, Some(p));
+                        } else if let Some(rest) = other.strip_prefix("launch:") {
+                            // rest = "gui:<appId>" | "cli:<provId>" — fire the
+                            // SAME daemon launch the dropdown uses, via the
+                            // WebView's __clihubLaunch (kept alive while hidden).
+                            if let Some((kind, id)) = rest.split_once(':') {
+                                if let Some(window) = app.get_webview_window(WINDOW_LABEL) {
+                                    let js = format!(
+                                        "window.__clihubLaunch && window.__clihubLaunch('{kind}','{id}')"
+                                    );
+                                    let _ = window.eval(js.as_str());
+                                }
+                            }
                         }
                     }
                 })

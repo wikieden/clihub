@@ -35,6 +35,32 @@
     if (open && !loaded) load();
   }
 
+  // Expose a launch entry point the Rust tray can call via window.eval — so the
+  // system-tray "Launch" submenu fires the SAME daemon endpoints as the dropdown
+  // (no logic fork). kind='gui' → gui app id; kind='cli' → provider id.
+  $effect(() => {
+    (globalThis as unknown as { __clihubLaunch?: (k: string, id: string) => void }).__clihubLaunch = async (
+      kind: string,
+      id: string,
+    ) => {
+      let url = proxy.trim();
+      if (!url) {
+        try {
+          const p = await client.get<{ system: { url?: string } }>('/v1/proxy');
+          url = p.system?.url ?? '';
+        } catch {
+          /* no system proxy — launch without one (gui will no-op if it needs one) */
+        }
+      }
+      try {
+        if (kind === 'gui') await client.post('/v1/gui/launch', { id, url });
+        else await client.post('/v1/launch/cli', { tool: id, url });
+      } catch {
+        /* tray launch is fire-and-forget; errors surface in the in-window dropdown */
+      }
+    };
+  });
+
   async function go(kind: 'gui' | 'cli', t: Target) {
     const key = `${kind}:${t.id}`;
     busy = key;
