@@ -123,6 +123,34 @@ export const GUI_APPS: readonly GuiApp[] = [
     win: { exe: 'Cursor.exe', dirs: ['%LOCALAPPDATA%\\Programs\\cursor'] },
     linux: { exe: 'cursor', dirs: ['/opt/cursor', '/opt/Cursor', '~/Applications'] },
   },
+  // Chromium browsers — no CLI, GUI-only. Same --proxy-server lever.
+  {
+    id: 'chrome',
+    name: 'Chrome',
+    mechanism: 'electron-flag',
+    mac: { bundleId: 'com.google.Chrome' },
+    win: {
+      exe: 'chrome.exe',
+      dirs: ['%PROGRAMFILES%\\Google\\Chrome\\Application', '%LOCALAPPDATA%\\Google\\Chrome\\Application'],
+    },
+    linux: { exe: 'google-chrome', dirs: ['/opt/google/chrome'] },
+  },
+  {
+    id: 'edge',
+    name: 'Edge',
+    mechanism: 'electron-flag',
+    mac: { bundleId: 'com.microsoft.edgemac' },
+    win: { exe: 'msedge.exe', dirs: ['%PROGRAMFILES(x86)%\\Microsoft\\Edge\\Application', '%PROGRAMFILES%\\Microsoft\\Edge\\Application'] },
+    linux: { exe: 'microsoft-edge', dirs: ['/opt/microsoft/msedge'] },
+  },
+  {
+    id: 'brave',
+    name: 'Brave',
+    mechanism: 'electron-flag',
+    mac: { bundleId: 'com.brave.Browser' },
+    win: { exe: 'brave.exe', dirs: ['%LOCALAPPDATA%\\BraveSoftware\\Brave-Browser\\Application', '%PROGRAMFILES%\\BraveSoftware\\Brave-Browser\\Application'] },
+    linux: { exe: 'brave-browser', dirs: ['/opt/brave.com/brave'] },
+  },
 ];
 
 export function getGuiApp(id: string): GuiApp | undefined {

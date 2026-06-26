@@ -46,15 +46,20 @@ const PANELS: [(&str, &str); 10] = [
 /// id). Clients with a desktop app get an "App" item (proxy-launched); all get
 /// a "Terminal" item. Mirrors @clihub/core's launch registry — the actual
 /// launch runs through the daemon via `window.__clihubLaunch` (no logic fork).
-const LAUNCH_CLIENTS: [(&str, &str, Option<&str>); 8] = [
-    ("claude-code", "Claude", Some("claude-desktop")),
-    ("codex", "Codex", Some("codex-desktop")),
-    ("kiro-cli", "Kiro", Some("kiro-desktop")),
-    ("cursor", "Cursor", Some("cursor-desktop")),
-    ("gemini-cli", "Gemini", None),
-    ("qwen-code", "Qwen", None),
-    ("goose", "Goose", None),
-    ("opencode", "OpenCode", None),
+// (cli provider id, display name, gui app id). cli=None → no Terminal item
+// (Chromium browsers are GUI-only); gui=None → no App item (CLI-only clients).
+const LAUNCH_CLIENTS: [(Option<&str>, &str, Option<&str>); 11] = [
+    (Some("claude-code"), "Claude", Some("claude-desktop")),
+    (Some("codex"), "Codex", Some("codex-desktop")),
+    (Some("kiro-cli"), "Kiro", Some("kiro-desktop")),
+    (Some("cursor"), "Cursor", Some("cursor-desktop")),
+    (Some("gemini-cli"), "Gemini", None),
+    (Some("qwen-code"), "Qwen", None),
+    (Some("goose"), "Goose", None),
+    (Some("opencode"), "OpenCode", None),
+    (None, "Chrome", Some("chrome")),
+    (None, "Edge", Some("edge")),
+    (None, "Brave", Some("brave")),
 ];
 
 /// Holds the daemon child so it can be killed on exit.
@@ -323,7 +328,9 @@ pub fn run() {
                 if let Some(g) = gui {
                     sub = sub.text(format!("launch:gui:{g}"), "App");
                 }
-                sub = sub.text(format!("launch:cli:{prov}"), "Terminal");
+                if let Some(c) = prov {
+                    sub = sub.text(format!("launch:cli:{c}"), "Terminal");
+                }
                 launch = launch.item(&sub.build()?);
             }
             let launch = launch.build()?;

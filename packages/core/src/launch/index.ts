@@ -59,7 +59,7 @@ export async function listLaunchTargets(): Promise<LaunchTarget[]> {
     const provId = GUI_TO_PROVIDER[g.id];
     if (provId) guiByProvider.set(provId, g);
   }
-  return Promise.all(
+  const providerTargets = await Promise.all(
     listProviders().map(async (p) => {
       const det = await p.detect().catch(() => ({ installed: false }) as Awaited<ReturnType<typeof p.detect>>);
       const g = guiByProvider.get(p.id);
@@ -73,6 +73,21 @@ export async function listLaunchTargets(): Promise<LaunchTarget[]> {
       } satisfies LaunchTarget;
     }),
   );
+
+  // GUI-only apps with no CLI provider (Chromium browsers) — App launch only.
+  const browserTargets = listGuiApps()
+    .filter((g) => !GUI_TO_PROVIDER[g.id])
+    .map(
+      (g) =>
+        ({
+          id: g.id,
+          name: g.name,
+          gui: { id: g.id, installed: g.installed, osSupported: g.osSupported, mechanism: g.mechanism, note: g.note },
+          cli: null,
+        }) satisfies LaunchTarget,
+    );
+
+  return [...providerTargets, ...browserTargets];
 }
 
 /** Re-exported so callers need one import for both launch kinds. */

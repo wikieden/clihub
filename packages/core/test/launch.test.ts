@@ -13,8 +13,14 @@ describe('listLaunchTargets', () => {
     expect(byId['gemini-cli']?.gui).toBeNull();
     expect(byId['goose']?.gui).toBeNull();
     expect(byId['opencode']?.gui).toBeNull();
-    // every target carries a cli descriptor
-    for (const x of t) expect(x.cli?.toolId).toBe(x.id);
+    // Chromium browsers are GUI-only (App launch, no Terminal).
+    expect(byId['chrome']?.gui?.id).toBe('chrome');
+    expect(byId['chrome']?.cli).toBeNull();
+    // every CLI provider target carries a cli descriptor; browsers don't.
+    for (const x of t) {
+      if (x.cli) expect(x.cli.toolId).toBe(x.id);
+      else expect(x.gui).not.toBeNull();
+    }
   });
 });
 
