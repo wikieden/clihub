@@ -100,7 +100,10 @@ export const GUI_APPS: readonly GuiApp[] = [
     id: 'codex-desktop',
     name: 'Codex',
     mechanism: 'electron-flag',
-    note: 'quit Codex first if it is already running — the proxy only applies to a fresh launch',
+    // Honest: --proxy-server only covers Codex's embedded-Chromium traffic. Its
+    // native core has its own network stack (managed proxy / direct) the flag
+    // can't fully capture — for guaranteed coverage use a system proxy or TUN.
+    note: 'best-effort: --proxy-server covers Codex’s Chromium traffic only; the native core may bypass it (use system proxy / TUN for full coverage). Quit Codex first.',
     mac: { bundleId: 'com.openai.codex' },
     // Codex desktop on Windows is an MSIX package with an unverified exe/path —
     // not wired rather than guessed. No Codex GUI on Linux (CLI only).
