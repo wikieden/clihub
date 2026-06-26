@@ -322,7 +322,12 @@ function buildSpawnPlan(
   if (app.mechanism === 'electron-flag') {
     // <-loopback> un-bypasses loopback so a 127.0.0.1 proxy isn't skipped.
     const flags = [`--proxy-server=${url}`, '--proxy-bypass-list=<-loopback>'];
-    return { args: flags, env: process.env, display: [exePath, ...flags] };
+    // Also inject the proxy env: --proxy-server covers the Chromium net stack,
+    // but apps with a native/Node core (Codex) read HTTP(S)_PROXY instead. Pure
+    // Electron apps just ignore the env, so this is a safe superset.
+    const env: NodeJS.ProcessEnv = { ...process.env, HTTPS_PROXY: url, HTTP_PROXY: url };
+    if (url.toLowerCase().startsWith('socks')) env.ALL_PROXY = url;
+    return { args: flags, env, display: [`HTTPS_PROXY=${url}`, exePath, ...flags] };
   }
   const env: NodeJS.ProcessEnv = { ...process.env, HTTPS_PROXY: url, HTTP_PROXY: url };
   if (url.toLowerCase().startsWith('socks')) env.ALL_PROXY = url;
