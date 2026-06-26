@@ -28,20 +28,6 @@ use tauri_plugin_deep_link::DeepLinkExt;
 const WINDOW_LABEL: &str = "main";
 
 /// Panel ids + tray labels. Single source of truth for tray shortcuts and
-/// clihub:// deep-link validation — ids must match App.svelte's PANELS.
-const PANELS: [(&str, &str); 10] = [
-    ("dashboard", "Dashboard"),
-    ("drift", "Drift"),
-    ("endpoints", "Endpoints"),
-    ("mcp", "MCP"),
-    ("skills", "Skills"),
-    ("profiles", "Profiles"),
-    ("proxy", "Proxy"),
-    ("versions", "Versions"),
-    ("yaml", "Yaml"),
-    ("sync", "Sync/Team"),
-];
-
 /// Tray "Launch" submenu clients: (provider id, display name, optional GUI app
 /// id). Clients with a desktop app get an "App" item (proxy-launched); all get
 /// a "Terminal" item. Mirrors @clihub/core's launch registry — the actual
@@ -187,33 +173,38 @@ fn kill_daemon(app: &AppHandle) {
     }
 }
 
-/// Show + focus the main window, optionally routing the SPA to a panel.
-/// Routing sets location.hash — App.svelte's hashchange listener reacts, so
-/// this works on a hidden, already-loaded window. Only whitelisted panel ids
-/// are ever eval'd (deep-link input never reaches eval unvalidated).
-fn show_window(app: &AppHandle, panel: Option<&str>) {
+/// Show the popover at the top-right of the primary monitor (under the menubar).
+fn show_popover(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(WINDOW_LABEL) {
-        if let Some(p) = panel {
-            if PANELS.iter().any(|(id, _)| *id == p) {
-                let _ = window.eval(format!("location.hash = '/{p}'").as_str());
-            }
+        if let Ok(Some(monitor)) = window.primary_monitor() {
+            let m = monitor.size();
+            let w = window
+                .outer_size()
+                .unwrap_or(tauri::PhysicalSize::new(440, 760));
+            let x = (m.width as i32 - w.width as i32 - 12).max(0);
+            let y = (28.0 * monitor.scale_factor()) as i32;
+            let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
         }
-        let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
     }
 }
 
-/// Map `clihub://<panel>` (also accepts `clihub://panel/<panel>`) onto the SPA.
-/// Unknown panels still surface the window — they just don't change the hash.
-fn route_deep_link(app: &AppHandle, url: &Url) {
-    let host = url.host_str().unwrap_or("");
-    let panel = if host == "panel" {
-        url.path_segments().and_then(|mut s| s.next()).unwrap_or("")
-    } else {
-        host
-    };
-    show_window(app, if panel.is_empty() { None } else { Some(panel) });
+/// Tray click: toggle the popover (hide if visible, else show near the tray).
+fn toggle_popover(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window(WINDOW_LABEL) {
+        if window.is_visible().unwrap_or(false) {
+            let _ = window.hide();
+            return;
+        }
+    }
+    show_popover(app);
+}
+
+/// Any `clihub://…` deep link just surfaces the popover — the menubar panel
+/// shows every section at once, so there are no per-panel routes to honor.
+fn route_deep_link(app: &AppHandle, _url: &Url) {
+    show_popover(app);
 }
 
 /// Check the GitHub releases updater endpoint; install + restart if newer.
@@ -258,7 +249,7 @@ pub fn run() {
     #[cfg(desktop)]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            show_window(app, None);
+            show_popover(app);
         }));
     }
 
@@ -287,9 +278,16 @@ pub fn run() {
                 serde_json::to_string(&info.url)?,
                 serde_json::to_string(&info.token)?,
             );
+            // Menubar popover: borderless, off-taskbar, always-on-top, hidden on
+            // start. The tray icon toggles it; it hides on blur. No daily window.
             WebviewWindowBuilder::new(app, WINDOW_LABEL, WebviewUrl::default())
                 .title("clihub")
-                .inner_size(1000.0, 700.0)
+                .inner_size(440.0, 760.0)
+                .decorations(false)
+                .resizable(false)
+                .always_on_top(true)
+                .skip_taskbar(true)
+                .visible(false)
                 .initialization_script(&script)
                 .build()?;
 
@@ -312,13 +310,7 @@ pub fn run() {
                 }
             });
 
-            // System tray: panel shortcuts + update check + real quit.
-            let mut panels = SubmenuBuilder::new(app, "Panels");
-            for (id, label) in PANELS {
-                panels = panels.text(format!("panel:{id}"), label);
-            }
-            let panels = panels.build()?;
-
+            // System tray: open popover + launch shortcuts + update + quit.
             // "Launch" submenu: one-click open each client's desktop app
             // (proxy) and/or CLI in a terminal — the CodexBar-style launcher,
             // mirrored from the in-window dropdown.
@@ -337,7 +329,6 @@ pub fn run() {
 
             let menu = MenuBuilder::new(app)
                 .text("open", "Open clihub")
-                .item(&panels)
                 .item(&launch)
                 .separator()
                 .text("update", "Check for updates…")
@@ -354,7 +345,7 @@ pub fn run() {
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
-                    "open" => show_window(app, None),
+                    "open" => show_popover(app),
                     "update" =>
                     {
                         #[cfg(desktop)]
@@ -369,9 +360,7 @@ pub fn run() {
                     // guard below deliberately lets through.
                     "quit" => app.exit(0),
                     other => {
-                        if let Some(p) = other.strip_prefix("panel:") {
-                            show_window(app, Some(p));
-                        } else if let Some(rest) = other.strip_prefix("launch:") {
+                        if let Some(rest) = other.strip_prefix("launch:") {
                             // rest = "gui:<appId>" | "cli:<provId>" — fire the
                             // SAME daemon launch the dropdown uses, via the
                             // WebView's __clihubLaunch (kept alive while hidden).
@@ -395,7 +384,7 @@ pub fn run() {
                         ..
                     } = event
                     {
-                        show_window(tray.app_handle(), None);
+                        toggle_popover(tray.app_handle());
                     }
                 })
                 .build(app)?;
@@ -413,11 +402,16 @@ pub fn run() {
             Ok(())
         })
         // Hide-to-tray: the close button conceals the window, daemon stays up.
-        .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event {
+        .on_window_event(|window, event| match event {
+            WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
                 let _ = window.hide();
             }
+            // Menubar popover: hide when it loses focus (click elsewhere).
+            WindowEvent::Focused(false) => {
+                let _ = window.hide();
+            }
+            _ => {}
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
@@ -433,7 +427,7 @@ pub fn run() {
             // longer fires on close, so the daemon kill lives here.
             tauri::RunEvent::Exit => kill_daemon(app),
             #[cfg(target_os = "macos")]
-            tauri::RunEvent::Reopen { .. } => show_window(app, None),
+            tauri::RunEvent::Reopen { .. } => show_popover(app),
             _ => {}
         });
 }

@@ -40,6 +40,7 @@ import {
   launchCliInTerminal,
   loadConfig,
   setConfigKey,
+  collectUsage,
   formatErrorMessage,
   readBindings,
   useBinding,
@@ -226,6 +227,10 @@ export const ROUTES: Record<string, RouteHandler> = {
   // CodexBar-style launcher matrix: per client, which launch methods exist
   // (GUI desktop app and/or CLI in a terminal) and whether each is installed.
   'GET /v1/launch': async () => ({ targets: await listLaunchTargets() }),
+
+  // Token rollup across CLIs (read-only, tokens only — never a $ figure) for the
+  // menubar panel's Usage section. Mirrors `clihub usage`.
+  'GET /v1/usage': async () => collectUsage(),
 
   // The raw clihub.yaml for the editor panel (same discovery as `clihub status`).
   'GET /v1/yaml': async (_ctx, req) => {
