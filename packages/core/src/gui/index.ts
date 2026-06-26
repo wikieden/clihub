@@ -93,10 +93,14 @@ export const GUI_APPS: readonly GuiApp[] = [
     // No official Claude desktop on Linux.
   },
   {
+    // Codex.app embeds Chromium (custom, not Electron). Its launcher swallows
+    // `open --args`, but a DIRECT binary exec forwards --proxy-server to the
+    // Chromium network service (verified). Chromium ignores HTTP_PROXY env, so
+    // the flag — via direct exec — is the only lever that works.
     id: 'codex-desktop',
     name: 'Codex',
-    mechanism: 'env',
-    note: NATIVE_NOTE,
+    mechanism: 'electron-flag',
+    note: 'quit Codex first if it is already running — the proxy only applies to a fresh launch',
     mac: { bundleId: 'com.openai.codex' },
     // Codex desktop on Windows is an MSIX package with an unverified exe/path —
     // not wired rather than guessed. No Codex GUI on Linux (CLI only).
@@ -232,6 +236,36 @@ export function listGuiApps(): GuiAppStatus[] {
 }
 
 /**
+ * Resolve a macOS `.app`'s inner executable (Contents/MacOS/<CFBundleExecutable>).
+ * Needed because `open --args` doesn't reliably forward chromium flags to custom
+ * Chromium embeds (e.g. Codex) — a direct binary exec does.
+ */
+function macAppBinary(appPath: string): string | undefined {
+  const macOsDir = join(appPath, 'Contents', 'MacOS');
+  // CFBundleExecutable is authoritative; fall back to the sole file in MacOS/.
+  const plist = spawnSync(
+    '/usr/libexec/PlistBuddy',
+    ['-c', 'Print :CFBundleExecutable', join(appPath, 'Contents', 'Info.plist')],
+    { encoding: 'utf8' },
+  );
+  const exe = plist.status === 0 ? plist.stdout.trim() : undefined;
+  if (exe) {
+    const p = join(macOsDir, exe);
+    if (existsSync(p)) return p;
+  }
+  try {
+    const first = readdirSync(macOsDir).find((n) => !n.startsWith('.'));
+    if (first) {
+      const p = join(macOsDir, first);
+      if (existsSync(p)) return p;
+    }
+  } catch {
+    /* ignore */
+  }
+  return undefined;
+}
+
+/**
  * Build the macOS `open` argv (pure — used by launch + dry-run on darwin).
  * Requires a mac target.
  */
@@ -255,7 +289,9 @@ function buildSpawnPlan(
   url: string,
 ): { args: string[]; env: NodeJS.ProcessEnv; display: string[] } {
   if (app.mechanism === 'electron-flag') {
-    return { args: [`--proxy-server=${url}`], env: process.env, display: [exePath, `--proxy-server=${url}`] };
+    // <-loopback> un-bypasses loopback so a 127.0.0.1 proxy isn't skipped.
+    const flags = [`--proxy-server=${url}`, '--proxy-bypass-list=<-loopback>'];
+    return { args: flags, env: process.env, display: [exePath, ...flags] };
   }
   const env: NodeJS.ProcessEnv = { ...process.env, HTTPS_PROXY: url, HTTP_PROXY: url };
   if (url.toLowerCase().startsWith('socks')) env.ALL_PROXY = url;
@@ -290,12 +326,30 @@ export function launchGuiAppWithProxy(
   if (!guiLaunchSupported()) return fail('gui launch needs macOS, Windows, or Linux');
   if (!osTargetFor(app)) return fail(`${app.name} has no desktop app on this OS`);
 
-  // macOS: dryRun + launch both go through `open` (path resolution not needed
-  // to *show* the command).
   if (process.platform === 'darwin') {
+    const appPath = findGuiAppPath(app);
+
+    // Electron / Chromium apps: DIRECT-exec the binary with --proxy-server.
+    // `open --args` doesn't forward the flag to custom Chromium embeds (Codex),
+    // but a direct exec reaches the Chromium network service (verified). This
+    // matches the Windows/Linux path.
+    if (app.mechanism === 'electron-flag') {
+      const bin = appPath ? macAppBinary(appPath) : undefined;
+      const plan = buildSpawnPlan(app, bin ?? `${app.name}`, url);
+      if (opts.dryRun) return { id, launched: false, command: plan.display, mechanism: app.mechanism, note: app.note };
+      if (!bin) return fail(`${app.name} not installed`);
+      try {
+        spawn(bin, plan.args, { detached: true, stdio: 'ignore', env: plan.env }).unref();
+      } catch (e) {
+        return fail(`failed to launch: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      return { id, launched: true, command: plan.display, mechanism: app.mechanism, note: app.note };
+    }
+
+    // Native apps: env via `open --env` (Chromium-less; honors process env).
     const command = buildLaunchCommand(app, url);
     if (opts.dryRun) return { id, launched: false, command, mechanism: app.mechanism, note: app.note };
-    if (!findGuiAppPath(app)) return fail(`${app.name} not installed`);
+    if (!appPath) return fail(`${app.name} not installed`);
     const [, ...args] = command;
     const res = spawnSync('open', args, { encoding: 'utf8' });
     if (res.status !== 0) {
