@@ -11,6 +11,18 @@
   let error = $state<string | null>(null);
   let busy = $state<string | null>(null);
 
+  // Desktop GUI apps clihub can launch WITH a proxy (Claude / Codex desktop).
+  type GuiApp = {
+    id: string;
+    name: string;
+    installed: boolean;
+    mechanism: 'electron-flag' | 'env';
+    note?: string;
+  };
+  let guiSupported = $state(false);
+  let guiApps = $state<GuiApp[]>([]);
+  let guiProxy = $state('');
+
   async function load() {
     error = null;
     try {
@@ -18,8 +30,36 @@
       tools = res.tools;
       system = res.system;
       for (const t of res.tools) pick[t.id] = t.proxy ?? '';
+      if (system.url && !guiProxy) guiProxy = system.url;
     } catch (e: unknown) {
       error = e instanceof Error ? e.message : String(e);
+    }
+    try {
+      const g = await client.get<{ supported: boolean; apps: GuiApp[] }>('/v1/gui');
+      guiSupported = g.supported;
+      guiApps = g.apps;
+    } catch {
+      guiSupported = false;
+      guiApps = [];
+    }
+  }
+
+  async function launchGui(id: string) {
+    const url = guiProxy.trim();
+    if (!url) {
+      error = 'Enter a proxy url to launch with.';
+      return;
+    }
+    busy = id;
+    status = null;
+    error = null;
+    try {
+      await client.post('/v1/gui/launch', { id, url });
+      status = `Launched ${id} with proxy ${url}.`;
+    } catch (e: unknown) {
+      error = e instanceof Error ? e.message : String(e);
+    } finally {
+      busy = null;
     }
   }
 
@@ -112,6 +152,45 @@
       {/each}
     </tbody>
   </table>
+
+  {#if guiApps.length > 0}
+    <h2>Desktop apps</h2>
+    <p class="hint">
+      GUI apps don't read a config env — clihub <strong>launches</strong> them with the proxy applied
+      (chromium <code>--proxy-server</code> for Electron, env for native). One-click start.
+      {#if !guiSupported}<span class="badge warn">macOS only</span>{/if}
+    </p>
+    <p class="sys">
+      Launch proxy: <input class="gui-url" type="text" placeholder="http://host:port" bind:value={guiProxy} />
+    </p>
+    <table>
+      <thead>
+        <tr><th>App</th><th>Mechanism</th><th></th></tr>
+      </thead>
+      <tbody>
+        {#each guiApps as a (a.id)}
+          <tr class:dim={!a.installed}>
+            <td>
+              <strong>{a.name}</strong>
+              {#if !a.installed}<span class="badge">not installed</span>{/if}
+            </td>
+            <td>
+              <span class="mech">{a.mechanism === 'electron-flag' ? '--proxy-server flag' : 'env (best-effort)'}</span>
+              {#if a.note}<span class="badge warn" title={a.note}>⚠ best-effort</span>{/if}
+            </td>
+            <td class="actions">
+              <button
+                disabled={!guiSupported || !a.installed || busy === a.id || !guiProxy.trim()}
+                onclick={() => launchGui(a.id)}
+              >
+                {busy === a.id ? '…' : 'Launch with proxy'}
+              </button>
+            </td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  {/if}
 </section>
 
 <style>
@@ -119,6 +198,19 @@
     font-size: 0.8rem;
     color: var(--text-dim);
     margin: 0.25rem 0 0.75rem;
+  }
+  h2 {
+    margin: 1.5rem 0 0.25rem;
+    font-size: 0.95rem;
+  }
+  .mech {
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    color: var(--text-dim);
+  }
+  .gui-url {
+    min-width: 16rem;
+    margin-left: 0.4rem;
   }
   .sys {
     font-size: 0.8rem;

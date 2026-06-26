@@ -569,6 +569,7 @@ async function crossMenu(): Promise<void> {
         { value: 'use.clear', label: `Restore official defaults  ${kleur.dim('(use clear)')}` },
         { value: 'sepD', label: kleur.dim('───────── GUI sidecar'), hint: '' },
         { value: 'daemon', label: `Daemon control  ${kleur.dim('(start/stop the GUI sidecar)')}` },
+        { value: 'gui.launch', label: `Launch desktop app with proxy  ${kleur.dim('(Claude/Codex)')}` },
         { value: BACK, label: '← Back' },
       ],
     })) as string | symbol;
@@ -590,6 +591,7 @@ async function handleCrossAction(action: string): Promise<void> {
     case 'use.clear':      return runUseClear();
     case 'model.set':      return runModelSet();
     case 'daemon':         return runDaemonCtl();
+    case 'gui.launch':     return runGuiLaunch();
     case 'doctor.all': {
       const { runHealthMatrix } = await import('@clihub/core');
       const rows = await runHealthMatrix();
@@ -804,6 +806,50 @@ async function runDaemonCtl(): Promise<void> {
   if (res.kind === 'not-running') log.info('daemon not running');
   else if (res.kind === 'stopped') log.success(`stopped daemon (pid ${res.pid})`);
   else log.success(`cleaned up stale state (pid ${res.pid} already gone)`);
+}
+
+async function runGuiLaunch(): Promise<void> {
+  const { listGuiApps, launchGuiAppWithProxy, guiLaunchSupported, detectSystemProxy } =
+    await import('@clihub/core');
+  if (!guiLaunchSupported()) {
+    log.info('Launching a GUI app with a proxy is macOS-only for now.');
+    return;
+  }
+  const apps = listGuiApps();
+  const pick = await select({
+    message: 'Launch which desktop app with a proxy? (ESC = back)',
+    options: [
+      ...apps.map((a) => ({
+        value: a.id,
+        label: `${a.name}${a.installed ? '' : kleur.dim(' (not installed)')}`,
+        hint: a.mechanism === 'electron-flag' ? '--proxy-server flag' : 'env (best-effort)',
+      })),
+      { value: BACK, label: '← Back' },
+    ],
+  });
+  if (isCancel(pick) || pick === BACK) return;
+  const app = apps.find((a) => a.id === pick);
+  if (app && !app.installed) {
+    log.warn(`${app.name} not installed.`);
+    return;
+  }
+
+  const sys = await detectSystemProxy().catch(() => ({ url: undefined as string | undefined }));
+  const url = await text({
+    message: 'Proxy url to launch with',
+    placeholder: 'http://host:port',
+    initialValue: sys.url ?? '',
+  });
+  if (isCancel(url) || !String(url).trim()) return;
+
+  const result = launchGuiAppWithProxy(String(pick), String(url).trim());
+  if (!result.launched) {
+    log.error(result.error ?? 'launch failed');
+    if (result.note) log.info(result.note);
+    return;
+  }
+  log.success(`launched ${pick} with proxy ${String(url).trim()}`);
+  if (result.note) log.info(result.note);
 }
 
 async function adaptersForSkill(skill: SkillManifest): Promise<Array<{ toolId: string; adapter: SkillSyncAdapter }>> {

@@ -33,6 +33,9 @@ import {
   getToolProxy,
   setToolProxy,
   detectSystemProxy,
+  listGuiApps,
+  launchGuiAppWithProxy,
+  guiLaunchSupported,
   formatErrorMessage,
   readBindings,
   useBinding,
@@ -197,6 +200,12 @@ export const ROUTES: Record<string, RouteHandler> = {
     return { system, tools };
   },
 
+  // Desktop GUI apps clihub can launch WITH a proxy applied (Claude desktop /
+  // Codex desktop). Unlike per-CLI proxy, GUI apps don't read a config env —
+  // clihub launches them with the proxy (chromium --proxy-server for Electron,
+  // env for native). macOS-only; `supported` reflects the host OS.
+  'GET /v1/gui': async () => ({ supported: guiLaunchSupported(), apps: listGuiApps() }),
+
   // The raw clihub.yaml for the editor panel (same discovery as `clihub status`).
   'GET /v1/yaml': async (_ctx, req) => {
     const startDir = new URL(req.url).searchParams.get('dir') ?? undefined;
@@ -314,6 +323,20 @@ export const ROUTES: Record<string, RouteHandler> = {
     await setToolProxy(tool, url);
     audit('proxy.set', { tool, url: url ?? null });
     return { tool, proxy: url ?? null };
+  },
+
+  // One-click launch a desktop GUI app with the proxy applied. `url` is
+  // required (the panel passes the detected system proxy or a typed one).
+  // Returns the launch result incl. the exact `open` argv for transparency.
+  'POST /v1/gui/launch': async (_ctx, req) => {
+    const body = await readJson(req);
+    const id = reqString(body, 'id');
+    const url = reqString(body, 'url').trim();
+    if (!url) throw new HttpError(400, 'field "url" must be a non-empty proxy url');
+    const result = launchGuiAppWithProxy(id, url);
+    if (!result.launched) throw new HttpError(400, result.error ?? 'launch failed');
+    audit('gui.launch', { id, url });
+    return result;
   },
 
   // Save the edited clihub.yaml. parseClihubYaml is a LENIENT parser (it

@@ -1158,6 +1158,60 @@ cli
     }
   });
 
+// ─── gui ──────────────────────────────────────────────────────────────
+cli
+  .command('gui <action> [id]', 'Launch a desktop GUI app with a proxy  (list | launch <claude|codex> [url])')
+  .option('--proxy <url>', 'Proxy url to launch with (default: detected system proxy)')
+  .action(async (action: string, id: string | undefined, opts: { proxy?: string }) => {
+    const { listGuiApps, launchGuiAppWithProxy, guiLaunchSupported, detectSystemProxy } =
+      await import('@clihub/core');
+
+    if (action === 'list') {
+      if (!guiLaunchSupported()) {
+        info('GUI launch is macOS-only for now.');
+        return;
+      }
+      console.log(kleur.bold('desktop GUI apps (launch with proxy):'));
+      for (const a of listGuiApps()) {
+        const tag = a.installed ? kleur.green('installed') : kleur.dim('not installed');
+        const mech = a.mechanism === 'electron-flag' ? '--proxy-server flag' : 'env (best-effort)';
+        console.log(`  ${a.id.padEnd(15)} ${tag.padEnd(20)} ${kleur.dim(mech)}`);
+        if (a.note) console.log(`  ${''.padEnd(15)} ${kleur.dim('⚠ ' + a.note)}`);
+      }
+      return;
+    }
+
+    if (action === 'launch') {
+      if (!id) {
+        err('usage: clihub gui launch <claude-desktop|codex-desktop> [url]');
+        process.exit(1);
+      }
+      // resolve the proxy url: explicit arg/flag > detected system proxy
+      let url = opts.proxy;
+      if (!url) {
+        const sys = await detectSystemProxy().catch(() => ({ url: undefined as string | undefined }));
+        url = sys.url;
+      }
+      if (!url) {
+        err('no proxy url — pass one (clihub gui launch <id> <url>) or set a system proxy');
+        process.exit(1);
+      }
+      const res = launchGuiAppWithProxy(id, url);
+      if (!res.launched) {
+        err(res.error ?? 'launch failed');
+        if (res.note) info(res.note);
+        process.exit(1);
+      }
+      info(`launched ${id} with proxy ${url}`);
+      console.log(kleur.dim(`  ${res.command.join(' ')}`));
+      if (res.note) info(res.note);
+      return;
+    }
+
+    err(`unknown gui action: ${action} (use: list | launch)`);
+    process.exit(1);
+  });
+
 // ─── proxy ────────────────────────────────────────────────────────────
 cli
   .command('proxy <action> [url]', 'Manage proxy + CA bundle  (set | unset | show | test)')

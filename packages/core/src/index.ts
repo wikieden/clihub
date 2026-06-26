@@ -224,6 +224,19 @@ export {
   type DetectProxyOpts,
 } from './proxy/detect.js';
 export {
+  GUI_APPS,
+  getGuiApp,
+  guiLaunchSupported,
+  findGuiAppPath,
+  listGuiApps,
+  buildLaunchCommand,
+  launchGuiAppWithProxy,
+  type GuiApp,
+  type GuiAppStatus,
+  type GuiProxyMechanism,
+  type LaunchResult,
+} from './gui/index.js';
+export {
   readNudge,
   writeNudge,
   shouldNudgeStar,
