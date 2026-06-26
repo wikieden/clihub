@@ -38,6 +38,8 @@ import {
   guiLaunchSupported,
   listLaunchTargets,
   launchCliInTerminal,
+  loadConfig,
+  setConfigKey,
   formatErrorMessage,
   readBindings,
   useBinding,
@@ -199,7 +201,20 @@ export const ROUTES: Record<string, RouteHandler> = {
         };
       }),
     );
-    return { system, tools };
+    // `launchProxy`: the remembered GUI "Launch with proxy" url (clihub config),
+    // so the launcher prefills it across sessions instead of re-typing.
+    const cfg = await loadConfig().catch(() => ({}) as Awaited<ReturnType<typeof loadConfig>>);
+    return { system, tools, launchProxy: cfg.guiLaunchProxy ?? null };
+  },
+
+  // Persist (or clear) the GUI launcher's "Launch with proxy" url so it's
+  // remembered next session. Blank url clears it.
+  'POST /v1/launch-proxy': async (_ctx, req) => {
+    const body = await readJson(req);
+    const url = optString(body, 'url')?.trim() || undefined;
+    await setConfigKey('guiLaunchProxy', url ?? '');
+    audit('launchProxy.set', { url: url ?? null });
+    return { launchProxy: url ?? null };
   },
 
   // Desktop GUI apps clihub can launch WITH a proxy applied (Claude desktop /

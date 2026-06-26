@@ -20,10 +20,13 @@
     try {
       const [t, p] = await Promise.all([
         client.get<{ targets: Target[] }>('/v1/launch'),
-        client.get<{ system: { url?: string } }>('/v1/proxy').catch(() => ({ system: {} as { url?: string } })),
+        client
+          .get<{ system: { url?: string }; launchProxy?: string | null }>('/v1/proxy')
+          .catch(() => ({ system: {} as { url?: string }, launchProxy: null })),
       ]);
       targets = t.targets;
-      if (p.system?.url && !proxy) proxy = p.system.url;
+      // Remembered launch proxy wins, then the detected system proxy.
+      if (!proxy) proxy = p.launchProxy || p.system?.url || '';
       loaded = true;
     } catch (e: unknown) {
       err = e instanceof Error ? e.message : String(e);
@@ -33,6 +36,15 @@
   function toggle() {
     open = !open;
     if (open && !loaded) load();
+  }
+
+  // Persist the launch proxy to clihub config so it's remembered next session.
+  async function rememberProxy() {
+    try {
+      await client.post('/v1/launch-proxy', { url: proxy.trim() });
+    } catch {
+      /* non-fatal — prefill still works from system proxy */
+    }
   }
 
   // Expose a launch entry point the Rust tray can call via window.eval — so the
@@ -75,6 +87,7 @@
         await client.post('/v1/launch/cli', { tool: t.cli.toolId, url: proxy.trim() });
         msg = `Opened ${t.name} CLI in a terminal.`;
       }
+      void rememberProxy();
     } catch (e: unknown) {
       err = e instanceof Error ? e.message : String(e);
     } finally {
@@ -92,7 +105,7 @@
     <div class="menu" role="menu">
       <div class="head">
         <span class="title">Launch with proxy</span>
-        <input class="proxy" type="text" placeholder="http://host:port" bind:value={proxy} />
+        <input class="proxy" type="text" placeholder="http://host:port" bind:value={proxy} onchange={rememberProxy} />
       </div>
       {#if err}<p class="err">{err}</p>{/if}
       {#if msg}<p class="ok">{msg}</p>{/if}

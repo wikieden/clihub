@@ -27,11 +27,12 @@
   async function load() {
     error = null;
     try {
-      const res = await client.get<ProxyResponse>('/v1/proxy');
+      const res = await client.get<ProxyResponse & { launchProxy?: string | null }>('/v1/proxy');
       tools = res.tools;
       system = res.system;
       for (const t of res.tools) pick[t.id] = t.proxy ?? '';
-      if (system.url && !guiProxy) guiProxy = system.url;
+      // Remembered launch proxy wins, then the detected system proxy.
+      if (!guiProxy) guiProxy = res.launchProxy || system.url || '';
     } catch (e: unknown) {
       error = e instanceof Error ? e.message : String(e);
     }
@@ -56,11 +57,21 @@
     error = null;
     try {
       await client.post('/v1/gui/launch', { id, url });
+      void rememberLaunchProxy();
       status = `Launched ${id} with proxy ${url}.`;
     } catch (e: unknown) {
       error = e instanceof Error ? e.message : String(e);
     } finally {
       busy = null;
+    }
+  }
+
+  // Persist the launch proxy to clihub config so it's remembered next session.
+  async function rememberLaunchProxy() {
+    try {
+      await client.post('/v1/launch-proxy', { url: guiProxy.trim() });
+    } catch {
+      /* non-fatal */
     }
   }
 
@@ -162,7 +173,7 @@
       {#if !guiSupported}<span class="badge warn">macOS only</span>{/if}
     </p>
     <p class="sys">
-      Launch proxy: <input class="gui-url" type="text" placeholder="http://host:port" bind:value={guiProxy} />
+      Launch proxy: <input class="gui-url" type="text" placeholder="http://host:port" bind:value={guiProxy} onchange={rememberLaunchProxy} />
     </p>
     <table>
       <thead>

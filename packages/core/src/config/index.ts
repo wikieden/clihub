@@ -35,6 +35,8 @@ export interface ClihubConfig {
   };
   /** Custom CA bundle path injected into NODE_EXTRA_CA_CERTS / GIT_SSL_CAINFO. */
   caBundle?: string;
+  /** Remembered "Launch with proxy" url for the desktop GUI launcher. */
+  guiLaunchProxy?: string;
   /** Anonymous usage telemetry — never on by default. */
   telemetry?: boolean;
   /** Override DEFAULT_CATALOG_URL. */
