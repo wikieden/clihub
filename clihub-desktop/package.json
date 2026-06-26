@@ -1,6 +1,6 @@
 {
   "name": "clihub-desktop",
-  "version": "1.69.0",
+  "version": "1.70.0",
   "private": true,
   "type": "module",
   "description": "clihub desktop GUI (Tauri 2 + Svelte 5) — binds to the @clihub/daemon sidecar",
