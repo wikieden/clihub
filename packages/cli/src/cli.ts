@@ -1160,7 +1160,7 @@ cli
 
 // ─── gui ──────────────────────────────────────────────────────────────
 cli
-  .command('gui <action> [id]', 'Launch a desktop GUI app with a proxy  (list | launch <claude|codex> [url])')
+  .command('gui <action> [id]', 'Launch a desktop GUI app with a proxy  (list | launch <id> [url]; ids: claude/codex/kiro/cursor-desktop)')
   .option('--proxy <url>', 'Proxy url to launch with (default: detected system proxy)')
   .action(async (action: string, id: string | undefined, opts: { proxy?: string }) => {
     const { listGuiApps, launchGuiAppWithProxy, guiLaunchSupported, detectSystemProxy } =
@@ -1183,7 +1183,7 @@ cli
 
     if (action === 'launch') {
       if (!id) {
-        err('usage: clihub gui launch <claude-desktop|codex-desktop> [url]');
+        err('usage: clihub gui launch <claude-desktop|codex-desktop|kiro-desktop|cursor-desktop> [url]');
         process.exit(1);
       }
       // resolve the proxy url: explicit arg/flag > detected system proxy

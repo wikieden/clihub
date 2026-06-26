@@ -67,6 +67,20 @@ export const GUI_APPS: readonly GuiApp[] = [
     mechanism: 'env',
     note: 'native app — honors the launch proxy env best-effort; may fall back to the system proxy',
   },
+  {
+    // Kiro is a VS Code fork → Electron, so it honors --proxy-server.
+    id: 'kiro-desktop',
+    name: 'Kiro',
+    bundleId: 'dev.kiro.desktop',
+    mechanism: 'electron-flag',
+  },
+  {
+    // Cursor is an Electron (ToDesktop-wrapped) editor → --proxy-server.
+    id: 'cursor-desktop',
+    name: 'Cursor',
+    bundleId: 'com.todesktop.230313mzl4w4u92',
+    mechanism: 'electron-flag',
+  },
 ];
 
 export function getGuiApp(id: string): GuiApp | undefined {

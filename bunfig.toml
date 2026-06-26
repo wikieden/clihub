@@ -1,0 +1,6 @@
+# Scope `bun test` discovery to the workspace packages.
+# clihub-desktop is not a workspace member — it has its own Vitest toolchain
+# (cd clihub-desktop && npm test) and uses the `vi` global, which Bun's test
+# runner only partially shims (no vi.stubGlobal). Keep it out of `bun test`.
+[test]
+root = "packages"

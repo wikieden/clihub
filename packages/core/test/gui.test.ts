@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'bun:test';
-import { GUI_APPS, getGuiApp, buildLaunchCommand, launchGuiAppWithProxy } from './index.js';
+import { GUI_APPS, getGuiApp, buildLaunchCommand, launchGuiAppWithProxy } from '../src/gui/index.js';
 
 describe('gui registry', () => {
-  it('knows claude (electron) + codex (native)', () => {
+  it('knows claude/kiro/cursor (electron) + codex (native)', () => {
     expect(getGuiApp('claude-desktop')?.mechanism).toBe('electron-flag');
+    expect(getGuiApp('kiro-desktop')?.mechanism).toBe('electron-flag');
+    expect(getGuiApp('cursor-desktop')?.mechanism).toBe('electron-flag');
     expect(getGuiApp('codex-desktop')?.mechanism).toBe('env');
     expect(getGuiApp('nope')).toBeUndefined();
   });
