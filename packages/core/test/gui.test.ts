@@ -10,11 +10,25 @@ describe('gui registry', () => {
     expect(getGuiApp('nope')).toBeUndefined();
   });
 
-  it('every app has a unique id + bundle id', () => {
+  it('every app has a unique id + a mac bundle id', () => {
     const ids = GUI_APPS.map((a) => a.id);
-    const bundles = GUI_APPS.map((a) => a.bundleId);
+    const bundles = GUI_APPS.map((a) => a.mac?.bundleId).filter(Boolean);
     expect(new Set(ids).size).toBe(ids.length);
     expect(new Set(bundles).size).toBe(bundles.length);
+  });
+
+  it('per-OS targets match what each app actually ships', () => {
+    // Claude: Windows yes, Linux no (no official Linux desktop).
+    expect(getGuiApp('claude-desktop')?.win?.exe).toBe('claude.exe');
+    expect(getGuiApp('claude-desktop')?.linux).toBeUndefined();
+    // Codex: mac only — Windows MSIX path unverified, no Linux GUI.
+    expect(getGuiApp('codex-desktop')?.win).toBeUndefined();
+    expect(getGuiApp('codex-desktop')?.linux).toBeUndefined();
+    // Kiro + Cursor: Windows + Linux.
+    expect(getGuiApp('kiro-desktop')?.win?.exe).toBe('Kiro.exe');
+    expect(getGuiApp('kiro-desktop')?.linux?.exe).toBe('kiro');
+    expect(getGuiApp('cursor-desktop')?.win?.exe).toBe('Cursor.exe');
+    expect(getGuiApp('cursor-desktop')?.linux?.exe).toBe('cursor');
   });
 });
 

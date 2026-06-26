@@ -1173,10 +1173,14 @@ cli
       }
       console.log(kleur.bold('desktop GUI apps (launch with proxy):'));
       for (const a of listGuiApps()) {
-        const tag = a.installed ? kleur.green('installed') : kleur.dim('not installed');
+        const tag = !a.osSupported
+          ? kleur.dim('no app on this OS')
+          : a.installed
+            ? kleur.green('installed')
+            : kleur.dim('not installed');
         const mech = a.mechanism === 'electron-flag' ? '--proxy-server flag' : 'env (best-effort)';
-        console.log(`  ${a.id.padEnd(15)} ${tag.padEnd(20)} ${kleur.dim(mech)}`);
-        if (a.note) console.log(`  ${''.padEnd(15)} ${kleur.dim('⚠ ' + a.note)}`);
+        console.log(`  ${a.id.padEnd(15)} ${tag.padEnd(20)} ${a.osSupported ? kleur.dim(mech) : ''}`);
+        if (a.note && a.osSupported) console.log(`  ${''.padEnd(15)} ${kleur.dim('⚠ ' + a.note)}`);
       }
       return;
     }

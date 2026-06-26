@@ -16,6 +16,7 @@
     id: string;
     name: string;
     installed: boolean;
+    osSupported: boolean;
     mechanism: 'electron-flag' | 'env';
     note?: string;
   };
@@ -172,19 +173,24 @@
           <tr class:dim={!a.installed}>
             <td>
               <strong>{a.name}</strong>
-              {#if !a.installed}<span class="badge">not installed</span>{/if}
+              {#if !a.osSupported}<span class="badge">no app on this OS</span>
+              {:else if !a.installed}<span class="badge">not installed</span>{/if}
             </td>
             <td>
-              <span class="mech">{a.mechanism === 'electron-flag' ? '--proxy-server flag' : 'env (best-effort)'}</span>
-              {#if a.note}<span class="badge warn" title={a.note}>⚠ best-effort</span>{/if}
+              {#if a.osSupported}
+                <span class="mech">{a.mechanism === 'electron-flag' ? '--proxy-server flag' : 'env (best-effort)'}</span>
+                {#if a.note}<span class="badge warn" title={a.note}>⚠ best-effort</span>{/if}
+              {/if}
             </td>
             <td class="actions">
-              <button
-                disabled={!guiSupported || !a.installed || busy === a.id || !guiProxy.trim()}
-                onclick={() => launchGui(a.id)}
-              >
-                {busy === a.id ? '…' : 'Launch with proxy'}
-              </button>
+              {#if a.osSupported}
+                <button
+                  disabled={!a.installed || busy === a.id || !guiProxy.trim()}
+                  onclick={() => launchGui(a.id)}
+                >
+                  {busy === a.id ? '…' : 'Launch with proxy'}
+                </button>
+              {/if}
             </td>
           </tr>
         {/each}
