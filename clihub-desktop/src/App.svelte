@@ -9,6 +9,7 @@
   import Versions from './panels/Versions.svelte';
   import Yaml from './panels/Yaml.svelte';
   import SyncTeam from './panels/SyncTeam.svelte';
+  import Launcher from './Launcher.svelte';
 
   type Panel = 'dashboard' | 'drift' | 'endpoints' | 'mcp' | 'skills' | 'profiles' | 'proxy' | 'versions' | 'yaml' | 'sync';
 
@@ -139,6 +140,10 @@
     <div class="foot">8 CLIs · pinned &amp; drift-gated</div>
   </aside>
   <main>
+    <header class="topbar">
+      <span class="crumb">{panel}</span>
+      <Launcher />
+    </header>
     {#key panel}
       <div class="page">
         {#if panel === 'dashboard'}
@@ -335,6 +340,22 @@
   main {
     padding: 1.4rem 1.6rem 2rem;
     min-width: 0;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: -0.4rem 0 1rem;
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .crumb {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
   }
 
   .page {

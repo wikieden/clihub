@@ -36,6 +36,8 @@ import {
   listGuiApps,
   launchGuiAppWithProxy,
   guiLaunchSupported,
+  listLaunchTargets,
+  launchCliInTerminal,
   formatErrorMessage,
   readBindings,
   useBinding,
@@ -206,6 +208,10 @@ export const ROUTES: Record<string, RouteHandler> = {
   // env for native). macOS-only; `supported` reflects the host OS.
   'GET /v1/gui': async () => ({ supported: guiLaunchSupported(), apps: listGuiApps() }),
 
+  // CodexBar-style launcher matrix: per client, which launch methods exist
+  // (GUI desktop app and/or CLI in a terminal) and whether each is installed.
+  'GET /v1/launch': async () => ({ targets: await listLaunchTargets() }),
+
   // The raw clihub.yaml for the editor panel (same discovery as `clihub status`).
   'GET /v1/yaml': async (_ctx, req) => {
     const startDir = new URL(req.url).searchParams.get('dir') ?? undefined;
@@ -336,6 +342,18 @@ export const ROUTES: Record<string, RouteHandler> = {
     const result = launchGuiAppWithProxy(id, url);
     if (!result.launched) throw new HttpError(400, result.error ?? 'launch failed');
     audit('gui.launch', { id, url });
+    return result;
+  },
+
+  // One-click open a client's CLI in the OS terminal, with the proxy injected
+  // as env for that session. `url` is optional (blank = no proxy override).
+  'POST /v1/launch/cli': async (_ctx, req) => {
+    const body = await readJson(req);
+    const toolId = reqString(body, 'tool');
+    const proxy = optString(body, 'url')?.trim() || undefined;
+    const result = await launchCliInTerminal(toolId, { proxy });
+    if (!result.launched) throw new HttpError(400, result.error ?? 'launch failed');
+    audit('cli.launch', { tool: toolId, url: proxy ?? null });
     return result;
   },
 

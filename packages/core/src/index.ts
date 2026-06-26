@@ -237,6 +237,13 @@ export {
   type LaunchResult,
 } from './gui/index.js';
 export {
+  listLaunchTargets,
+  launchCliInTerminal,
+  type LaunchTarget,
+  type CliLaunchInfo,
+  type GuiLaunchInfo,
+} from './launch/index.js';
+export {
   readNudge,
   writeNudge,
   shouldNudgeStar,
