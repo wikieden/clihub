@@ -35,20 +35,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # --config disables updater artifacts so the build needs no signing
-          # key (unsigned packaging). Re-enable + supply TAURI_SIGNING_* secrets
-          # once notarization/cert work lands to ship auto-updates.
+          # createUpdaterArtifacts stays on (tauri.conf.json), so each build
+          # emits the minisign-signed updater bundle + .sig the app polls. OS
+          # code-signing / notarization is still off (separate, user-funded) —
+          # bundles are OS-unsigned but the updater signature still verifies.
           - platform: macos-latest
             label: macOS (universal)
-            args: '--target universal-apple-darwin --config {"bundle":{"createUpdaterArtifacts":false}}'
+            args: '--target universal-apple-darwin'
             rust-targets: 'aarch64-apple-darwin,x86_64-apple-darwin'
           - platform: ubuntu-22.04
             label: Linux (x64)
-            args: '--config {"bundle":{"createUpdaterArtifacts":false}}'
+            args: ''
             rust-targets: ''
           - platform: windows-latest
             label: Windows (x64)
-            args: '--config {"bundle":{"createUpdaterArtifacts":false}}'
+            args: ''
             rust-targets: ''
     runs-on: ${{ matrix.platform }}
     steps:
@@ -112,19 +113,22 @@ jobs:
           lipo -info src-tauri/binaries/clihub-daemon
           echo "CLIHUB_SIDECAR_SKIP=1" >> "$GITHUB_ENV"
 
-      # Unsigned packaging: no TAURI_SIGNING_* env, no updater latest.json.
-      # Produces installers only (dmg / nsis / deb / AppImage). Auto-update
-      # stays off until signing keys + notarization land.
+      # Updater-signed packaging: TAURI_SIGNING_* signs each bundle so the app's
+      # minisign pubkey (tauri.conf.json) verifies the auto-update. Produces
+      # installers (dmg / nsis / deb / AppImage) + their .sig + latest.json.
+      # OS code-signing / notarization is still off — bundles are OS-unsigned.
       - name: Build bundles + publish release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: clihub-desktop
           tagName: ${{ github.event.inputs.tag || github.ref_name }}
           releaseName: 'clihub desktop ${{ github.event.inputs.tag || github.ref_name }}'
-          releaseBody: 'clihub-desktop Tauri build (unsigned, no auto-update artifacts).'
+          releaseBody: 'clihub-desktop Tauri build. Auto-update enabled (updater-signed; OS-unsigned bundles).'
           releaseDraft: true
           prerelease: false
-          includeUpdaterJson: false
+          includeUpdaterJson: true
           args: ${{ matrix.args }}
