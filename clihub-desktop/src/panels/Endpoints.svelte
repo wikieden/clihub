@@ -27,7 +27,7 @@
   let needsSkip = $state<Record<string, boolean>>({});
 
   // Binding CLIs vs tool-provider ids differ for two CLIs.
-  const PROVIDER_ID: Record<string, string> = { gemini: 'gemini-cli', kiro: 'kiro-cli' };
+  const PROVIDER_ID: Record<string, string> = { kiro: 'kiro-cli' };
 
   function urlsOf(p: EndpointPreset): Record<string, string> {
     if (p.urls && Object.keys(p.urls).length > 0) return p.urls;

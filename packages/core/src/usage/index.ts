@@ -346,7 +346,7 @@ function combineRow(
 }
 
 const UNSUPPORTED: Array<{ tool: string; label: string }> = [
-  { tool: 'gemini-cli', label: 'Gemini CLI' },
+  { tool: 'antigravity', label: 'Antigravity' },
   { tool: 'qwen-code', label: 'Qwen Code' },
   { tool: 'cursor', label: 'Cursor' },
   { tool: 'goose', label: 'Goose' },

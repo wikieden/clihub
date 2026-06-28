@@ -34,7 +34,7 @@
     "name": "claude-skills (fan-out catalog)",
     "description": "313+ skills with a converter that fans them out across 13 different AI CLIs.",
     "version": "latest",
-    "supports": { "claude-code": true, "codex": true, "gemini-cli": true, "kiro-cli": true },
+    "supports": { "claude-code": true, "codex": true, "antigravity": true, "kiro-cli": true },
     "source": "https://github.com/alirezarezvani/claude-skills.git",
     "homepage": "https://github.com/alirezarezvani/claude-skills",
     "tags": ["catalog", "multi-cli", "skills-bundle"]

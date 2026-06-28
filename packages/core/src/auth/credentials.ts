@@ -27,7 +27,6 @@ export interface CredentialSource {
 export const CREDENTIAL_SOURCES: CredentialSource[] = [
   { tool: 'claude-code', label: 'Claude Code', paths: ['.claude/.credentials.json'] },
   { tool: 'codex', label: 'Codex', paths: ['.codex/auth.json'] },
-  { tool: 'gemini-cli', label: 'Gemini CLI', paths: ['.gemini/oauth_creds.json', '.gemini/credentials.json'] },
 ];
 
 export interface CredentialStatus {

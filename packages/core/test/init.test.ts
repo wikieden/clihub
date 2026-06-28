@@ -10,11 +10,11 @@ test('generateClihubYaml defaults parse back to a valid config', () => {
 });
 
 test('generateClihubYaml honours tools / skills / profile / preset / schema', () => {
-  const yaml = generateClihubYaml({ profile: 'work', preset: 'python', tools: ['codex', 'gemini-cli'], skills: ['tdd'], schema: true });
+  const yaml = generateClihubYaml({ profile: 'work', preset: 'python', tools: ['codex', 'antigravity'], skills: ['tdd'], schema: true });
   expect(yaml.startsWith('# yaml-language-server: $schema=./clihub.schema.json')).toBe(true);
   const cfg = parseClihubYaml(yaml);
   expect(cfg.profile).toBe('work');
-  expect(cfg.tools.map((t) => t.id)).toEqual(['codex', 'gemini-cli']);
+  expect(cfg.tools.map((t) => t.id)).toEqual(['codex', 'antigravity']);
   expect(cfg.skills[0]!.id).toBe('tdd');
   expect(cfg.presets).toContain('python');
 });

@@ -29,7 +29,7 @@ import { createError } from '../errors/index.js';
 
 const NAME_RE = /^[a-z][a-z0-9-]{0,30}$/;
 
-export type VendorId = 'claude-code' | 'codex' | 'gemini-cli' | 'kiro-cli';
+export type VendorId = 'claude-code' | 'codex' | 'kiro-cli';
 
 interface VendorMapping {
   homeDir: string;          // absolute `~/.claude` etc.
@@ -39,7 +39,6 @@ interface VendorMapping {
 const VENDORS: Record<VendorId, VendorMapping> = {
   'claude-code': { homeDir: path.join(os.homedir(), '.claude'),  profileSub: '.claude'  },
   'codex':       { homeDir: path.join(os.homedir(), '.codex'),   profileSub: '.codex'   },
-  'gemini-cli':  { homeDir: path.join(os.homedir(), '.gemini'),  profileSub: '.gemini'  },
   'kiro-cli':    { homeDir: path.join(os.homedir(), '.kiro'),    profileSub: '.kiro'    },
 };
 

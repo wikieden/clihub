@@ -2,7 +2,7 @@ import type { ToolProvider } from './types.js';
 import { claudeCodeProvider } from './providers/claude-code.js';
 import { codexProvider } from './providers/codex.js';
 import { kiroProvider } from './providers/kiro.js';
-import { geminiProvider } from './providers/gemini.js';
+import { antigravityProvider } from './providers/antigravity.js';
 import { cursorProvider } from './providers/cursor.js';
 import { gooseProvider } from './providers/goose.js';
 import { qwenProvider } from './providers/qwen.js';
@@ -12,7 +12,7 @@ const providers: Record<string, ToolProvider> = {
   [claudeCodeProvider.id]: claudeCodeProvider,
   [codexProvider.id]: codexProvider,
   [kiroProvider.id]: kiroProvider,
-  [geminiProvider.id]: geminiProvider,
+  [antigravityProvider.id]: antigravityProvider,
   [cursorProvider.id]: cursorProvider,
   [gooseProvider.id]: gooseProvider,
   [qwenProvider.id]: qwenProvider,

@@ -24,7 +24,7 @@ import type { InstalledMcpServer, McpServerManifest, McpTransport } from '../typ
  *  JSON `mcpServers` map; Codex uses TOML `[mcp_servers]` in config.toml. */
 const MCP_RELPATHS: Record<string, string> = {
   'claude-code': '.claude.json',
-  'gemini-cli': '.gemini/settings.json',
+  'antigravity': '.gemini/antigravity-cli/mcp_config.json',
   'qwen-code': '.qwen/settings.json',
   'codex': '.codex/config.toml',
   'opencode': '.config/opencode/opencode.json',
@@ -46,7 +46,7 @@ export interface McpManageOpts {
 
 function dialectFor(tool: string): McpDialect {
   // Qwen Code is a Gemini-CLI fork → same mcpServers/httpUrl shape.
-  return tool === 'gemini-cli' || tool === 'qwen-code' ? 'gemini' : 'claude';
+  return tool === 'qwen-code' ? 'gemini' : 'claude';
 }
 
 function targets(home: string): Array<{ tool: string; path: string }> {

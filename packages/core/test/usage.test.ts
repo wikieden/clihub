@@ -37,7 +37,7 @@ test('other CLIs are reported unsupported, never fabricated', async () => {
   const cc = res.rows.find((r) => r.tool === 'claude-code')!;
   expect(cc.supported).toBe(false); // no files → not supported, no fake number
   expect(cc.totalTokens).toBeUndefined();
-  for (const tool of ['codex', 'gemini-cli', 'qwen-code', 'cursor', 'goose', 'kiro-cli', 'opencode']) {
+  for (const tool of ['codex', 'antigravity', 'qwen-code', 'cursor', 'goose', 'kiro-cli', 'opencode']) {
     const r = res.rows.find((x) => x.tool === tool)!;
     expect(r.supported).toBe(false);
     expect(r.note).toBeTruthy();

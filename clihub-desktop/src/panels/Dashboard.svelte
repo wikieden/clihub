@@ -10,7 +10,7 @@
   let loading = $state(true);
 
   // Doctor rows use tool-provider ids; bindings use binding CLI ids.
-  const BINDING_ID: Record<string, string> = { 'gemini-cli': 'gemini', 'kiro-cli': 'kiro' };
+  const BINDING_ID: Record<string, string> = { 'kiro-cli': 'kiro' };
 
   function bindingFor(row: HealthRow): string {
     const b = bindings[BINDING_ID[row.id] ?? row.id];

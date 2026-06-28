@@ -11,7 +11,7 @@ export {
 export { claudeCodeProvider } from './tools/providers/claude-code.js';
 export { codexProvider } from './tools/providers/codex.js';
 export { kiroProvider } from './tools/providers/kiro.js';
-export { geminiProvider } from './tools/providers/gemini.js';
+export { antigravityProvider } from './tools/providers/antigravity.js';
 export { qwenProvider } from './tools/providers/qwen.js';
 export { cursorProvider } from './tools/providers/cursor.js';
 export { gooseProvider } from './tools/providers/goose.js';
@@ -67,6 +67,7 @@ export {
 export { CodexSkillAdapter } from './skill/codex-adapter.js';
 export { KiroCliSkillAdapter } from './skill/kiro-adapter.js';
 export { GeminiCliSkillAdapter } from './skill/gemini-adapter.js';
+export { AntigravitySkillAdapter } from './skill/antigravity-adapter.js';
 export { CursorSkillAdapter } from './skill/cursor-adapter.js';
 export { GooseSkillAdapter } from './skill/goose-adapter.js';
 export { SKILL_ADAPTERS, skillAdapterFor, skillCapableTools } from './skill/registry.js';

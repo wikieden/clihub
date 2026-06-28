@@ -59,18 +59,6 @@ const INJECTORS: Partial<Record<keyof ProfileBaseUrls, ProviderInjector>> = {
       };
     },
   },
-  google: {
-    vendor: 'gemini-cli',
-    envVar: 'GOOGLE_API_BASE',
-    relativePath: '.gemini/settings.json',
-    build: (dir) => {
-      const ad = new JsonSettingsAdapter({ path: path.join(dir, '.gemini', 'settings.json') });
-      return {
-        read: async () => ((await ad.read()) as Record<string, unknown>) ?? {},
-        write: (data) => ad.write(data),
-      };
-    },
-  },
 };
 
 export interface ApplyBaseUrlsOpts {

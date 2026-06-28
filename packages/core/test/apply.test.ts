@@ -6,7 +6,7 @@ const lock: Lockfile = {
   generatedAt: '2026-01-01T00:00:00.000Z',
   source: 'clihub.yaml',
   clihub: '1.41.0',
-  tools: { 'claude-code': { version: '2.1.158', method: 'npm' }, 'gemini-cli': { version: '0.44.1' } },
+  tools: { 'claude-code': { version: '2.1.158', method: 'npm' }, 'antigravity': { version: '0.44.1' } },
   skills: { superpowers: { tools: ['claude-code', 'codex'] }, lonely: { tools: [] } },
   mcp: { filesystem: {}, github: {} },
   plugins: { 'some-plugin': {} },
@@ -17,7 +17,7 @@ test('lockfileToConfig pins tool versions from the lock (not re-resolved)', () =
   const claude = cfg.tools.find((t) => t.id === 'claude-code')!;
   expect(claude.version).toBe('2.1.158');
   expect(claude.method).toBe('npm');
-  expect(cfg.tools.find((t) => t.id === 'gemini-cli')!.version).toBe('0.44.1');
+  expect(cfg.tools.find((t) => t.id === 'antigravity')!.version).toBe('0.44.1');
 });
 
 test('lockfileToConfig fans skills to their locked tools, mcp + plugins by id', () => {

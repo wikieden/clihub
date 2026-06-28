@@ -71,7 +71,7 @@ export async function manifestFromSkillMd(
     'claude-code': true,
     codex: true,
     'kiro-cli': true,
-    'gemini-cli': true,
+    'antigravity': true,
   };
 
   const tags = asStringArray(fm.tags) ?? asStringArray(fm['allowed-tools']) ?? [];

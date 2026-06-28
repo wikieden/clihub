@@ -8,7 +8,7 @@
  * clihub does not snapshot the binary — it re-installs the recorded
  * version via the provider's npm/bun install path. So rollback only
  * works for tools the registry can re-install at an explicit version
- * (currently the npm-based providers: claude-code, codex, gemini-cli).
+ * (currently the npm-based providers: claude-code, codex).
  */
 import { promises as fs } from 'node:fs';
 import os from 'node:os';

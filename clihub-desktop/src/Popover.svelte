@@ -45,7 +45,7 @@
   const CLIS: { id: string; label: string }[] = [
     { id: 'claude-code', label: 'Claude' },
     { id: 'codex', label: 'Codex' },
-    { id: 'gemini-cli', label: 'Gemini' },
+    { id: 'antigravity', label: 'Antigravity' },
     { id: 'qwen-code', label: 'Qwen' },
     { id: 'kiro-cli', label: 'Kiro' },
     { id: 'cursor', label: 'Cursor' },

@@ -16,7 +16,7 @@ test('every preset skill id exists in skills.json', () => {
 });
 
 test('preset tool ids are known providers', () => {
-  const known = new Set(['claude-code', 'codex', 'kiro-cli', 'gemini-cli', 'cursor', 'goose']);
+  const known = new Set(['claude-code', 'codex', 'kiro-cli', 'antigravity', 'cursor', 'goose']);
   const presets = load('presets.json') as Array<{ id: string; tools: string[] }>;
   for (const p of presets) {
     for (const t of p.tools) expect({ preset: p.id, tool: t, known: known.has(t) }).toEqual({ preset: p.id, tool: t, known: true });

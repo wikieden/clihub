@@ -33,7 +33,7 @@ export interface SkillAuditEntry {
 const SKILL_DIRS: Record<string, string> = {
   'claude-code': path.join(os.homedir(), '.claude', 'skills'),
   'codex': path.join(os.homedir(), '.codex', 'skills'),
-  'gemini-cli': path.join(os.homedir(), '.gemini', 'skills'),
+  'antigravity': path.join(os.homedir(), '.gemini', 'antigravity-cli', 'skills'),
   'kiro-cli': path.join(os.homedir(), '.kiro', 'skills'),
 };
 

@@ -10,7 +10,7 @@ describe('listLaunchTargets', () => {
     expect(byId['claude-code']?.cli?.toolId).toBe('claude-code');
     expect(byId['cursor']?.gui?.id).toBe('cursor-desktop');
     // CLI-only clients have no gui target.
-    expect(byId['gemini-cli']?.gui).toBeNull();
+    expect(byId['antigravity']?.gui).toBeNull();
     expect(byId['goose']?.gui).toBeNull();
     expect(byId['opencode']?.gui).toBeNull();
     // Chromium browsers are GUI-only (App launch, no Terminal).

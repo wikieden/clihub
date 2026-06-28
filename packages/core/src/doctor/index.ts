@@ -48,7 +48,7 @@ async function fileExists(p: string): Promise<boolean> {
 const PROBE_HOSTS: Record<string, string> = {
   'claude-code': 'https://api.anthropic.com',
   codex: 'https://api.openai.com',
-  'gemini-cli': 'https://generativelanguage.googleapis.com',
+  'antigravity': 'https://antigravity.google',
   'kiro-cli': 'https://kiro.dev',
 };
 

@@ -36,7 +36,7 @@ export interface InstalledSkill {
 
 /**
  * Map of tool id → supported flag. Tool ids match provider ids
- * (`claude-code`, `codex`, `kiro-cli`, `gemini-cli`, ...).
+ * (`claude-code`, `codex`, `kiro-cli`, `antigravity`, ...).
  */
 export type Supports = Record<string, boolean | undefined>;
 

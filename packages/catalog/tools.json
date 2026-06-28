@@ -26,12 +26,11 @@
     "supportedPlatforms": ["macos", "linux"]
   },
   {
-    "id": "gemini-cli",
-    "name": "Gemini CLI",
-    "description": "Google Gemini CLI — AI coding agent in the terminal",
-    "homepage": "https://github.com/google-gemini/gemini-cli",
-    "installMethods": ["npm", "bun"],
-    "npmPackage": "@google/gemini-cli",
+    "id": "antigravity",
+    "name": "Antigravity",
+    "description": "Google Antigravity CLI — the Gemini CLI successor (agy)",
+    "homepage": "https://antigravity.google",
+    "installMethods": ["curl"],
     "supportedPlatforms": ["macos", "linux"]
   },
   {

@@ -49,12 +49,6 @@ export const MEMORY_TARGETS: MemoryTarget[] = [
     user: path.join(os.homedir(), '.codex', 'AGENTS.md'),
   },
   {
-    tool: 'gemini-cli',
-    label: 'Gemini CLI',
-    project: 'GEMINI.md',
-    user: path.join(os.homedir(), '.gemini', 'GEMINI.md'),
-  },
-  {
     tool: 'qwen-code',
     label: 'Qwen Code',
     project: 'QWEN.md',

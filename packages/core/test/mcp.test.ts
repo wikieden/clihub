@@ -11,7 +11,7 @@ test('add → list → remove an inline MCP across CLIs', async () => {
   const added = await addMcp('myserver', { home, all: true, command: 'my-mcp', transport: 'stdio' });
   expect(added.failed.length).toBe(0);
   expect(added.done).toContain('myserver@claude-code');
-  expect(added.done).toContain('myserver@gemini-cli');
+  expect(added.done).toContain('myserver@antigravity');
 
   // Claude Code reads user-scope MCP from ~/.claude.json (not settings.json).
   const claudeMcp = path.join(home, '.claude.json');
@@ -45,11 +45,11 @@ test('inline --command with args is split into command + args', async () => {
   expect(entry.args).toEqual(['-y', '@modelcontextprotocol/server-filesystem', '/tmp']);
 });
 
-test('http MCP uses the right per-CLI shape (gemini httpUrl, claude type+url)', async () => {
+test('http MCP uses the right per-CLI shape (qwen httpUrl, claude type+url)', async () => {
   const home = mkdtempSync(path.join(tmpdir(), 'clihub-mcp-'));
   await addMcp('ctx7', { home, all: true, url: 'https://mcp.example.com/mcp', transport: 'http' });
 
-  const gem = JSON.parse(readFileSync(path.join(home, '.gemini', 'settings.json'), 'utf8')).mcpServers.ctx7;
+  const gem = JSON.parse(readFileSync(path.join(home, '.qwen', 'settings.json'), 'utf8')).mcpServers.ctx7;
   expect(gem.httpUrl).toBe('https://mcp.example.com/mcp');
   expect(gem.type).toBeUndefined();
   expect(gem.url).toBeUndefined();

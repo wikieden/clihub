@@ -9,7 +9,7 @@
  *   codex       → config.toml model_provider/model + [model_providers.clihub-<id>]
  *                 (its first-class multi-provider mechanism)
  *   gemini      → ~/.gemini/.env GOOGLE_GEMINI_BASE_URL + GEMINI_API_KEY (the env
- *                 file gemini-cli auto-loads; no settings.json URL field exists)
+ *                 file antigravity: no base-URL override (model-only))
  *                 + settings.json nested model.name
  *   qwen        → settings.json modelProviders.<authType>[] entry — entries ARE
  *                 models (unique by id+baseUrl) and model.name must match the
@@ -306,7 +306,7 @@ const codexAdapter: BindingAdapter = {
 };
 
 /**
- * gemini-cli: no settings.json URL field exists — the base URL and key live in
+ * antigravity: no base-URL override — the base URL and key live in
  * ~/.gemini/.env (auto-loaded at startup). Model is settings.json `model.name`
  * (nested v2 schema). Verified at source/docs level 2026-06-10.
  */

@@ -32,7 +32,7 @@ import {
   ClaudeCodePluginAdapter,
   ClaudeCodeSkillAdapter,
   CodexSkillAdapter,
-  GeminiCliSkillAdapter,
+  AntigravitySkillAdapter,
   JsonMcpAdapter,
   KiroCliSkillAdapter,
   getProvider,
@@ -51,20 +51,20 @@ const backups = new BackupManager();
 
 // ─── Per-CLI capability tables ────────────────────────────────────────
 
-const SUPPORTED_TOOLS = ['claude-code', 'codex', 'kiro-cli', 'gemini-cli'] as const;
+const SUPPORTED_TOOLS = ['claude-code', 'codex', 'kiro-cli', 'antigravity'] as const;
 type ToolId = (typeof SUPPORTED_TOOLS)[number];
 
 const SKILL_ADAPTERS: Record<ToolId, () => SkillSyncAdapter> = {
   'claude-code': () => new ClaudeCodeSkillAdapter(),
   'codex': () => new CodexSkillAdapter(),
   'kiro-cli': () => new KiroCliSkillAdapter(),
-  'gemini-cli': () => new GeminiCliSkillAdapter(),
+  'antigravity': () => new AntigravitySkillAdapter(),
 };
 
 /** JSON-shaped MCP settings paths (CLIs using the standard `mcpServers` map). */
 const MCP_SETTINGS_PATH: Partial<Record<ToolId, string>> = {
   'claude-code': path.join(os.homedir(), '.claude', 'settings.json'),
-  'gemini-cli': path.join(os.homedir(), '.gemini', 'settings.json'),
+  'antigravity': path.join(os.homedir(), '.gemini', 'antigravity-cli', 'mcp_config.json'),
 };
 
 function mcpAdapterFor(toolId: ToolId): McpAdapter | undefined {

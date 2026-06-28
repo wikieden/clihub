@@ -17,6 +17,7 @@ import { ClaudeCodeSkillAdapter } from './index.js';
 import { CodexSkillAdapter } from './codex-adapter.js';
 import { KiroCliSkillAdapter } from './kiro-adapter.js';
 import { GeminiCliSkillAdapter } from './gemini-adapter.js';
+import { AntigravitySkillAdapter } from './antigravity-adapter.js';
 import { CursorSkillAdapter } from './cursor-adapter.js';
 import { GooseSkillAdapter } from './goose-adapter.js';
 
@@ -24,7 +25,7 @@ export const SKILL_ADAPTERS: Record<string, () => SkillSyncAdapter> = {
   'claude-code': () => new ClaudeCodeSkillAdapter(),
   'codex': () => new CodexSkillAdapter(),
   'kiro-cli': () => new KiroCliSkillAdapter(),
-  'gemini-cli': () => new GeminiCliSkillAdapter(),
+  'antigravity': () => new AntigravitySkillAdapter(),
   'qwen-code': () =>
     new GeminiCliSkillAdapter({
       commandsDir: path.join(os.homedir(), '.qwen', 'commands'),

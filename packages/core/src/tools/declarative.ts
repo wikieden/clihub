@@ -42,7 +42,7 @@ export const BUILTIN_PROVIDER_IDS = new Set([
   'claude-code',
   'codex',
   'kiro-cli',
-  'gemini-cli',
+  'antigravity',
   'cursor',
   'goose',
 ]);
