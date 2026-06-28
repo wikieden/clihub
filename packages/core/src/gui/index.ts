@@ -394,15 +394,19 @@ export function launchGuiAppWithProxy(
     return { id, launched: true, command, mechanism: app.mechanism, note: app.note };
   }
 
-  // Windows / Linux: resolve the exe, then spawn it detached.
+  // Windows / Linux: build the plan, then spawn the exe detached. A dry run
+  // only needs the command string, not the binary, so it builds even when the
+  // app isn't installed (matching the macOS electron-flag path above).
   const exePath = findGuiAppPath(app);
+  const target = osTargetFor(app);
+  const exeName = target && 'exe' in target ? target.exe : app.name;
+  const plan = buildSpawnPlan(app, exePath ?? exeName, url);
+  if (opts.dryRun) {
+    return { id, launched: false, command: plan.display, mechanism: app.mechanism, note: app.note };
+  }
   if (!exePath) {
     const key = `CLIHUB_${app.id.toUpperCase().replace(/-/g, '_')}_PATH`;
     return fail(`${app.name} not found — set ${key}=<path to executable> to point clihub at it`);
-  }
-  const plan = buildSpawnPlan(app, exePath, url);
-  if (opts.dryRun) {
-    return { id, launched: false, command: plan.display, mechanism: app.mechanism, note: app.note };
   }
   try {
     const child = spawn(exePath, plan.args, { detached: true, stdio: 'ignore', env: plan.env });

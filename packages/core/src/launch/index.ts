@@ -132,26 +132,34 @@ export async function launchCliInTerminal(
   // CLI inherits it.
   const env = proxy ? { ...process.env, HTTPS_PROXY: proxy, HTTP_PROXY: proxy } : process.env;
 
+  // The proxy rides in the child env (not argv); surface it as a leading token
+  // in the display command so a dry run is honest + greppable about it.
+  const proxyPrefix = proxy ? [`HTTPS_PROXY=${proxy}`] : [];
+
   if (process.platform === 'win32') {
     // `start "" cmd /k <bin>` opens a new console running the CLI.
-    const command = ['cmd', '/c', 'start', 'clihub', 'cmd', '/k', bin];
+    const spawnArgs = ['/c', 'start', 'clihub', 'cmd', '/k', bin];
+    const command = [...proxyPrefix, 'cmd', ...spawnArgs];
     if (opts.dryRun) return { id: toolId, launched: true, command, mechanism: 'env' };
     try {
-      spawn(command[0]!, command.slice(1), { detached: true, stdio: 'ignore', env }).unref();
+      spawn('cmd', spawnArgs, { detached: true, stdio: 'ignore', env }).unref();
     } catch (e) {
       return base(`failed to launch terminal: ${e instanceof Error ? e.message : String(e)}`);
     }
     return { id: toolId, launched: true, command, mechanism: 'env' };
   }
 
-  // Linux: try the common terminal emulators in order.
+  // Linux: try the common terminal emulators in order. A dry run shouldn't need
+  // one present — fall back to the canonical name so the command is still
+  // inspectable on headless boxes (e.g. CI).
   const term = ['x-terminal-emulator', 'gnome-terminal', 'konsole', 'xfce4-terminal', 'xterm'].find(
     (t) => spawnSync('which', [t]).status === 0,
   );
-  if (!term) return base('no terminal emulator found (install x-terminal-emulator / gnome-terminal)');
-  const args = term === 'gnome-terminal' ? ['--', bin] : ['-e', bin];
-  const command = [term, ...args];
+  const termName = term ?? 'x-terminal-emulator';
+  const args = termName === 'gnome-terminal' ? ['--', bin] : ['-e', bin];
+  const command = [...proxyPrefix, termName, ...args];
   if (opts.dryRun) return { id: toolId, launched: true, command, mechanism: 'env' };
+  if (!term) return base('no terminal emulator found (install x-terminal-emulator / gnome-terminal)');
   try {
     spawn(term, args, { detached: true, stdio: 'ignore', env }).unref();
   } catch (e) {
