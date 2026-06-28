@@ -307,6 +307,7 @@ export {
 } from './audit/index.js';
 export {
   findClihubYaml,
+  globalClihubYamlPath,
   loadClihubYaml,
   parseTopLevelYaml,
   type ClihubYamlMeta,
@@ -456,6 +457,7 @@ export {
 } from './diff/index.js';
 export {
   generateClihubYaml,
+  ensureGlobalClihubYaml,
   scaffoldFromInstalled,
   type GenerateYamlOpts,
   type SkillEntry,

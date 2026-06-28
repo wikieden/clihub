@@ -23,23 +23,49 @@ export interface ClihubYamlMeta {
 
 const FILENAMES = ['clihub.yaml', 'clihub.yml'] as const;
 
-/** Walk up from `startDir` looking for clihub.yaml; returns absolute path or undefined. */
+/**
+ * The global default clihub.yaml — used when no project-level file is found by
+ * walking up from cwd. Honors `XDG_CONFIG_HOME`, else `~/.config/clihub/`.
+ * This is where the GUI scaffolds a default config on first launch, so a
+ * machine always has a config even when you launch outside any project.
+ */
+export function globalClihubYamlPath(): string {
+  const xdg = process.env.XDG_CONFIG_HOME?.trim();
+  const base = xdg ? xdg : path.join(os.homedir(), '.config');
+  return path.join(base, 'clihub', 'clihub.yaml');
+}
+
+async function pathExists(p: string): Promise<boolean> {
+  try {
+    await fs.access(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolve the active clihub.yaml: walk up from `startDir` looking for a
+ * project-level file, then fall back to the global default
+ * (`~/.config/clihub/clihub.yaml`) if it exists. Returns an absolute path or
+ * undefined when neither is present.
+ */
 export async function findClihubYaml(startDir: string = process.cwd()): Promise<string | undefined> {
   let dir = path.resolve(startDir);
   const home = os.homedir();
-  while (true) {
+  for (;;) {
     for (const name of FILENAMES) {
       const candidate = path.join(dir, name);
-      try {
-        await fs.access(candidate);
-        return candidate;
-      } catch { /* keep walking */ }
+      if (await pathExists(candidate)) return candidate;
     }
-    if (dir === home) return undefined;
+    if (dir === home) break;
     const parent = path.dirname(dir);
-    if (parent === dir) return undefined;
+    if (parent === dir) break;
     dir = parent;
   }
+  // No project-level file — fall back to the global default if present.
+  const global = globalClihubYamlPath();
+  return (await pathExists(global)) ? global : undefined;
 }
 
 /** Tiny top-level YAML scalar reader. Ignores nested mappings + lists. */

@@ -5,8 +5,11 @@
  *   - scaffoldFromInstalled(opts)  → tools/skills inferred from this
  *     machine (installed CLIs) + project (recommend), for `init --from-installed`
  */
+import { promises as fsp } from 'node:fs';
+import path from 'node:path';
 import { listProviders } from '../tools/registry.js';
 import { recommend } from '../recommend/index.js';
+import { globalClihubYamlPath } from '../clihubyaml/index.js';
 
 /** A skill entry: a bare id, or an id scoped to a single CLI via `tool`. */
 export type SkillEntry = string | { id: string; tool?: string };
@@ -60,6 +63,25 @@ export function generateClihubYaml(opts: GenerateYamlOpts = {}): string {
 
   out.push('plugins: []', '');
   return out.join('\n');
+}
+
+/**
+ * Ensure the global default clihub.yaml (`~/.config/clihub/clihub.yaml`) exists,
+ * scaffolding a minimal one if absent. Idempotent — the GUI calls this on first
+ * launch so a machine always resolves a config even outside any project.
+ * Returns the path and whether it was just created.
+ */
+export async function ensureGlobalClihubYaml(): Promise<{ path: string; created: boolean }> {
+  const target = globalClihubYamlPath();
+  try {
+    await fsp.access(target);
+    return { path: target, created: false };
+  } catch {
+    /* missing — scaffold it below */
+  }
+  await fsp.mkdir(path.dirname(target), { recursive: true });
+  await fsp.writeFile(target, generateClihubYaml(), 'utf8');
+  return { path: target, created: true };
 }
 
 export interface ScaffoldOpts {
