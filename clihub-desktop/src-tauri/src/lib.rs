@@ -252,7 +252,22 @@ fn route_deep_link(app: &AppHandle, _url: &Url) {
 /// Errors are logged, never fatal — offline, no releases yet, or a dev binary
 /// (whose install step cannot work) all land here.
 #[cfg(desktop)]
-async fn check_updates(app: AppHandle) {
+/// Is any of our windows currently on screen? An auto-update must not restart
+/// the app out from under a user who has the main window or popover open.
+#[cfg(desktop)]
+fn any_window_visible(app: &AppHandle) -> bool {
+    [MAIN_LABEL, POPOVER_LABEL].iter().any(|label| {
+        app.get_webview_window(label)
+            .and_then(|w| w.is_visible().ok())
+            .unwrap_or(false)
+    })
+}
+
+/// Check the updater endpoint; install + restart if a newer build exists.
+/// `auto` = an unattended check (launch / periodic): it silently defers the
+/// install+restart while a window is open, so we never yank the user mid-task.
+/// A manual "Check for updates…" passes `auto = false` to always proceed.
+async fn check_updates(app: AppHandle, auto: bool) {
     use tauri_plugin_updater::UpdaterExt;
     let updater = match app.updater() {
         Ok(u) => u,
@@ -263,6 +278,13 @@ async fn check_updates(app: AppHandle) {
     };
     match updater.check().await {
         Ok(Some(update)) => {
+            if auto && any_window_visible(&app) {
+                log::info!(
+                    "update {} available — deferring install (a window is open)",
+                    update.version
+                );
+                return;
+            }
             log::info!("update {} available — downloading", update.version);
             match update.download_and_install(|_, _| {}, || {}).await {
                 Ok(()) => {
@@ -404,7 +426,7 @@ pub fn run() {
                         {
                             let handle = app.clone();
                             tauri::async_runtime::spawn(async move {
-                                check_updates(handle).await;
+                                check_updates(handle, false).await;
                             });
                         }
                     }
@@ -444,13 +466,20 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // Background update check — packaged builds only (a dev binary is
-            // not an installed bundle, its install step can never succeed).
+            // Auto-update — packaged builds only (a dev binary is not an
+            // installed bundle, so its install step can never succeed). Checks
+            // shortly after launch, then every 6h for long-lived sessions. Each
+            // check defers the restart while a window is open (see check_updates).
             #[cfg(all(desktop, not(debug_assertions)))]
             {
                 let handle = app.handle().clone();
-                tauri::async_runtime::spawn(async move {
-                    check_updates(handle).await;
+                std::thread::spawn(move || {
+                    // Let the window + daemon settle before the first check.
+                    std::thread::sleep(std::time::Duration::from_secs(8));
+                    loop {
+                        tauri::async_runtime::block_on(check_updates(handle.clone(), true));
+                        std::thread::sleep(std::time::Duration::from_secs(6 * 60 * 60));
+                    }
                 });
             }
 
