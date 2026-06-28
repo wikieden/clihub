@@ -54,6 +54,15 @@
   ];
 
   // ── data shapes ─────────────────────────────────────────────────────────
+  type SurfaceUsage = {
+    surface: 'cli' | 'desktop';
+    inputTokens: number;
+    outputTokens: number;
+    cacheTokens: number;
+    totalTokens: number;
+    sessions: number;
+    estCostUsd: number;
+  };
   type UsageRow = {
     tool: string;
     label: string;
@@ -63,6 +72,10 @@
     cacheTokens?: number;
     totalTokens?: number;
     sessions?: number;
+    estCostUsd?: number;
+    surfaces?: SurfaceUsage[];
+    plan?: string;
+    partialCost?: boolean;
     note?: string;
   };
   type GuiInfo = { id: string; installed: boolean; osSupported: boolean; mechanism: string; note?: string };
@@ -89,6 +102,7 @@
   const targetById = $derived(new Map(targets.map((t) => [t.id, t])));
 
   const usageTotal = $derived(usage.reduce((s, u) => s + (u.totalTokens ?? 0), 0));
+  const usdTotal = $derived(usage.reduce((s, u) => s + (u.estCostUsd ?? 0), 0));
   const installedCount = $derived(health.filter((h) => h.installed).length);
   const proxiedCount = $derived(proxyTools.filter((t) => t.proxy).length);
 
@@ -99,6 +113,13 @@
     if (n >= 1e3) return `${(n / 1e3).toFixed(0)}K`;
     return String(n);
   }
+  function fmtUsd(n?: number): string {
+    if (!n) return '$0';
+    if (n >= 1000) return `$${(n / 1000).toFixed(1)}k`;
+    if (n >= 1) return `$${n.toFixed(0)}`;
+    return `$${n.toFixed(2)}`;
+  }
+  const SURFACE_LABEL: Record<string, string> = { cli: 'CLI', desktop: 'Desktop' };
 
   async function load() {
     err = null;
@@ -241,13 +262,15 @@
       <section>
         <h2>Totals</h2>
         <div class="stat2">
-          <div><span class="k">30d tokens</span><span class="v mono">{fmtTokens(usageTotal)}</span></div>
+          <div><span class="k">Tokens</span><span class="v mono">{fmtTokens(usageTotal)}</span></div>
+          <div><span class="k">Est. value</span><span class="v mono">{fmtUsd(usdTotal)}</span></div>
           <div><span class="k">Proxied</span><span class="v mono">{proxiedCount}/{proxyTools.length}</span></div>
+          <div><span class="k">Installed</span><span class="v mono">{installedCount}/{CLIS.length}</span></div>
         </div>
         <p class="line">
           System proxy: {#if proxySystem.url}<code>{proxySystem.url}</code> <span class="dim">({proxySystem.source})</span>{:else}<span class="dim">none</span>{/if}
         </p>
-        <p class="hint">tokens only, never $ · 30-day rollup from local logs</p>
+        <p class="hint">est. value = tokens × public list prices, not your bill · local logs</p>
       </section>
     {:else}
       <!-- Per-CLI page: quick launch + detailed stats -->
@@ -260,7 +283,7 @@
       <section class="cli-head">
         <h2 class="title">{c?.label ?? tab}</h2>
         <span class="meta">
-          {#if h?.installed}<span class="ok">✓</span> {h.version ?? '?'}{:else}<span class="dim">not installed</span>{/if}
+          {#if u?.plan}<span class="badge">{u.plan}</span> {/if}{#if h?.installed}<span class="ok">✓</span> {h.version ?? '?'}{:else}<span class="dim">not installed</span>{/if}
         </span>
       </section>
 
@@ -299,7 +322,7 @@
 
       <!-- Detailed stats -->
       <section>
-        <h2>Usage <span class="badge">{fmtTokens(u?.totalTokens)} tok</span></h2>
+        <h2>Usage <span class="badge">{fmtTokens(u?.totalTokens)} tok</span> <span class="badge">{fmtUsd(u?.estCostUsd)}{u?.partialCost ? '+' : ''} est</span></h2>
         {#if u?.supported}
           <div class="stat2">
             <div><span class="k">Input</span><span class="v mono">{fmtTokens(u.inputTokens)}</span></div>
@@ -307,6 +330,19 @@
             <div><span class="k">Cache</span><span class="v mono">{fmtTokens(u.cacheTokens)}</span></div>
             <div><span class="k">Sessions</span><span class="v mono">{u.sessions ?? '—'}</span></div>
           </div>
+          {#if u.surfaces && u.surfaces.length > 1}
+            <p class="surf-title">By surface</p>
+            <div class="rows">
+              {#each u.surfaces as s (s.surface)}
+                <div class="row">
+                  <span class="nm">{SURFACE_LABEL[s.surface] ?? s.surface}</span>
+                  <span class="meta mono">{fmtTokens(s.totalTokens)} · {fmtUsd(s.estCostUsd)}</span>
+                  <span class="counts">{s.sessions} sess</span>
+                </div>
+              {/each}
+            </div>
+          {/if}
+          <p class="hint">{u.partialCost ? 'partial — some tokens used an unpriced model. ' : ''}est. value at public list prices, not your bill.</p>
         {:else}
           <p class="dim small">{u?.note ?? 'No usage parser for this CLI yet.'}</p>
         {/if}
@@ -594,6 +630,13 @@
     font-size: 0.66rem;
     color: var(--text-faint);
     margin: 0.2rem 0 0;
+  }
+  .surf-title {
+    font-size: 0.64rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    margin: 0.5rem 0 0.1rem;
   }
   .msg {
     font-size: 0.74rem;
