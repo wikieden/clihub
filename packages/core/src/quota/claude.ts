@@ -1,31 +1,19 @@
 /**
  * Claude quota fetcher.
  *
- * Claude Code surfaces server-side limits (Current session / Current week /
- * Sonnet, with reset times) only in the interactive `/usage` TUI — there is no
- * public local file or consumer API (the only Anthropic endpoint is the
- * admin-key `organizations/cost_report`, which is org-level and lacks the
- * rolling session/weekly windows). So, like CodexBar, we drive the `claude`
- * binary in a PTY and scrape the panel.
+ * Primary path (robust): read Claude Code's OAuth token from the login Keychain
+ * (`security find-generic-password -s "Claude Code-credentials" -w` → JSON with
+ * claudeAiOauth.accessToken) and call Anthropic's usage endpoint, the same as
+ * CodexBar's preferred source:
+ *   GET https://api.anthropic.com/api/oauth/usage
+ *   Authorization: Bearer <token>; anthropic-beta: oauth-2025-04-20
+ * Response windows: five_hour / seven_day / seven_day_opus / seven_day_sonnet,
+ * each { utilization (percent used), resets_at }.
  *
- * Reality on real machines: the `/usage` panel renders in an alternate-screen
- * buffer and the REPL is often customized (auto-mode, plugins) — full window
- * scraping is best-effort and may fail. The plan + account, however, render on
- * the welcome screen and are reliably captured. So this fetcher:
- *   • prefers `expect` (a real PTY driver that answers the trust prompt and
- *     sends `/usage`); falls back to a plain spawn when `expect` is absent;
- *   • always extracts plan + account when present;
- *   • returns rolling windows when the panel parses, otherwise a supported
- *     snapshot carrying just plan/account (so the UI still shows the account),
- *     or an unsupported snapshot with a clear reason when nothing is readable.
- *
- * A future revision can lift CodexBar's full ClaudeStatusProbe (alt-screen
- * isolation + retry) into a dedicated native PTY probe for robust windows.
+ * Fallback: spawn `claude /usage` and scrape the TUI panel (needs a TTY).
  */
-import { spawn } from 'node:child_process';
-import { promises as fs } from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
+import { execFile, spawn } from 'node:child_process';
+import { promisify } from 'node:util';
 
 import {
   type QuotaFetcher,
@@ -35,75 +23,127 @@ import {
   clampWindow,
   quotaUnavailable,
 } from './types.js';
+import { httpJson, type HttpInit } from './http.js';
 import { whichCmd } from '../utils/which.js';
+
+const execFileP = promisify(execFile);
+const KEYCHAIN_SERVICE = 'Claude Code-credentials';
+const USAGE_URL = 'https://api.anthropic.com/api/oauth/usage';
+const BETA_HEADER = 'oauth-2025-04-20';
+
+// ── OAuth path ──────────────────────────────────────────────────────────────
+
+interface OAuthWindow {
+  utilization?: number;
+  resets_at?: string;
+}
+interface OAuthUsageResponse {
+  five_hour?: OAuthWindow;
+  seven_day?: OAuthWindow;
+  seven_day_opus?: OAuthWindow;
+  seven_day_sonnet?: OAuthWindow;
+}
+
+async function keychainToken(): Promise<string | undefined> {
+  try {
+    const { stdout } = await execFileP('security', [
+      'find-generic-password',
+      '-s',
+      KEYCHAIN_SERVICE,
+      '-w',
+    ]);
+    const raw = stdout.trim();
+    if (!raw) return undefined;
+    // The password is JSON: { "claudeAiOauth": { "accessToken": "…" } }
+    const json = JSON.parse(raw);
+    return json?.claudeAiOauth?.accessToken ?? json?.accessToken;
+  } catch {
+    return undefined;
+  }
+}
+
+/** utilization may arrive as 0–100 (percent) or 0–1 (fraction); normalize. */
+function toUsedPercent(util: number | undefined): number | undefined {
+  if (typeof util !== 'number') return undefined;
+  return util <= 1 ? util * 100 : util;
+}
+
+/** Pure mapping of an /api/oauth/usage response into windows. Exported for tests. */
+export function parseClaudeOAuthWindows(
+  res: OAuthUsageResponse,
+  now: number,
+): QuotaWindow[] {
+  return [
+    oauthWindow('session', 'Session', res.five_hour, now),
+    oauthWindow('weekly', 'Weekly', res.seven_day, now),
+    oauthWindow('opus', 'Opus weekly', res.seven_day_opus, now),
+    oauthWindow('sonnet', 'Sonnet weekly', res.seven_day_sonnet, now),
+  ].filter((w): w is QuotaWindow => w !== undefined);
+}
+
+function oauthWindow(
+  id: string,
+  label: string,
+  w: OAuthWindow | undefined,
+  now: number,
+): QuotaWindow | undefined {
+  const used = toUsedPercent(w?.utilization);
+  if (used === undefined) return undefined;
+  const { usedPercent, remainingPercent } = clampWindow(used);
+  const resetsAt = w?.resets_at;
+  const resetsInSeconds = resetsAt
+    ? Math.max(0, Math.round((Date.parse(resetsAt) - now) / 1000))
+    : undefined;
+  return { id, label, usedPercent, remainingPercent, resetsAt, resetsInSeconds };
+}
+
+async function fetchOAuth(opts: QuotaOptions): Promise<QuotaWindow[] | undefined> {
+  const token = await keychainToken();
+  if (!token) return undefined;
+  const init: HttpInit = { timeoutMs: opts.timeoutMs ?? 15000, proxy: opts.proxy };
+  let res: OAuthUsageResponse;
+  try {
+    res = await httpJson<OAuthUsageResponse>(USAGE_URL, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+        'anthropic-beta': BETA_HEADER,
+        'User-Agent': 'clihub',
+      },
+    });
+  } catch {
+    return undefined;
+  }
+  const windows = parseClaudeOAuthWindows(res, Date.now());
+  return windows.length ? windows : undefined;
+}
+
+// ── CLI /usage fallback ─────────────────────────────────────────────────────
 
 const LABELS: Array<{ id: string; label: string; needles: string[] }> = [
   { id: 'session', label: 'Session', needles: ['Current session'] },
   { id: 'weekly', label: 'Weekly', needles: ['Current week (all models)'] },
-  {
-    id: 'sonnet',
-    label: 'Sonnet',
-    needles: ['Current week (Sonnet only)', 'Current week (Sonnet)'],
-  },
+  { id: 'sonnet', label: 'Sonnet', needles: ['Current week (Sonnet only)', 'Current week (Sonnet)'] },
   { id: 'opus', label: 'Opus', needles: ['Current week (Opus)'] },
 ];
+const ANSI = /\x1b\[[0-9;?]*[a-zA-Z]|\x1b[()][AB0]/g;
+const stripAnsi = (s: string): string => s.replace(ANSI, '').replace(/\r/g, '\n');
 
-const ANSI =
-  // eslint-disable-next-line no-control-regex
-  /\x1b\[[0-9;?]*[a-zA-Z]|\x1b[()][AB0]|\x1b[<=>]|\x1b\][^\x07]*\x07/g;
-
-function stripAnsi(s: string): string {
-  return s.replace(ANSI, '').replace(/\r/g, '\n');
-}
-
-/**
- * An expect(1) script that opens claude, accepts the trust prompt, asks for
- * `/usage`, waits for the panel labels, then quits. Written to a temp file and
- * run with `expect -f`. expect is the most portable real-PTY driver (ships on
- * macOS; common on Linux). When absent we fall back to a plain spawn that at
- * least yields the welcome screen (plan/account) on most setups.
- */
-const EXPECT_SCRIPT = `set timeout 28
-spawn -noecho claude
-expect {
-  "trust this folder" { send "\\r"; exp_continue }
-  "shortcuts" { }
-  "Welcome" { }
-  timeout { }
-}
-sleep 3
-send "/usage\\r"
-expect {
-  "Current session" { sleep 3 }
-  "Current week" { sleep 3 }
-  timeout { }
-}
-send "\\u0003"
-sleep 1
-`;
-
-async function runViaExpect(expectBin: string, timeoutMs: number): Promise<string> {
-  const file = path.join(os.tmpdir(), `clihub-claude-usage-${process.pid}.exp`);
-  await fs.writeFile(file, EXPECT_SCRIPT, 'utf8');
-  try {
-    return await runCapture(expectBin, ['-f', file], timeoutMs);
-  } finally {
-    await fs.rm(file, { force: true }).catch(() => {});
-  }
-}
-
-function runCapture(bin: string, args: string[], timeoutMs: number): Promise<string> {
+function runUsage(bin: string, timeoutMs: number): Promise<string> {
   return new Promise((resolve) => {
+    const isLinux = process.platform === 'linux';
+    const args = isLinux ? ['-qec', `${bin} /usage`, '/dev/null'] : ['-q', '/dev/null', bin, '/usage'];
     let out = '';
     let done = false;
-    const child = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
-    const finish = () => {
+    const child = spawn('script', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    const finish = (): void => {
       if (done) return;
       done = true;
       try {
         child.kill('SIGKILL');
       } catch {
-        /* already gone */
+        /* gone */
       }
       resolve(out);
     };
@@ -130,7 +170,6 @@ function extractPercent(lines: string[], needles: string[]): number | undefined 
   }
   return undefined;
 }
-
 function extractReset(lines: string[], needles: string[]): string | undefined {
   const idx = lines.findIndex((l) => needles.some((n) => l.includes(n)));
   if (idx < 0) return undefined;
@@ -141,17 +180,19 @@ function extractReset(lines: string[], needles: string[]): string | undefined {
   return undefined;
 }
 
-/** Plan label from the welcome banner, e.g. "Claude Max", "Claude Pro". */
-function extractPlan(text: string): string | undefined {
-  const m = text.match(/Claude\s+(Max|Pro|Team|Enterprise|Free)\b/i);
-  const tier = m?.[1];
-  if (!tier) return undefined;
-  return `Claude ${tier[0]!.toUpperCase()}${tier.slice(1).toLowerCase()}`;
-}
-
-function extractAccount(text: string): string | undefined {
-  const m = text.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
-  return m ? m[0] : undefined;
+async function fetchCli(opts: QuotaOptions): Promise<QuotaWindow[] | undefined> {
+  const bin = await whichCmd('claude');
+  if (!bin) return undefined;
+  const text = stripAnsi(await runUsage(bin, opts.timeoutMs ?? 25000));
+  const lines = text.split('\n');
+  const windows: QuotaWindow[] = [];
+  for (const def of LABELS) {
+    const pctLeft = extractPercent(lines, def.needles);
+    if (pctLeft === undefined) continue;
+    const { usedPercent, remainingPercent } = clampWindow(100 - pctLeft);
+    windows.push({ id: def.id, label: def.label, usedPercent, remainingPercent, resetLabel: extractReset(lines, def.needles) });
+  }
+  return windows.length ? windows : undefined;
 }
 
 export const claudeQuotaFetcher: QuotaFetcher = {
@@ -159,70 +200,32 @@ export const claudeQuotaFetcher: QuotaFetcher = {
   label: 'Claude',
 
   async fetch(opts: QuotaOptions): Promise<QuotaSnapshot> {
-    const bin = await whichCmd('claude');
-    if (!bin) {
-      return quotaUnavailable('claude-code', 'Claude', 'Claude Code is not installed.');
-    }
-    const timeoutMs = opts.timeoutMs ?? 30000;
-    const expectBin = await whichCmd('expect');
-    const raw = expectBin
-      ? await runViaExpect(expectBin, timeoutMs)
-      : await runCapture(bin, ['/usage'], timeoutMs);
-    const text = stripAnsi(raw);
-    const lines = text.split('\n');
-
-    const plan = extractPlan(text);
-    const account = extractAccount(text);
-
-    const windows: QuotaWindow[] = [];
-    for (const def of LABELS) {
-      const pctLeft = extractPercent(lines, def.needles);
-      if (pctLeft === undefined) continue;
-      const { usedPercent, remainingPercent } = clampWindow(100 - pctLeft); // panel = "% left"
-      windows.push({
-        id: def.id,
-        label: def.label,
-        usedPercent,
-        remainingPercent,
-        resetLabel: extractReset(lines, def.needles),
-      });
-    }
-
-    if (windows.length > 0) {
+    const oauth = await fetchOAuth(opts);
+    if (oauth) {
       return {
         tool: 'claude-code',
         label: 'Claude',
         supported: true,
-        account,
-        plan,
-        windows,
-        source: 'claude-cli',
+        windows: oauth,
+        source: 'claude-oauth',
         updatedAt: new Date().toISOString(),
       };
     }
-
-    // No windows, but if we at least learned the plan/account, surface that so
-    // the card shows the account — the rolling windows just couldn't be scraped.
-    if (plan || account) {
+    const cli = await fetchCli(opts);
+    if (cli) {
       return {
         tool: 'claude-code',
         label: 'Claude',
         supported: true,
-        account,
-        plan,
-        windows: [],
+        windows: cli,
         source: 'claude-cli',
         updatedAt: new Date().toISOString(),
-        error:
-          'Live session/weekly windows unavailable — the /usage panel did not render (interactive TUI). Plan and account shown.',
       };
     }
-
     return quotaUnavailable(
       'claude-code',
       'Claude',
-      'Could not read the /usage panel (needs an interactive TTY, or the CLI version has no usage panel).',
-      { source: 'claude-cli' },
+      'Could not read Claude limits (no Keychain OAuth token reachable, and /usage needs an interactive TTY).',
     );
   },
 };

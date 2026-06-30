@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { parseCodexWindows, codexPlanLabel } from '../src/quota/codex.js';
+import { parseClaudeOAuthWindows } from '../src/quota/claude.js';
 import { collectQuota } from '../src/quota/index.js';
 
 // A trimmed wham/usage payload shaped like ChatGPT's backend response.
@@ -66,6 +67,33 @@ describe('codex quota parse', () => {
     expect(codexPlanLabel('plus')).toBe('Plus');
     expect(codexPlanLabel('mystery')).toBe('mystery');
     expect(codexPlanLabel(undefined)).toBeUndefined();
+  });
+});
+
+describe('claude oauth parse', () => {
+  const NOW2 = Date.parse('2026-06-29T20:25:00Z');
+  test('maps five_hour/seven_day + opus/sonnet, percent utilization', () => {
+    const w = parseClaudeOAuthWindows(
+      {
+        five_hour: { utilization: 16, resets_at: '2026-06-29T21:56:00Z' },
+        seven_day: { utilization: 35 },
+        seven_day_opus: { utilization: 3 },
+      },
+      NOW2,
+    );
+    const session = w.find((x) => x.id === 'session')!;
+    expect(session.usedPercent).toBe(16);
+    expect(session.remainingPercent).toBe(84);
+    expect(session.resetsInSeconds).toBe(91 * 60);
+    expect(w.find((x) => x.id === 'weekly')!.remainingPercent).toBe(65);
+    expect(w.find((x) => x.id === 'opus')!.remainingPercent).toBe(97);
+    // sonnet absent → not emitted
+    expect(w.some((x) => x.id === 'sonnet')).toBe(false);
+  });
+
+  test('treats 0–1 utilization as a fraction', () => {
+    const w = parseClaudeOAuthWindows({ five_hour: { utilization: 0.4 } }, NOW2);
+    expect(w[0]!.usedPercent).toBe(40);
   });
 });
 
