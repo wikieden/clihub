@@ -78,6 +78,26 @@
     partialCost?: boolean;
     note?: string;
   };
+  type QuotaWindow = {
+    id: string;
+    label: string;
+    usedPercent: number;
+    remainingPercent: number;
+    resetsAt?: string;
+    resetsInSeconds?: number;
+    resetLabel?: string;
+  };
+  type QuotaSnapshot = {
+    tool: string;
+    label: string;
+    supported: boolean;
+    account?: string;
+    plan?: string;
+    windows: QuotaWindow[];
+    credits?: { available: number; nextExpiresInSeconds?: number };
+    updatedAt: string;
+    error?: string;
+  };
   type GuiInfo = { id: string; installed: boolean; osSupported: boolean; mechanism: string; note?: string };
   type CliInfo = { toolId: string; installed: boolean; binPath?: string };
   type Target = { id: string; name: string; gui: GuiInfo | null; cli: CliInfo | null };
@@ -85,6 +105,7 @@
   let tab = $state<string>('overview');
   let health = $state<HealthRow[]>([]);
   let usage = $state<UsageRow[]>([]);
+  let quota = $state<QuotaSnapshot[]>([]);
   let proxySystem = $state<Partial<SystemProxyRow>>({});
   let proxyTools = $state<ProxyToolRow[]>([]);
   let targets = $state<Target[]>([]);
@@ -98,6 +119,7 @@
   // ── joins by id ─────────────────────────────────────────────────────────
   const healthById = $derived(new Map(health.map((h) => [h.id, h])));
   const usageById = $derived(new Map(usage.map((u) => [u.tool, u])));
+  const quotaById = $derived(new Map(quota.map((q) => [q.tool, q])));
   const proxyById = $derived(new Map(proxyTools.map((p) => [p.id, p])));
   const targetById = $derived(new Map(targets.map((t) => [t.id, t])));
 
@@ -121,6 +143,25 @@
   }
   const SURFACE_LABEL: Record<string, string> = { cli: 'CLI', desktop: 'Desktop' };
 
+  // "Resets in" text from a window: prefer derived seconds, fall back to raw label.
+  function resetText(w: QuotaWindow): string {
+    const s = w.resetsInSeconds;
+    if (s == null) return w.resetLabel ?? '';
+    if (s <= 0) return 'now';
+    const d = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    if (d > 0) return `Resets in ${d}d ${h}h`;
+    if (h > 0) return `Resets in ${h}h ${m}m`;
+    return `Resets in ${m}m`;
+  }
+  function fmtDur(s?: number): string {
+    if (s == null) return '';
+    const d = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600);
+    return d > 0 ? `${d}d ${h}h` : `${h}h`;
+  }
+
   async function load() {
     err = null;
     loading = true;
@@ -143,6 +184,19 @@
       err = e instanceof Error ? e.message : String(e);
     } finally {
       loading = false;
+    }
+    // Quota reuses each CLI's credentials over the network (and may spawn
+    // `claude /usage`), so it can take tens of seconds — load it separately so
+    // the panel renders immediately and limits fill in when ready.
+    loadQuota();
+  }
+
+  async function loadQuota() {
+    try {
+      const q = await client.get<{ snapshots: QuotaSnapshot[] }>('/v1/quota');
+      quota = q.snapshots;
+    } catch {
+      /* limits are best-effort; leave whatever we had */
     }
   }
 
@@ -259,6 +313,26 @@
         </div>
       </section>
 
+      {#if quota.some((s) => s.supported && s.windows.length)}
+        <section>
+          <h2>Limits</h2>
+          {#each quota.filter((s) => s.supported && s.windows.length) as s (s.tool)}
+            <button class="row click qrow" onclick={() => (tab = s.tool)}>
+              <span class="nm">{s.label}{#if s.plan}<span class="badge">{s.plan}</span>{/if}</span>
+              <span class="qmini">
+                {#each s.windows.slice(0, 3) as w (w.id)}
+                  <span class="qmini-cell" title="{w.label}: {w.remainingPercent}% left">
+                    <span class="qmini-bar"><span style="width:{w.usedPercent}%"></span></span>
+                  </span>
+                {/each}
+              </span>
+              <span class="counts mono">{s.windows[0]?.remainingPercent}%</span>
+            </button>
+          {/each}
+          <p class="hint">live limits — reuses each CLI's sign-in. Click a row for detail.</p>
+        </section>
+      {/if}
+
       <section>
         <h2>Totals</h2>
         <div class="stat2">
@@ -277,6 +351,7 @@
       {@const c = CLIS.find((x) => x.id === tab)}
       {@const h = healthById.get(tab)}
       {@const u = usageById.get(tab)}
+      {@const q = quotaById.get(tab)}
       {@const px = proxyById.get(tab)}
       {@const t = targetById.get(tab)}
 
@@ -319,6 +394,46 @@
           <p class="dim small">Not launchable.</p>
         {/if}
       </section>
+
+      <!-- Live limits (CodexBar-style) -->
+      {#if q && q.supported}
+        <section>
+          <h2>
+            Limits
+            {#if q.plan}<span class="badge">{q.plan}</span>{/if}
+            {#if q.account}<span class="badge dim">{q.account}</span>{/if}
+          </h2>
+          {#each q.windows as w (w.id)}
+            <div class="qwin">
+              <div class="qhead">
+                <span class="nm">{w.label}</span>
+                <span class="meta mono">{w.remainingPercent}% left</span>
+              </div>
+              <div class="qbar"><span style="width:{w.usedPercent}%"></span></div>
+              {#if resetText(w)}<div class="qreset dim small">{resetText(w)}</div>{/if}
+            </div>
+          {/each}
+          {#if q.credits}
+            <div class="row qcredit">
+              <span class="nm">Reset credits</span>
+              <span class="meta mono">{q.credits.available} available</span>
+              {#if q.credits.nextExpiresInSeconds != null}
+                <span class="counts">next in {fmtDur(q.credits.nextExpiresInSeconds)}</span>
+              {/if}
+            </div>
+          {/if}
+          {#if q.windows.length > 0}
+            <p class="hint">Live from {q.label}'s own limits — reuses its sign-in, no extra login.</p>
+          {:else if q.error}
+            <p class="dim small">{q.error}</p>
+          {/if}
+        </section>
+      {:else if q && q.error}
+        <section>
+          <h2>Limits</h2>
+          <p class="dim small">{q.error}</p>
+        </section>
+      {/if}
 
       <!-- Detailed stats -->
       <section>
@@ -510,6 +625,66 @@
     border: 1px solid var(--border-strong);
     border-radius: 4px;
     padding: 0.02rem 0.3rem;
+  }
+  .badge.dim {
+    color: var(--text-faint);
+  }
+  /* CodexBar-style rolling-limit windows */
+  .qwin {
+    margin: 0.45rem 0 0.55rem;
+  }
+  .qhead {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.22rem;
+  }
+  .qbar {
+    height: 5px;
+    border-radius: 3px;
+    background: var(--accent-bg);
+    overflow: hidden;
+  }
+  .qbar > span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+  .qreset {
+    margin-top: 0.2rem;
+  }
+  .qcredit {
+    margin-top: 0.35rem;
+  }
+  /* Overview rollup: tiny stacked window bars per provider */
+  .qrow .nm {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .qmini {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+    min-width: 84px;
+  }
+  .qmini-cell {
+    flex: 1;
+  }
+  .qmini-bar {
+    display: block;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--accent-bg);
+    overflow: hidden;
+  }
+  .qmini-bar > span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
   }
   .rows {
     display: flex;

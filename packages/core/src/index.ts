@@ -369,6 +369,16 @@ export {
   type UsageResult,
 } from './usage/index.js';
 export {
+  collectQuota,
+  quotaFetchers,
+  type QuotaSnapshot,
+  type QuotaWindow,
+  type QuotaCredits,
+  type QuotaOptions,
+  type QuotaResult,
+  type QuotaFetcher,
+} from './quota/index.js';
+export {
   collectBundle,
   encryptBundle,
   decryptBundle,

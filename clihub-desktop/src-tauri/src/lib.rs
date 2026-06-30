@@ -348,6 +348,7 @@ pub fn run() {
                 .title("clihub")
                 .inner_size(1000.0, 700.0)
                 .min_inner_size(720.0, 520.0)
+                .center()
                 .visible(false)
                 .initialization_script(&script)
                 .build()?;
@@ -370,6 +371,16 @@ pub fn run() {
             // every launch (AppImage paths go stale), Windows only in dev.
             #[cfg(any(target_os = "linux", all(debug_assertions, windows)))]
             app.deep_link().register_all()?;
+
+            // Dev convenience: `tauri dev` has no installed bundle, so neither
+            // the clihub:// deep link nor a Dock relaunch can reach show_main —
+            // the app would sit invisibly in the tray. Reveal the main window on
+            // debug launch so the UI is inspectable. Release stays hide-to-tray.
+            #[cfg(debug_assertions)]
+            if let Some(w) = app.get_webview_window(MAIN_LABEL) {
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
 
             // Cold start via clihub://… — route once the window exists.
             if let Ok(Some(urls)) = app.deep_link().get_current() {

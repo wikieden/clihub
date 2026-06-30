@@ -41,6 +41,7 @@ import {
   loadConfig,
   setConfigKey,
   collectUsage,
+  collectQuota,
   formatErrorMessage,
   readBindings,
   useBinding,
@@ -231,6 +232,15 @@ export const ROUTES: Record<string, RouteHandler> = {
   // Token rollup across CLIs (read-only, tokens only — never a $ figure) for the
   // menubar panel's Usage section. Mirrors `clihub usage`.
   'GET /v1/usage': async () => collectUsage(),
+
+  // Live rate-limit / quota rollup (Codex session+weekly+spark windows, Claude
+  // session+weekly, plan, reset credits). Reuses each CLI's own credentials;
+  // each fetcher is fault-isolated. Mirrors `clihub quota`.
+  'GET /v1/quota': async (_ctx, req) => {
+    const toolsParam = new URL(req.url).searchParams.get('tools');
+    const tools = toolsParam ? toolsParam.split(',').filter(Boolean) : undefined;
+    return collectQuota({ tools });
+  },
 
   // The raw clihub.yaml for the editor panel (same discovery as `clihub status`).
   'GET /v1/yaml': async (_ctx, req) => {

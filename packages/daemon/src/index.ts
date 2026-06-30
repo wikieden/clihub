@@ -182,6 +182,11 @@ export function createDaemon(opts: DaemonOptions = {}): DaemonHandle {
     // Cap request bodies (clihub.yaml is tiny) so an authenticated-but-confused
     // client can't memory-pressure the sidecar; Bun's default is 128 MiB.
     maxRequestBodySize: 4 * 1024 * 1024,
+    // Quota fetches reuse each CLI's credentials over the network (and may spawn
+    // `claude /usage`), so a single request can legitimately run tens of
+    // seconds. Bun's default 10s idleTimeout would drop the connection
+    // mid-flight ("empty reply"); give slow rollups room.
+    idleTimeout: 120,
     fetch: (req) => routeRequest(req, { token, version }),
   });
 
