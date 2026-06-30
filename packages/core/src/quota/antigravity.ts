@@ -33,7 +33,9 @@ const BASE = 'https://cloudcode-pa.googleapis.com/v1internal';
 const LOAD_URL = `${BASE}:loadCodeAssist`;
 const QUOTA_URL = `${BASE}:retrieveUserQuota`;
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
-// Public Gemini CLI OAuth client (shipped in the open-source @google/gemini-cli).
+// Gemini CLI OAuth client, used only to refresh an expired access token. Read
+// from the environment so no credential is embedded in source. When unset, the
+// existing (non-expired) access token still works; refresh is simply skipped.
 const CLIENT_ID = process.env.GEMINI_OAUTH_CLIENT_ID ?? '';
 const CLIENT_SECRET = process.env.GEMINI_OAUTH_CLIENT_SECRET ?? '';
 
@@ -79,7 +81,9 @@ function emailFromIdToken(idToken?: string): string | undefined {
 
 async function ensureFreshToken(creds: GeminiCreds, init: HttpInit): Promise<string> {
   const now = Date.now();
-  if (!creds.refreshToken || (creds.expiryDate && creds.expiryDate - now > 60_000)) {
+  const fresh = creds.expiryDate ? creds.expiryDate - now > 60_000 : true;
+  // Without OAuth client creds we can't refresh — use the existing token.
+  if (fresh || !creds.refreshToken || !CLIENT_ID || !CLIENT_SECRET) {
     return creds.accessToken;
   }
   try {
