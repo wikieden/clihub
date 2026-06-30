@@ -12,6 +12,7 @@
 import { codexQuotaFetcher } from './codex.js';
 import { claudeQuotaFetcher } from './claude.js';
 import { antigravityQuotaFetcher } from './antigravity.js';
+import { cursorQuotaFetcher } from './cursor.js';
 import {
   type QuotaFetcher,
   type QuotaOptions,
@@ -27,6 +28,7 @@ const FETCHERS: QuotaFetcher[] = [
   codexQuotaFetcher,
   claudeQuotaFetcher,
   antigravityQuotaFetcher,
+  cursorQuotaFetcher,
 ];
 
 export function quotaFetchers(): readonly QuotaFetcher[] {
