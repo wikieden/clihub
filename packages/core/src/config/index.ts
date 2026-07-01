@@ -35,8 +35,12 @@ export interface ClihubConfig {
   };
   /** Custom CA bundle path injected into NODE_EXTRA_CA_CERTS / GIT_SSL_CAINFO. */
   caBundle?: string;
-  /** Remembered "Launch with proxy" url for the desktop GUI launcher. */
-  guiLaunchProxy?: string;
+  /** Remembered "Launch with proxy" url per desktop GUI app id — each app is
+   * fully independent, so setting one never prefills or affects another. */
+  guiLaunchProxy?: Record<string, string>;
+  /** Remembered proxy for the tray/topbar quick-launch dropdown — a single
+   * shared convenience value deliberately separate from `guiLaunchProxy`. */
+  quickLaunchProxy?: string;
   /** Anonymous usage telemetry — never on by default. */
   telemetry?: boolean;
   /** Override DEFAULT_CATALOG_URL. */

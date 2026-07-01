@@ -194,3 +194,21 @@ export interface ProxySetResult {
   tool: string;
   proxy: string | null;
 }
+
+/** GET /v1/gui — desktop GUI apps clihub can launch with a proxy applied.
+ * Each app's remembered proxy is fully independent of every other app. */
+export interface GuiAppRow {
+  id: string;
+  name: string;
+  installed: boolean;
+  osSupported: boolean;
+  mechanism: 'electron-flag' | 'env';
+  note?: string;
+  /** This app's own remembered "Launch with proxy" url, or null if unset. */
+  proxy: string | null;
+}
+
+export interface GuiResponse {
+  supported: boolean;
+  apps: GuiAppRow[];
+}

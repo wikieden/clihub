@@ -171,7 +171,7 @@
         client
           .get<{ rows: UsageRow[] }>('/v1/usage')
           .catch(() => ({ rows: [] as UsageRow[] })),
-        client.get<ProxyResponse & { launchProxy?: string | null }>('/v1/proxy'),
+        client.get<ProxyResponse & { quickLaunchProxy?: string | null }>('/v1/proxy'),
         client.get<{ targets: Target[] }>('/v1/launch').catch(() => ({ targets: [] as Target[] })),
       ]);
       health = d.tools;
@@ -179,7 +179,7 @@
       proxySystem = p.system ?? {};
       proxyTools = p.tools;
       targets = l.targets;
-      if (!proxy) proxy = p.launchProxy || p.system?.url || '';
+      if (!proxy) proxy = p.quickLaunchProxy || p.system?.url || '';
     } catch (e: unknown) {
       err = e instanceof Error ? e.message : String(e);
     } finally {
@@ -204,10 +204,10 @@
     load();
   });
 
-  // Persist the launch proxy so it's remembered next session.
+  // Persist the quick-launch proxy so it's remembered next session.
   async function rememberProxy() {
     try {
-      await client.post('/v1/launch-proxy', { url: proxy.trim() });
+      await client.post('/v1/quick-launch-proxy', { url: proxy.trim() });
     } catch {
       /* non-fatal */
     }

@@ -21,12 +21,12 @@
       const [t, p] = await Promise.all([
         client.get<{ targets: Target[] }>('/v1/launch'),
         client
-          .get<{ system: { url?: string }; launchProxy?: string | null }>('/v1/proxy')
-          .catch(() => ({ system: {} as { url?: string }, launchProxy: null })),
+          .get<{ system: { url?: string }; quickLaunchProxy?: string | null }>('/v1/proxy')
+          .catch(() => ({ system: {} as { url?: string }, quickLaunchProxy: null })),
       ]);
       targets = t.targets;
-      // Remembered launch proxy wins, then the detected system proxy.
-      if (!proxy) proxy = p.launchProxy || p.system?.url || '';
+      // Remembered quick-launch proxy wins, then the detected system proxy.
+      if (!proxy) proxy = p.quickLaunchProxy || p.system?.url || '';
       loaded = true;
     } catch (e: unknown) {
       err = e instanceof Error ? e.message : String(e);
@@ -38,10 +38,10 @@
     if (open && !loaded) load();
   }
 
-  // Persist the launch proxy to clihub config so it's remembered next session.
+  // Persist the quick-launch proxy to clihub config so it's remembered next session.
   async function rememberProxy() {
     try {
-      await client.post('/v1/launch-proxy', { url: proxy.trim() });
+      await client.post('/v1/quick-launch-proxy', { url: proxy.trim() });
     } catch {
       /* non-fatal — prefill still works from system proxy */
     }

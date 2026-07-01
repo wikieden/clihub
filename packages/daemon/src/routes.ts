@@ -203,27 +203,48 @@ export const ROUTES: Record<string, RouteHandler> = {
         };
       }),
     );
-    // `launchProxy`: the remembered GUI "Launch with proxy" url (clihub config),
-    // so the launcher prefills it across sessions instead of re-typing.
+    // `quickLaunchProxy`: the remembered tray/topbar quick-launch dropdown
+    // value — a single shared convenience field, deliberately separate from
+    // each desktop app's own independent proxy (see /v1/gui, /v1/launch-proxy).
     const cfg = await loadConfig().catch(() => ({}) as Awaited<ReturnType<typeof loadConfig>>);
-    return { system, tools, launchProxy: cfg.guiLaunchProxy ?? null };
+    return { system, tools, quickLaunchProxy: cfg.quickLaunchProxy ?? null };
   },
 
-  // Persist (or clear) the GUI launcher's "Launch with proxy" url so it's
-  // remembered next session. Blank url clears it.
-  'POST /v1/launch-proxy': async (_ctx, req) => {
+  // Persist (or clear) the tray/topbar quick-launch dropdown's proxy so it's
+  // remembered next session. One shared value across every quick-launch
+  // target — NOT the same store as each desktop app's own proxy.
+  'POST /v1/quick-launch-proxy': async (_ctx, req) => {
     const body = await readJson(req);
     const url = optString(body, 'url')?.trim() || undefined;
-    await setConfigKey('guiLaunchProxy', url ?? '');
-    audit('launchProxy.set', { url: url ?? null });
-    return { launchProxy: url ?? null };
+    await setConfigKey('quickLaunchProxy', url ?? '');
+    audit('quickLaunchProxy.set', { url: url ?? null });
+    return { quickLaunchProxy: url ?? null };
+  },
+
+  // Persist (or clear) one desktop GUI app's "Launch with proxy" url so it's
+  // remembered next session. Fully independent per app id — setting one never
+  // prefills or clears another. Blank url clears it.
+  'POST /v1/launch-proxy': async (_ctx, req) => {
+    const body = await readJson(req);
+    const id = optString(body, 'id')?.trim();
+    if (!id) throw new HttpError(400, 'field "id" (gui app id) is required');
+    const url = optString(body, 'url')?.trim();
+    await setConfigKey(`guiLaunchProxy.${id}`, url || undefined);
+    audit('launchProxy.set', { id, url: url || null });
+    return { id, launchProxy: url || null };
   },
 
   // Desktop GUI apps clihub can launch WITH a proxy applied (Claude desktop /
   // Codex desktop). Unlike per-CLI proxy, GUI apps don't read a config env —
   // clihub launches them with the proxy (chromium --proxy-server for Electron,
-  // env for native). macOS-only; `supported` reflects the host OS.
-  'GET /v1/gui': async () => ({ supported: guiLaunchSupported(), apps: listGuiApps() }),
+  // env for native). macOS-only; `supported` reflects the host OS. Each app's
+  // remembered proxy is fully independent — never shared across apps.
+  'GET /v1/gui': async () => {
+    const cfg = await loadConfig().catch(() => ({}) as Awaited<ReturnType<typeof loadConfig>>);
+    const remembered = cfg.guiLaunchProxy ?? {};
+    const apps = listGuiApps().map((a) => ({ ...a, proxy: remembered[a.id] ?? null }));
+    return { supported: guiLaunchSupported(), apps };
+  },
 
   // CodexBar-style launcher matrix: per client, which launch methods exist
   // (GUI desktop app and/or CLI in a terminal) and whether each is installed.
