@@ -4,19 +4,24 @@ import { parseCodexWindows, codexPlanLabel } from '../src/quota/codex.js';
 import { parseClaudeOAuthWindows } from '../src/quota/claude.js';
 import { collectQuota } from '../src/quota/index.js';
 
-// A trimmed wham/usage payload shaped like ChatGPT's backend response.
+// A trimmed wham/usage payload shaped like ChatGPT's real backend response:
+// `reset_at` is epoch SECONDS (not an ISO string), and `reset_after_seconds`
+// is the API's own precomputed duration — verified against a live response.
 const NOW = Date.parse('2026-06-29T20:25:00Z');
+const NOW_S = Math.round(NOW / 1000);
 const SAMPLE = {
   plan_type: 'pro',
   rate_limit: {
     primary_window: {
       used_percent: 1,
-      reset_at: '2026-06-30T01:14:00Z', // ~4h49m later
+      reset_after_seconds: 17340, // ~4h49m
+      reset_at: NOW_S + 17340,
       limit_window_seconds: 18000,
     },
     secondary_window: {
       used_percent: 0,
-      reset_at: '2026-07-06T19:25:00Z',
+      reset_after_seconds: 604800,
+      reset_at: NOW_S + 604800,
       limit_window_seconds: 604800,
     },
   },
@@ -24,8 +29,8 @@ const SAMPLE = {
     {
       limit_name: 'Codex Spark',
       rate_limit: {
-        primary_window: { used_percent: 0, reset_at: '2026-06-30T01:23:00Z' },
-        secondary_window: { used_percent: 0, reset_at: '2026-07-06T19:25:00Z' },
+        primary_window: { used_percent: 0, reset_after_seconds: 17880, reset_at: NOW_S + 17880 },
+        secondary_window: { used_percent: 0, reset_after_seconds: 604800, reset_at: NOW_S + 604800 },
       },
     },
   ],
@@ -38,8 +43,9 @@ describe('codex quota parse', () => {
     expect(session.label).toBe('Session');
     expect(session.usedPercent).toBe(1);
     expect(session.remainingPercent).toBe(99);
-    // reset ~4h49m = 17340s
+    // reset ~4h49m = 17340s — from reset_after_seconds, not date math
     expect(session.resetsInSeconds).toBe(17340);
+    expect(session.resetsAt).toBe(new Date((NOW_S + 17340) * 1000).toISOString());
 
     const weekly = w.find((x) => x.id === 'weekly')!;
     expect(weekly.remainingPercent).toBe(100);
@@ -51,6 +57,18 @@ describe('codex quota parse', () => {
     expect(spark5h.label).toBe('Codex Spark 5-hour');
     expect(spark5h.remainingPercent).toBe(100);
     expect(w.some((x) => x.id === 'codex-spark-weekly')).toBe(true);
+  });
+
+  test('falls back to reset_at (epoch seconds) when reset_after_seconds is absent, never NaN', () => {
+    // Regression: reset_at is epoch SECONDS, not an ISO string. Date.parse()
+    // on a bare number silently produces NaN — caught by testing this path
+    // with only reset_at present (no reset_after_seconds).
+    const w = parseCodexWindows(
+      { rate_limit: { primary_window: { used_percent: 5, reset_at: NOW_S + 3600 } } },
+      NOW,
+    );
+    expect(w[0]!.resetsInSeconds).toBe(3600);
+    expect(Number.isNaN(w[0]!.resetsInSeconds)).toBe(false);
   });
 
   test('clamps out-of-range used_percent', () => {

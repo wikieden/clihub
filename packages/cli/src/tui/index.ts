@@ -562,6 +562,8 @@ async function crossMenu(): Promise<void> {
         { value: 'skill.fanout', label: 'Install a skill into every supported installed CLI' },
         { value: 'doctor.all', label: 'Run doctor across every CLI' },
         { value: 'tools.status', label: 'List status of every CLI' },
+        { value: 'usage', label: 'Token usage rollup across CLIs' },
+        { value: 'quota', label: `Live rate-limit rollup  ${kleur.dim('(session/weekly, plan, reset credits)')}` },
         { value: 'sepE', label: kleur.dim('───────── Endpoints (per-CLI binding)'), hint: '' },
         { value: 'use.bind', label: `Bind endpoint → CLI(s)  ${kleur.dim('(clihub use)')}` },
         { value: 'use.current', label: 'Show current bindings' },
@@ -627,6 +629,50 @@ async function handleCrossAction(action: string): Promise<void> {
         const det = await p.detect();
         log.info(`${p.id}  ${p.name}  ${det.installed ? `✓ ${det.version ?? ''}` : kleur.dim('not installed')}`);
       }
+      return;
+    }
+    case 'usage': {
+      const { collectUsage } = await import('@clihub/core');
+      const res = await collectUsage();
+      const lines: string[] = [];
+      for (const r of res.rows) {
+        lines.push(
+          r.supported
+            ? `${r.label}  ${kleur.dim(`in ${r.inputTokens} · out ${r.outputTokens} · cache ${r.cacheTokens} · ${r.sessions} sessions`)}  total ${kleur.bold(String(r.totalTokens))}`
+            : `${kleur.dim('·')} ${r.label} ${kleur.dim(`(${r.note})`)}`,
+        );
+      }
+      lines.push(kleur.dim('────────────────'));
+      lines.push(`total tokens: ${res.totals.totalTokens} (in ${res.totals.inputTokens} · out ${res.totals.outputTokens} · cache ${res.totals.cacheTokens})`);
+      lines.push(kleur.dim('tokens only — clihub never asserts a dollar cost.'));
+      note(lines.join('\n'), 'Usage rollup');
+      return;
+    }
+    case 'quota': {
+      const { collectQuota } = await import('@clihub/core');
+      const res = await collectQuota();
+      const fmtReset = (s?: number): string => {
+        if (s == null) return '';
+        if (s <= 0) return 'now';
+        const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+        return d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
+      };
+      const lines: string[] = [];
+      for (const s of res.snapshots) {
+        if (!s.supported) {
+          lines.push(`${kleur.dim('·')} ${s.label} ${kleur.dim(`(${s.error ?? 'unavailable'})`)}`);
+          continue;
+        }
+        const meta = [s.plan, s.account].filter(Boolean).join(' · ');
+        lines.push(`${s.label}${meta ? kleur.dim(`  (${meta})`) : ''}`);
+        for (const w of s.windows) {
+          const reset = fmtReset(w.resetsInSeconds) || w.resetLabel || '';
+          lines.push(`  ${w.label}: ${kleur.bold(`${w.remainingPercent}%`)} left${reset ? kleur.dim(`  resets in ${reset}`) : ''}`);
+        }
+        if (s.credits) lines.push(kleur.dim(`  reset credits: ${s.credits.available} available`));
+      }
+      lines.push(kleur.dim("live from each provider's own limits endpoint — reuses the CLI's existing sign-in."));
+      note(lines.join('\n'), 'Rate-limit rollup');
       return;
     }
   }

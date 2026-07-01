@@ -43,7 +43,11 @@ interface CodexAuth {
 
 interface WindowSnapshot {
   used_percent?: number;
-  reset_at?: string;
+  /** Unix epoch in SECONDS (not an ISO string, and not milliseconds). */
+  reset_at?: number;
+  /** Seconds until reset — provided directly by the API; prefer this over
+   * deriving from `reset_at` to avoid clock-skew and epoch-unit mistakes. */
+  reset_after_seconds?: number;
   limit_window_seconds?: number;
 }
 interface RateLimitDetails {
@@ -153,10 +157,16 @@ function toWindow(
 ): QuotaWindow | undefined {
   if (!w || typeof w.used_percent !== 'number') return undefined;
   const { usedPercent, remainingPercent } = clampWindow(w.used_percent);
-  const resetsAt = w.reset_at;
-  const resetsInSeconds = resetsAt
-    ? Math.max(0, Math.round((Date.parse(resetsAt) - now) / 1000))
-    : undefined;
+  // `reset_at` is epoch SECONDS, not an ISO string — convert for the QuotaWindow
+  // contract (which is ISO), and prefer the API's own `reset_after_seconds`
+  // over deriving a duration from `reset_at` (avoids clock-skew/unit bugs).
+  const resetsAt = typeof w.reset_at === 'number' ? new Date(w.reset_at * 1000).toISOString() : undefined;
+  const resetsInSeconds =
+    typeof w.reset_after_seconds === 'number'
+      ? Math.max(0, Math.round(w.reset_after_seconds))
+      : typeof w.reset_at === 'number'
+        ? Math.max(0, Math.round((w.reset_at * 1000 - now) / 1000))
+        : undefined;
   return {
     id,
     label,

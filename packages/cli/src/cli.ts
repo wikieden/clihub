@@ -1978,6 +1978,40 @@ cli
     info('tokens only — clihub never asserts a dollar cost.');
   });
 
+// ─── quota (live rate-limit / rolling-window rollup) ──────────────────
+cli
+  .command('quota', 'Live rate-limit rollup — session/weekly windows, plan, reset credits (Codex, Claude, Antigravity, Cursor)')
+  .option('--json', 'Output the rollup as JSON')
+  .option('--tool <id>', 'Only fetch one tool (repeatable via comma, e.g. codex,claude-code)')
+  .action(async (opts: { json?: boolean; tool?: string }) => {
+    const { collectQuota } = await import('@clihub/core');
+    const tools = opts.tool?.split(',').map((s) => s.trim()).filter(Boolean);
+    const res = await collectQuota({ tools });
+    if (opts.json) { console.log(JSON.stringify(res, null, 2)); return; }
+    const fmtReset = (s?: number): string => {
+      if (s == null) return '';
+      if (s <= 0) return 'now';
+      const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+      return d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
+    };
+    for (const s of res.snapshots) {
+      if (!s.supported) {
+        console.log(`  ${kleur.dim('·')} ${s.label} ${kleur.dim(`(${s.error ?? 'unavailable'})`)}`);
+        continue;
+      }
+      const meta = [s.plan, s.account].filter(Boolean).join(' · ');
+      ok(`${s.label}${meta ? kleur.dim(`  (${meta})`) : ''}`);
+      for (const w of s.windows) {
+        const reset = fmtReset(w.resetsInSeconds) || w.resetLabel || '';
+        console.log(`    ${w.label}: ${kleur.bold(`${w.remainingPercent}%`)} left${reset ? kleur.dim(`  resets in ${reset}`) : ''}`);
+      }
+      if (s.credits) {
+        console.log(`    ${kleur.dim(`reset credits: ${s.credits.available} available`)}`);
+      }
+    }
+    info('live from each provider\'s own limits endpoint — reuses the CLI\'s existing sign-in.');
+  });
+
 // ─── endpoint (LLM API endpoint presets) ──────────────────────────────
 cli
   .command('endpoint [action] [id]', 'LLM API endpoint presets (list | current | use <id>)')
