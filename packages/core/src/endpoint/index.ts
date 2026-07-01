@@ -102,8 +102,9 @@ export interface UseEndpointOpts {
  * injectors, and records it in the profile meta. The credential is NOT moved —
  * it stays in the OS keychain under the preset's authEnv NAME.
  *
- * Only the anthropic / openai / google families have base-URL injectors today
- * (Claude Code / Codex / Gemini); other families return zero patches.
+ * Only the anthropic / openai families have base-URL injectors today (Claude
+ * Code / Codex); other families — including google (Antigravity has no
+ * base-URL concept) — return zero patches.
  */
 export async function useEndpoint(
   id: string,

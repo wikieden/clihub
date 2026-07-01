@@ -153,7 +153,7 @@ export async function runHealthMatrix(): Promise<ToolHealthRow[]> {
   const rows: ToolHealthRow[] = [];
 
   // MCP counts come from the single source of truth (manage.ts), which knows
-  // each CLI's real config + format: Claude ~/.claude.json, Gemini/Qwen
+  // each CLI's real config + format: Claude ~/.claude.json, Antigravity/Qwen
   // settings.json, Codex config.toml [mcp_servers]. Computed once.
   const mcpCounts = new Map<string, number>();
   try {

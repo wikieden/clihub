@@ -17,7 +17,7 @@ clihub \\- install + sync + rollback control plane for AI coding CLIs
 .SH DESCRIPTION
 .B clihub
 installs and manages multiple AI coding CLIs (Claude Code, OpenAI Codex,
-Google Gemini, AWS Kiro) side by side. It keeps their skills, plugins
+Google Antigravity, AWS Kiro) side by side. It keeps their skills, plugins
 and MCP servers in sync and ships one-command rollback when an upgrade
 breaks something.
 .PP

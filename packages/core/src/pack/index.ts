@@ -25,7 +25,7 @@ export interface PackOpts {
   nodeVersion?: string;
 }
 
-const DESC = 'Install & sync AI coding CLIs (Claude Code, Codex, Gemini, Kiro, Cursor, Goose)';
+const DESC = 'Install & sync AI coding CLIs (Claude Code, Codex, Antigravity, Qwen Code, Kiro, Cursor, Goose, OpenCode)';
 const HOMEPAGE = 'https://github.com/wikieden/clihub';
 
 function dockerfile(pkg: string, version: string, node: string): string {

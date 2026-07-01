@@ -11,8 +11,10 @@
  * Provider → env var:
  *   anthropic → ANTHROPIC_BASE_URL  (Claude Code reads from settings.env)
  *   openai    → OPENAI_BASE_URL     (Codex reads from config.toml [env])
- *   google    → GOOGLE_API_BASE     (Gemini reads from settings.env)
  *   kiro      → (no canonical setting yet — recorded in meta only)
+ *
+ * No `google` entry: Antigravity has no base-URL concept (unlike the old
+ * Gemini CLI's GOOGLE_API_BASE), so that injector was removed entirely.
  */
 import path from 'node:path';
 import { JsonSettingsAdapter } from '../settings/index.js';

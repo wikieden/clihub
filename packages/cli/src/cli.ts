@@ -2396,7 +2396,7 @@ cli
           console.log(kleur.bold(r.tool) + (r.servers.length === 0 ? kleur.dim('  (none)') : ''));
           for (const s of r.servers) console.log(`  ${kleur.cyan(s.id)}${s.command ? kleur.dim(`  ${s.command}`) : ''}`);
         }
-        console.log(kleur.dim('  (unified MCP management covers Claude Code, Gemini, Qwen (JSON) and Codex (TOML); others manage MCP in their own config)'));
+        console.log(kleur.dim('  (unified MCP management covers Claude Code, Antigravity, Qwen (JSON) and Codex (TOML); others manage MCP in their own config)'));
         return;
       }
       case 'add': {

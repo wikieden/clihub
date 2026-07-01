@@ -9,7 +9,7 @@
  *     }
  *   }
  *
- * `JsonMcpAdapter` covers Claude Code, Gemini CLI, Kiro CLI and any
+ * `JsonMcpAdapter` covers Claude Code, Antigravity, Kiro CLI and any
  * other CLI using that convention. Providers with a different storage
  * format (e.g. Codex with `~/.codex/config.toml`) need a custom adapter.
  */

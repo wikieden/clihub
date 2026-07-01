@@ -1,6 +1,6 @@
 /**
  * `clihub mcp` (v1.13.0) — unified MCP-server management across the CLIs
- * that use the standard JSON `mcpServers` map (Claude Code, Gemini CLI).
+ * that use the standard JSON `mcpServers` map (Claude Code, Antigravity).
  *
  *   - listMcp()        → installed MCP servers per CLI
  *   - addMcp(id)       → install a catalog (or inline) MCP into each CLI
@@ -19,9 +19,10 @@ import type { InstalledMcpServer, McpServerManifest, McpTransport } from '../typ
 /** CLIs whose MCP config is a JSON `mcpServers` map, with their config file (relative to home).
  *  NB: Claude Code reads user-scope MCP from ~/.claude.json (verified via
  *  `claude mcp add --scope user`), NOT ~/.claude/settings.json (which holds
- *  env/permissions). Gemini reads mcpServers from ~/.gemini/settings.json. */
-/** MCP-capable CLIs → config file (relative to home). Claude/Gemini/Qwen use a
- *  JSON `mcpServers` map; Codex uses TOML `[mcp_servers]` in config.toml. */
+ *  env/permissions). Antigravity reads mcpServers from
+ *  ~/.gemini/antigravity-cli/mcp_config.json (its own file, not settings.json). */
+/** MCP-capable CLIs → config file (relative to home). Claude/Antigravity/Qwen
+ *  use a JSON `mcpServers` map; Codex uses TOML `[mcp_servers]` in config.toml. */
 const MCP_RELPATHS: Record<string, string> = {
   'claude-code': '.claude.json',
   'antigravity': '.gemini/antigravity-cli/mcp_config.json',

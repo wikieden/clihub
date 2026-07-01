@@ -9,7 +9,7 @@
  *     proxy injected as HTTPS_PROXY/HTTP_PROXY for that session.
  *
  * "Different clients support different launch methods": Claude/Codex/Kiro/Cursor
- * have both a desktop app and a CLI; Gemini/Qwen/Goose/OpenCode are CLI-only.
+ * have both a desktop app and a CLI; Antigravity/Qwen/Goose/OpenCode are CLI-only.
  * `listLaunchTargets()` returns exactly the methods each installed client has so
  * a launcher UI can render only the real buttons.
  */
