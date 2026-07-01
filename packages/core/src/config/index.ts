@@ -43,6 +43,10 @@ export interface ClihubConfig {
   quickLaunchProxy?: string;
   /** Anonymous usage telemetry — never on by default. */
   telemetry?: boolean;
+  /** Tool ids opted in to quota-exhaustion notifications. Off by default;
+   * per-tool opt-in mirrors the most conservative ccswitch-family policy —
+   * notification only, never an automatic credential swap. */
+  quotaAlerts?: string[];
   /** Override DEFAULT_CATALOG_URL. */
   catalogMirror?: string;
 }

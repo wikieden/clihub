@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { parseCodexWindows, codexPlanLabel } from '../src/quota/codex.js';
 import { parseClaudeOAuthWindows } from '../src/quota/claude.js';
-import { collectQuota } from '../src/quota/index.js';
+import { collectQuota, alertsFromSnapshots, checkQuotaAlerts } from '../src/quota/index.js';
 
 // A trimmed wham/usage payload shaped like ChatGPT's real backend response:
 // `reset_at` is epoch SECONDS (not an ISO string), and `reset_after_seconds`
@@ -128,5 +128,49 @@ describe('collectQuota fault isolation', () => {
     const snap = res.snapshots[0]!;
     expect(snap.tool).toBe('codex');
     if (!snap.supported) expect(typeof snap.error).toBe('string');
+  });
+});
+
+describe('quota alerts (Symbioose-style: opt-in, fires at 0% left, notify only)', () => {
+  const exhausted = {
+    tool: 'codex',
+    label: 'Codex',
+    supported: true as const,
+    windows: [{ id: 'session', label: 'Session', usedPercent: 100, remainingPercent: 0 }],
+    updatedAt: '2026-01-01T00:00:00Z',
+  };
+  const healthy = {
+    tool: 'claude-code',
+    label: 'Claude',
+    supported: true as const,
+    windows: [{ id: 'session', label: 'Session', usedPercent: 40, remainingPercent: 60 }],
+    updatedAt: '2026-01-01T00:00:00Z',
+  };
+
+  test('fires only for windows at 0% left, not for windows with headroom', () => {
+    const alerts = alertsFromSnapshots([exhausted, healthy], 0);
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]!.tool).toBe('codex');
+    expect(alerts[0]!.key).toBe('codex:session');
+    expect(alerts[0]!.message).not.toContain('other profile');
+  });
+
+  test('unsupported snapshots never alert', () => {
+    const alerts = alertsFromSnapshots(
+      [{ tool: 'cursor', label: 'Cursor', supported: false, windows: [], updatedAt: '2026-01-01T00:00:00Z' }],
+      0,
+    );
+    expect(alerts).toEqual([]);
+  });
+
+  test('suggests switching profiles when others exist', () => {
+    const alerts = alertsFromSnapshots([exhausted], 2);
+    expect(alerts[0]!.message).toContain('2 other profiles');
+    expect(alerts[0]!.message).toContain('clihub profile use');
+  });
+
+  test('checkQuotaAlerts short-circuits (no fetch, no throw) when nothing is opted in', async () => {
+    const alerts = await checkQuotaAlerts([]);
+    expect(alerts).toEqual([]);
   });
 });

@@ -106,6 +106,10 @@
   let health = $state<HealthRow[]>([]);
   let usage = $state<UsageRow[]>([]);
   let quota = $state<QuotaSnapshot[]>([]);
+  let quotaAlertsEnabled = $state<string[]>([]);
+  // Keys of alerts already surfaced this "exhausted streak" — cleared once a
+  // window recovers, so re-exhausting later notifies again.
+  let seenAlertKeys = new Set<string>();
   let proxySystem = $state<Partial<SystemProxyRow>>({});
   let proxyTools = $state<ProxyToolRow[]>([]);
   let targets = $state<Target[]>([]);
@@ -200,8 +204,48 @@
     }
   }
 
+  // Quota-exhaustion alerts — opt-in, off by default (Symbioose-style: fires
+  // only at 0% left, notification only, never an automatic credential swap).
+  // Polls while this window exists (it stays alive hidden, so this keeps
+  // running even when the popover isn't shown).
+  async function checkAlerts() {
+    try {
+      const res = await client.get<{ enabled: string[]; alerts: { key: string; message: string }[] }>(
+        '/v1/quota/alerts',
+      );
+      quotaAlertsEnabled = res.enabled;
+      if (res.enabled.length === 0) return;
+      const nowKeys = new Set(res.alerts.map((a) => a.key));
+      for (const a of res.alerts) {
+        if (seenAlertKeys.has(a.key)) continue;
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          new Notification('clihub — quota limit reached', { body: a.message });
+        }
+      }
+      seenAlertKeys = nowKeys; // recovered windows drop out, so re-exhausting re-notifies
+    } catch {
+      /* alerts are best-effort */
+    }
+  }
+
+  async function toggleQuotaAlert(tool: string) {
+    const enabled = !quotaAlertsEnabled.includes(tool);
+    if (enabled && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+    try {
+      const res = await client.post<{ enabled: string[] }>('/v1/quota/alerts', { tool, enabled });
+      quotaAlertsEnabled = res.enabled;
+    } catch {
+      /* non-fatal */
+    }
+  }
+
   $effect(() => {
     load();
+    checkAlerts();
+    const id = setInterval(checkAlerts, 5 * 60 * 1000);
+    return () => clearInterval(id);
   });
 
   // Persist the quick-launch proxy so it's remembered next session.
@@ -424,6 +468,10 @@
           {/if}
           {#if q.windows.length > 0}
             <p class="hint">Live from {q.label}'s own limits — reuses its sign-in, no extra login.</p>
+            <button class="row click alert-toggle" onclick={() => toggleQuotaAlert(q.tool)}>
+              <span class="nm">Notify at 0% left</span>
+              <span class="meta mono">{quotaAlertsEnabled.includes(q.tool) ? 'on' : 'off'}</span>
+            </button>
           {:else if q.error}
             <p class="dim small">{q.error}</p>
           {/if}
@@ -657,6 +705,10 @@
   }
   .qcredit {
     margin-top: 0.35rem;
+  }
+  .alert-toggle {
+    margin-top: 0.35rem;
+    width: 100%;
   }
   /* Overview rollup: tiny stacked window bars per provider */
   .qrow .nm {

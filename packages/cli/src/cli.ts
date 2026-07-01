@@ -2012,6 +2012,42 @@ cli
     info('live from each provider\'s own limits endpoint — reuses the CLI\'s existing sign-in.');
   });
 
+// ─── quota-alerts (opt-in exhaustion notifications) ───────────────────
+cli
+  .command(
+    'quota-alerts [action] [tool]',
+    'Opt-in quota-exhaustion notifications (list | on <tool> | off <tool>) — off by default, fires only at 0% left, never auto-switches credentials',
+  )
+  .action(async (action: string | undefined, tool: string | undefined) => {
+    const { loadConfig, setConfigKey, quotaFetchers, checkQuotaAlerts } = await import('@clihub/core');
+    const known = quotaFetchers().map((f) => f.tool);
+    if (!action || action === 'list') {
+      const cfg = await loadConfig();
+      const enabled = new Set(cfg.quotaAlerts ?? []);
+      for (const id of known) {
+        console.log(`  ${enabled.has(id) ? kleur.green('✓ on ') : kleur.dim('✗ off')}  ${id}`);
+      }
+      if (enabled.size > 0) {
+        const alerts = await checkQuotaAlerts([...enabled]);
+        for (const a of alerts) console.log(`  ${kleur.yellow('⚠')}  ${a.message}`);
+      }
+      info('off by default — notification only, never swaps credentials automatically.');
+      return;
+    }
+    if (action === 'on' || action === 'off') {
+      if (!tool) { console.error(kleur.red('usage: clihub quota-alerts on|off <tool>')); process.exit(1); }
+      if (!known.includes(tool)) { console.error(kleur.red(`unknown tool: ${tool} (known: ${known.join(', ')})`)); process.exit(1); }
+      const cfg = await loadConfig();
+      const set = new Set(cfg.quotaAlerts ?? []);
+      if (action === 'on') set.add(tool); else set.delete(tool);
+      await setConfigKey('quotaAlerts', [...set].sort());
+      ok(`${tool}: alerts ${action}`);
+      return;
+    }
+    console.error(kleur.red(`unknown action: ${action} (list | on <tool> | off <tool>)`));
+    process.exit(1);
+  });
+
 // ─── endpoint (LLM API endpoint presets) ──────────────────────────────
 cli
   .command('endpoint [action] [id]', 'LLM API endpoint presets (list | current | use <id>)')

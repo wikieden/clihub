@@ -371,12 +371,14 @@ export {
 export {
   collectQuota,
   quotaFetchers,
+  checkQuotaAlerts,
   type QuotaSnapshot,
   type QuotaWindow,
   type QuotaCredits,
   type QuotaOptions,
   type QuotaResult,
   type QuotaFetcher,
+  type QuotaAlert,
 } from './quota/index.js';
 export {
   collectBundle,

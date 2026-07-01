@@ -42,6 +42,7 @@ import {
   setConfigKey,
   collectUsage,
   collectQuota,
+  checkQuotaAlerts,
   formatErrorMessage,
   readBindings,
   useBinding,
@@ -261,6 +262,33 @@ export const ROUTES: Record<string, RouteHandler> = {
     const toolsParam = new URL(req.url).searchParams.get('tools');
     const tools = toolsParam ? toolsParam.split(',').filter(Boolean) : undefined;
     return collectQuota({ tools });
+  },
+
+  // Quota-exhaustion alerts (opt-in, off by default — Symbioose-style: fires
+  // only at 0% left, never an automatic credential swap). Returns which
+  // tools are opted in AND runs the check in one call so the GUI/TUI don't
+  // need a second round-trip. Mirrors `clihub quota alerts`.
+  'GET /v1/quota/alerts': async () => {
+    const cfg = await loadConfig().catch(() => ({}) as Awaited<ReturnType<typeof loadConfig>>);
+    const enabled = cfg.quotaAlerts ?? [];
+    const alerts = await checkQuotaAlerts(enabled);
+    return { enabled, alerts };
+  },
+
+  // Toggle one tool's alert opt-in. Body: { tool, enabled }.
+  'POST /v1/quota/alerts': async (_ctx, req) => {
+    const body = await readJson(req);
+    const tool = optString(body, 'tool')?.trim();
+    if (!tool) throw new HttpError(400, 'field "tool" is required');
+    const enabled = Boolean((body as Record<string, unknown>).enabled);
+    const cfg = await loadConfig().catch(() => ({}) as Awaited<ReturnType<typeof loadConfig>>);
+    const set = new Set(cfg.quotaAlerts ?? []);
+    if (enabled) set.add(tool);
+    else set.delete(tool);
+    const list = [...set].sort();
+    await setConfigKey('quotaAlerts', list);
+    audit('quotaAlerts.set', { tool, enabled });
+    return { enabled: list };
   },
 
   // The raw clihub.yaml for the editor panel (same discovery as `clihub status`).

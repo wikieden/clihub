@@ -564,6 +564,7 @@ async function crossMenu(): Promise<void> {
         { value: 'tools.status', label: 'List status of every CLI' },
         { value: 'usage', label: 'Token usage rollup across CLIs' },
         { value: 'quota', label: `Live rate-limit rollup  ${kleur.dim('(session/weekly, plan, reset credits)')}` },
+        { value: 'quota.alerts', label: `Quota alerts  ${kleur.dim('(opt-in, off by default, fires at 0% left)')}` },
         { value: 'sepE', label: kleur.dim('───────── Endpoints (per-CLI binding)'), hint: '' },
         { value: 'use.bind', label: `Bind endpoint → CLI(s)  ${kleur.dim('(clihub use)')}` },
         { value: 'use.current', label: 'Show current bindings' },
@@ -674,6 +675,28 @@ async function handleCrossAction(action: string): Promise<void> {
       lines.push(kleur.dim("live from each provider's own limits endpoint — reuses the CLI's existing sign-in."));
       note(lines.join('\n'), 'Rate-limit rollup');
       return;
+    }
+    case 'quota.alerts': {
+      const { loadConfig, setConfigKey, quotaFetchers } = await import('@clihub/core');
+      const known = quotaFetchers().map((f) => f.tool);
+      while (true) {
+        const cfg = await loadConfig();
+        const enabled = new Set(cfg.quotaAlerts ?? []);
+        const choice = (await select({
+          message: 'Quota alerts — off by default, fires only at 0% left, never auto-switches (ESC = back)',
+          options: [
+            ...known.map((id) => ({
+              value: id,
+              label: `${enabled.has(id) ? kleur.green('✓ on ') : kleur.dim('✗ off')}  ${id}`,
+            })),
+            { value: BACK, label: '← Back' },
+          ],
+        })) as string | symbol;
+        if (isCancel(choice) || choice === BACK) return;
+        if (enabled.has(choice as string)) enabled.delete(choice as string);
+        else enabled.add(choice as string);
+        await setConfigKey('quotaAlerts', [...enabled].sort());
+      }
     }
   }
 }

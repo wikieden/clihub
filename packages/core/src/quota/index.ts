@@ -13,6 +13,8 @@ import { codexQuotaFetcher } from './codex.js';
 import { claudeQuotaFetcher } from './claude.js';
 import { antigravityQuotaFetcher } from './antigravity.js';
 import { cursorQuotaFetcher } from './cursor.js';
+
+export { checkQuotaAlerts, alertsFromSnapshots, type QuotaAlert } from './alerts.js';
 import {
   type QuotaFetcher,
   type QuotaOptions,
