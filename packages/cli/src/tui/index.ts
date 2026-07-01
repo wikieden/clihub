@@ -566,6 +566,9 @@ async function crossMenu(): Promise<void> {
         { value: 'quota', label: `Live rate-limit rollup  ${kleur.dim('(session/weekly, plan, reset credits)')}` },
         { value: 'quota.alerts', label: `Quota alerts  ${kleur.dim('(opt-in, off by default, fires at 0% left)')}` },
         { value: 'auth.status', label: `Credential status  ${kleur.dim('(which CLIs are logged in, token expiry)')}` },
+        { value: 'memory.sync', label: `Memory sync  ${kleur.dim('(clihub.memory.md → every CLI, plan + confirm)')}` },
+        { value: 'prompt.sync', label: `System-prompt sync  ${kleur.dim('(clihub.systemprompt.md → every CLI)')}` },
+        { value: 'team.list', label: `Team remotes  ${kleur.dim('(git-backed shared config)')}` },
         { value: 'sepE', label: kleur.dim('───────── Endpoints (per-CLI binding)'), hint: '' },
         { value: 'use.bind', label: `Bind endpoint → CLI(s)  ${kleur.dim('(clihub use)')}` },
         { value: 'use.current', label: 'Show current bindings' },
@@ -718,6 +721,74 @@ async function handleCrossAction(action: string): Promise<void> {
       }
       lines.push(kleur.dim('best-effort read of each CLI\'s credential file; "no file" ≠ logged out.'));
       note(lines.join('\n'), 'Credential status');
+      return;
+    }
+    case 'memory.sync': {
+      const { resolveMemorySource, planMemory, generateMemory } = await import('@clihub/core');
+      const src = await resolveMemorySource(process.cwd());
+      if (!src) {
+        log.warn('no memory source found (looked for clihub.memory.md, AGENTS.md, CLAUDE.md).');
+        log.message('create clihub.memory.md with your shared agent instructions, then re-run.');
+        return;
+      }
+      const plan = await planMemory(src.body, { scope: 'project' });
+      const lines = plan.map((it) => {
+        const mark = it.verb === 'create' ? kleur.green('+') : it.verb === 'update' ? kleur.yellow('~') : it.verb === 'skip' ? kleur.dim('·') : kleur.dim('=');
+        return `${mark} ${it.label} ${kleur.dim(it.path)}${it.detail ? kleur.dim(`  (${it.detail})`) : ''}`;
+      });
+      const drift = plan.filter((i) => i.verb === 'create' || i.verb === 'update').length;
+      note(`${lines.join('\n')}\n\n${kleur.dim(`source: ${src.file}`)}`, 'Memory sync plan');
+      if (drift === 0) {
+        log.info('everything is already current.');
+        return;
+      }
+      const go = await confirm({ message: `Write ${drift} file(s) now?` });
+      if (isCancel(go) || !go) return;
+      const result = await generateMemory(src.body, { scope: 'project' });
+      for (const w of result.written) {
+        if (w.verb === 'skip') continue;
+        log.success(`${w.label} ${w.path}${w.verb === 'unchanged' ? ' (unchanged)' : ''}`);
+      }
+      for (const f of result.failed) log.error(`${f.tool} ${f.path}: ${f.error}`);
+      return;
+    }
+    case 'prompt.sync': {
+      const { resolvePromptSource, planSysprompt, generateSysprompt } = await import('@clihub/core');
+      const src = await resolvePromptSource(process.cwd());
+      if (!src) {
+        log.warn('no system-prompt source found (looked for clihub.systemprompt.md).');
+        log.message('create clihub.systemprompt.md with your system prompt / persona, then re-run.');
+        return;
+      }
+      const plan = await planSysprompt(src.body, { scope: 'project' });
+      const lines = plan.map((it) => {
+        const mark = it.verb === 'create' ? kleur.green('+') : it.verb === 'update' ? kleur.yellow('~') : it.verb === 'skip' ? kleur.dim('·') : kleur.dim('=');
+        return `${mark} ${it.label} ${kleur.dim(it.path)}${it.detail ? kleur.dim(`  (${it.detail})`) : ''}`;
+      });
+      const drift = plan.filter((i) => i.verb === 'create' || i.verb === 'update').length;
+      note(`${lines.join('\n')}\n\n${kleur.dim(`source: ${src.file}`)}`, 'System-prompt sync plan');
+      if (drift === 0) {
+        log.info('everything is already current.');
+        return;
+      }
+      const go = await confirm({ message: `Write ${drift} file(s) now?` });
+      if (isCancel(go) || !go) return;
+      const result = await generateSysprompt(src.body, { scope: 'project' });
+      for (const w of result.written) {
+        if (w.verb === 'skip') continue;
+        log.success(`${w.label} ${w.path}${w.verb === 'unchanged' ? ' (unchanged)' : ''}`);
+      }
+      for (const f of result.failed) log.error(`${f.tool} ${f.path}: ${f.error}`);
+      return;
+    }
+    case 'team.list': {
+      const { listTeams } = await import('@clihub/core');
+      const teams = await listTeams();
+      if (teams.length === 0) {
+        log.info('no team remotes configured. Use `clihub team add <name> <git-url>` to add one.');
+        return;
+      }
+      note(teams.map((t) => `• ${t}`).join('\n'), 'Team remotes');
       return;
     }
   }
