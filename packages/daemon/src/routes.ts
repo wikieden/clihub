@@ -44,6 +44,12 @@ import {
   collectQuota,
   checkQuotaAlerts,
   inspectCredentials,
+  resolveMemorySource,
+  planMemory,
+  generateMemory,
+  resolvePromptSource,
+  planSysprompt,
+  generateSysprompt,
   formatErrorMessage,
   readBindings,
   useBinding,
@@ -295,6 +301,58 @@ export const ROUTES: Record<string, RouteHandler> = {
     await setConfigKey('quotaAlerts', list);
     audit('quotaAlerts.set', { tool, enabled });
     return { enabled: list };
+  },
+
+  // Cross-CLI memory sync — read-only plan (which files are out of date).
+  // Mirrors `clihub memory plan`. `dir` (default cwd) is where clihub.memory.md
+  // / AGENTS.md / CLAUDE.md is looked up; scope defaults to project.
+  'GET /v1/memory': async (_ctx, req) => {
+    const url = new URL(req.url);
+    const dir = url.searchParams.get('dir') ?? undefined;
+    if (dir && !path.isAbsolute(dir)) throw new HttpError(400, 'query "dir" must be an absolute path');
+    const scope = url.searchParams.get('scope') === 'user' ? 'user' : 'project';
+    const src = await resolveMemorySource(dir);
+    if (!src) return { file: null, plan: [] };
+    const plan = await planMemory(src.body, { scope, cwd: dir });
+    return { file: src.file, plan };
+  },
+
+  // Write the memory sync now. Body: { dir?, scope? }. Mirrors `clihub memory generate`.
+  'POST /v1/memory/generate': async (_ctx, req) => {
+    const body = await readJson(req);
+    const dir = optString(body, 'dir');
+    if (dir && !path.isAbsolute(dir)) throw new HttpError(400, 'field "dir" must be an absolute path');
+    const scope = optString(body, 'scope') === 'user' ? 'user' : 'project';
+    const src = await resolveMemorySource(dir);
+    if (!src) throw new HttpError(400, 'no memory source found (clihub.memory.md, AGENTS.md, CLAUDE.md)');
+    const result = await generateMemory(src.body, { scope, cwd: dir });
+    audit('memory.generate', { dir: dir ?? null, scope });
+    return result;
+  },
+
+  // Cross-CLI system-prompt sync — same shape as /v1/memory, a separate
+  // managed block in the same instruction files. Mirrors `clihub prompt plan`.
+  'GET /v1/prompt': async (_ctx, req) => {
+    const url = new URL(req.url);
+    const dir = url.searchParams.get('dir') ?? undefined;
+    if (dir && !path.isAbsolute(dir)) throw new HttpError(400, 'query "dir" must be an absolute path');
+    const scope = url.searchParams.get('scope') === 'user' ? 'user' : 'project';
+    const src = await resolvePromptSource(dir);
+    if (!src) return { file: null, plan: [] };
+    const plan = await planSysprompt(src.body, { scope, cwd: dir });
+    return { file: src.file, plan };
+  },
+
+  'POST /v1/prompt/generate': async (_ctx, req) => {
+    const body = await readJson(req);
+    const dir = optString(body, 'dir');
+    if (dir && !path.isAbsolute(dir)) throw new HttpError(400, 'field "dir" must be an absolute path');
+    const scope = optString(body, 'scope') === 'user' ? 'user' : 'project';
+    const src = await resolvePromptSource(dir);
+    if (!src) throw new HttpError(400, 'no system-prompt source found (clihub.systemprompt.md)');
+    const result = await generateSysprompt(src.body, { scope, cwd: dir });
+    audit('prompt.generate', { dir: dir ?? null, scope });
+    return result;
   },
 
   // The raw clihub.yaml for the editor panel (same discovery as `clihub status`).

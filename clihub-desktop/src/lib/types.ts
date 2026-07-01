@@ -224,3 +224,22 @@ export interface CredentialRow {
   expiresAt?: string;
   expired?: boolean;
 }
+
+/** Shared shape for GET /v1/memory and GET /v1/prompt (cross-CLI block sync). */
+export interface SyncPlanItem {
+  tool: string;
+  label: string;
+  path: string;
+  verb: 'create' | 'update' | 'unchanged' | 'skip';
+  detail?: string;
+}
+
+export interface SyncPlanResponse {
+  file: string | null;
+  plan: SyncPlanItem[];
+}
+
+export interface SyncGenerateResult {
+  written: SyncPlanItem[];
+  failed: Array<{ tool: string; path: string; error: string }>;
+}
