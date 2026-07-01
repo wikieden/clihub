@@ -1,6 +1,6 @@
 <script lang="ts">
   import { DaemonClient } from '../lib/daemon';
-  import type { BindingsResponse, CliBindingRow, DoctorResponse, HealthRow } from '../lib/types';
+  import type { BindingsResponse, CliBindingRow, DoctorResponse, HealthRow, NetworkProbeRow } from '../lib/types';
 
   const client = new DaemonClient();
 
@@ -8,6 +8,24 @@
   let bindings = $state<Record<string, CliBindingRow>>({});
   let error = $state<string | null>(null);
   let loading = $state(true);
+
+  // On-demand only — this hits every installed CLI's vendor API for real, so
+  // it must never run automatically alongside the health matrix above.
+  let probes = $state<NetworkProbeRow[] | null>(null);
+  let probing = $state(false);
+  let probeError = $state<string | null>(null);
+
+  async function checkNetwork() {
+    probing = true;
+    probeError = null;
+    try {
+      probes = (await client.get<{ probes: NetworkProbeRow[] }>('/v1/doctor/network')).probes;
+    } catch (e: unknown) {
+      probeError = e instanceof Error ? e.message : String(e);
+    } finally {
+      probing = false;
+    }
+  }
 
   // Doctor rows use tool-provider ids; bindings use binding CLI ids.
   const BINDING_ID: Record<string, string> = { 'kiro-cli': 'kiro' };
@@ -73,6 +91,40 @@
         {/each}
       </tbody>
     </table>
+
+    <div class="network">
+      <button onclick={checkNetwork} disabled={probing}>
+        {probing ? 'Probing…' : 'Check vendor API reachability'}
+      </button>
+      {#if probeError}<p class="error">{probeError}</p>{/if}
+      {#if probes}
+        {#if probes.length === 0}
+          <p class="muted small">No installed CLI has a known vendor API host to probe.</p>
+        {:else}
+          <table>
+            <thead><tr><th>CLI</th><th>Host</th><th>Proxy</th><th>Status</th></tr></thead>
+            <tbody>
+              {#each probes as p (p.toolId)}
+                <tr>
+                  <td>{p.toolId}</td>
+                  <td class="mono small">{p.host}</td>
+                  <td class="mono small">{p.proxy ?? '—'}</td>
+                  <td>
+                    {#if p.error}
+                      <span class="bad">✗ {p.error}</span>
+                    {:else}
+                      <span class:bad={p.status !== undefined && p.status >= 500}>
+                        {p.status} · {p.latencyMs}ms
+                      </span>
+                    {/if}
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        {/if}
+      {/if}
+    </div>
   {/if}
 </section>
 
@@ -84,5 +136,23 @@
     font-family: var(--mono);
     font-size: 0.8rem;
     color: var(--accent-bright);
+  }
+  .network {
+    margin-top: 1rem;
+  }
+  .network table {
+    margin-top: 0.5rem;
+  }
+  .bad {
+    color: var(--err);
+  }
+  .muted {
+    color: var(--text-dim);
+  }
+  .small {
+    font-size: 0.8rem;
+  }
+  .mono {
+    font-family: var(--mono);
   }
 </style>

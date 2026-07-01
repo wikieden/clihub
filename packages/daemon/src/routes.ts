@@ -44,6 +44,7 @@ import {
   collectQuota,
   checkQuotaAlerts,
   inspectCredentials,
+  probeNetwork,
   resolveMemorySource,
   planMemory,
   generateMemory,
@@ -150,6 +151,10 @@ export const ROUTES: Record<string, RouteHandler> = {
   // ── reads ────────────────────────────────────────────────────────────────
   'GET /healthz': async (ctx) => ({ ok: true, name: 'clihub-daemon', version: ctx.version }),
   'GET /v1/doctor': async () => ({ tools: await runHealthMatrix() }),
+  // Vendor API reachability probe (mirrors `clihub doctor --check-network`).
+  // Opt-in / on-demand only — never run automatically alongside /v1/doctor,
+  // since it makes a real outbound request per installed CLI's vendor host.
+  'GET /v1/doctor/network': async () => ({ probes: await probeNetwork() }),
   'GET /v1/endpoints': async () => ({ endpoints: await listEndpoints() }),
   'GET /v1/providers': async () => ({ providers: listProviders().map(projectProvider) }),
   'GET /v1/mcp': async () => ({ servers: await listMcp({ all: true }) }),

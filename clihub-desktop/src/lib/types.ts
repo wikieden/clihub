@@ -243,3 +243,14 @@ export interface SyncGenerateResult {
   written: SyncPlanItem[];
   failed: Array<{ tool: string; path: string; error: string }>;
 }
+
+/** GET /v1/doctor/network — on-demand vendor API reachability probe
+ * (mirrors `clihub doctor --check-network`). Never run automatically. */
+export interface NetworkProbeRow {
+  toolId: string;
+  host: string;
+  proxy?: string;
+  status?: number;
+  latencyMs?: number;
+  error?: string;
+}

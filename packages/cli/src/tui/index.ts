@@ -561,6 +561,7 @@ async function crossMenu(): Promise<void> {
         { value: 'preset.apply', label: 'Apply a preset (install tools + fan out skills)' },
         { value: 'skill.fanout', label: 'Install a skill into every supported installed CLI' },
         { value: 'doctor.all', label: 'Run doctor across every CLI' },
+        { value: 'doctor.network', label: `Probe vendor API reachability  ${kleur.dim('(latency, through your proxy)')}` },
         { value: 'tools.status', label: 'List status of every CLI' },
         { value: 'usage', label: 'Token usage rollup across CLIs' },
         { value: 'quota', label: `Live rate-limit rollup  ${kleur.dim('(session/weekly, plan, reset credits)')}` },
@@ -627,6 +628,22 @@ async function handleCrossAction(action: string): Promise<void> {
           for (const i of r.issues) log.message(`  - ${i}`);
         }
       }
+      return;
+    }
+    case 'doctor.network': {
+      const { probeNetwork } = await import('@clihub/core');
+      const probes = await probeNetwork();
+      if (probes.length === 0) {
+        note('No installed CLI has a known vendor API host to probe.', 'Network');
+        return;
+      }
+      const lines = probes.map((p) => {
+        const proxy = p.proxy ? kleur.dim(`  via ${p.proxy}`) : '';
+        if (p.error) return `${kleur.red('✗')} ${p.toolId}  ${kleur.dim(p.host)}${proxy}  ${kleur.red(p.error)}`;
+        const ok = p.status !== undefined && p.status < 500;
+        return `${ok ? kleur.green('✓') : kleur.yellow('!')} ${p.toolId}  ${kleur.dim(p.host)}${proxy}  ${p.status} · ${p.latencyMs}ms`;
+      });
+      note(lines.join('\n'), 'Vendor API reachability');
       return;
     }
     case 'tools.status': {
