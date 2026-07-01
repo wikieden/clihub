@@ -173,4 +173,26 @@ describe('quota alerts (Symbioose-style: opt-in, fires at 0% left, notify only)'
     const alerts = await checkQuotaAlerts([]);
     expect(alerts).toEqual([]);
   });
+
+  test('names a specific codex profile with headroom instead of the generic count', () => {
+    const alerts = alertsFromSnapshots([exhausted], 3, [
+      { profile: 'work', remainingPercent: 0 },
+      { profile: 'personal', remainingPercent: 80 },
+    ]);
+    expect(alerts[0]!.message).toContain('"personal" has 80% left');
+    expect(alerts[0]!.message).toContain('clihub profile use personal');
+    expect(alerts[0]!.message).not.toContain('3 other profiles');
+  });
+
+  test('falls back to the generic profile count when no scanned profile has headroom', () => {
+    const alerts = alertsFromSnapshots([exhausted], 2, [{ profile: 'work', remainingPercent: 0 }]);
+    expect(alerts[0]!.message).toContain('2 other profiles');
+  });
+
+  test('non-codex tools ignore codexHeadroom entirely', () => {
+    const claudeExhausted = { ...healthy, windows: [{ id: 'session', label: 'Session', usedPercent: 100, remainingPercent: 0 }] };
+    const alerts = alertsFromSnapshots([claudeExhausted], 1, [{ profile: 'work', remainingPercent: 90 }]);
+    expect(alerts[0]!.message).toContain('1 other profile');
+    expect(alerts[0]!.message).not.toContain('"work"');
+  });
 });

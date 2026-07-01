@@ -70,9 +70,9 @@ interface ResetCreditsResponse {
   available_count?: number;
 }
 
-async function readAuth(): Promise<CodexAuth | undefined> {
+async function readAuth(authPath: string = AUTH_PATH): Promise<CodexAuth | undefined> {
   try {
-    const raw = JSON.parse(await fs.readFile(AUTH_PATH, 'utf8'));
+    const raw = JSON.parse(await fs.readFile(authPath, 'utf8'));
     const t = raw?.tokens ?? {};
     const accessToken = t.access_token ?? t.accessToken;
     if (!accessToken) return undefined;
@@ -207,12 +207,19 @@ async function ensureFreshToken(
   }
 }
 
-export const codexQuotaFetcher: QuotaFetcher = {
-  tool: 'codex',
-  label: 'Codex',
-
-  async fetch(opts: QuotaOptions): Promise<QuotaSnapshot> {
-    const auth = await readAuth();
+/**
+ * Fetch Codex quota from an arbitrary auth.json path — the shared engine
+ * behind both the registered fetcher (default `~/.codex/auth.json`) and
+ * cross-profile scanning (`~/.clihub/profiles/<name>/.codex/auth.json`),
+ * so a stored-but-inactive profile's headroom can be checked without
+ * swapping the live symlink.
+ */
+export async function fetchCodexQuotaFrom(
+  authPath: string,
+  opts: QuotaOptions = {},
+): Promise<QuotaSnapshot> {
+  {
+    const auth = await readAuth(authPath);
     if (!auth) {
       return quotaUnavailable(
         'codex',
@@ -297,7 +304,13 @@ export const codexQuotaFetcher: QuotaFetcher = {
       source: 'codex-oauth',
       updatedAt: new Date().toISOString(),
     };
-  },
+  }
+}
+
+export const codexQuotaFetcher: QuotaFetcher = {
+  tool: 'codex',
+  label: 'Codex',
+  fetch: (opts: QuotaOptions) => fetchCodexQuotaFrom(AUTH_PATH, opts),
 };
 
 function slug(s: string): string {

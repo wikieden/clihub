@@ -9,12 +9,13 @@
  * Implemented: Codex (HTTP), Claude (CLI /usage). Others are added one fetcher
  * at a time; until then they simply don't appear in the registry.
  */
-import { codexQuotaFetcher } from './codex.js';
+import { codexQuotaFetcher, fetchCodexQuotaFrom } from './codex.js';
 import { claudeQuotaFetcher } from './claude.js';
 import { antigravityQuotaFetcher } from './antigravity.js';
 import { cursorQuotaFetcher } from './cursor.js';
 
-export { checkQuotaAlerts, alertsFromSnapshots, type QuotaAlert } from './alerts.js';
+export { checkQuotaAlerts, alertsFromSnapshots, scanCodexProfiles, type QuotaAlert, type ProfileHeadroom } from './alerts.js';
+export { fetchCodexQuotaFrom };
 import {
   type QuotaFetcher,
   type QuotaOptions,
