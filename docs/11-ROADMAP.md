@@ -6,14 +6,25 @@
 
 Status anchors: ✅ shipped · 🚧 in progress · 📋 planned
 
-**Current: `@wikieden/clihub@1.50.0` — stable.** Frozen surface: `clihub.yaml`
+**Current: `@wikieden/clihub@1.74.0` — stable.** Frozen surface: `clihub.yaml`
 schema v1, `clihub.lock.json` v1, the `@clihub/core` public API, and the
 `clihub` CLI command set. Since v1.21 the line has grown coverage +
 correctness (full per-release history in [`../CHANGELOG.md`](../CHANGELOG.md)):
-Qwen Code as the **7th CLI** (v1.44) with full parity, Codex MCP via a TOML
-adapter (v1.46), and Cursor + Goose skill adapters (v1.50) — 6 of 7 CLIs now
-have skill sync. Unified MCP management spans Claude / Gemini / Qwen (JSON) +
+Qwen Code (v1.44) then **OpenCode as the 8th CLI** (v1.65); **Antigravity (`agy`)
+replaced Gemini** as the Google surface; **per-CLI provider binding**
+(`clihub use/model`, v1.65) writing each CLI's native idiom; **Phase-1b** prompt /
+usage / cloud-sync / self-update / lockfile prompt-gate (v1.60); and the **desktop
+GUI control plane** — two-window menubar app, desktop-app proxy launcher
+(Claude/Codex/Kiro + Chrome/Edge/Brave), per-surface usage rollup, and auto-update
+(v1.69–1.74). Unified MCP management spans Claude / Qwen / OpenCode (JSON) +
 Codex (TOML).
+
+> **Doc-sync note (2026-06-29).** Code is at v1.74; the PIVOT phase table below is
+> kept as the original plan with **actual shipped versions annotated** — P1a/P1b
+> shipped, and **P3 (GUI) advanced ahead of P2 (gateway)**, which is still behind
+> the P2 GATE (no `@clihub/gateway` package yet; `@clihub/daemon` exists only as the
+> GUI sidecar). `CHANGELOG.md` top entry (v1.65) also trails the v1.66–1.74 release
+> commits — backfill pending.
 
 ## Released
 
@@ -225,14 +236,35 @@ routing topology is **pinned + signed + CI-drift-gated**. See
 | Phase | Versions | Scope | Headless? | Effort |
 |---|---|---|---|---|
 | **P0** (now) | docs | reframe VISION/COMPETITIVE non-goals to *hosted/multi-tenant only*; write the gateway threat model **first** as a design constraint | docs | S ✅ landing |
-| **P1a** | v1.51–1.54 | signed `providers.json` preset catalog (50+); **1-click `provider switch`** (anthropic/openai/google only — others need new injectors); deep-link `import` (clihub:// + best-effort ccswitch://); **bidirectional MCP reconcile** (read-back + 3-way merge, default `--union`) | **YES, fully** | M |
-| **P1b** | v1.55–1.60 | cross-CLI **system-prompt** mgmt; **cloud-folder sync** (iCloud/Dropbox/OneDrive/WebDAV) + `sync --watch` + redaction guard; `self-update` channel; **`clihub exec`** (ephemeral run-with-injected-context); **per-machine overlay** (`clihub.local.yaml` + `{{hostname}}`/`${VAR}` + extends/merge + team 3-way); usage = **tokens-only best-effort (never a $ figure)**; **provider pinned in `clihub.lock` + CI drift gate — the 1.60 headline.** CC Switch CONFIG PARITY declared | **YES** | M |
+| **P1a** ✅ shipped v1.61–1.65 | v1.51–1.54 | signed `providers.json` preset catalog (50+); **1-click `provider switch`** (anthropic/openai/google only — others need new injectors); deep-link `import` (clihub:// + best-effort ccswitch://); **bidirectional MCP reconcile** (read-back + 3-way merge, default `--union`) | **YES, fully** | M |
+| **P1b** ✅ shipped v1.60 | v1.55–1.60 | cross-CLI **system-prompt** mgmt; **cloud-folder sync** (iCloud/Dropbox/OneDrive/WebDAV) + `sync --watch` + redaction guard; `self-update` channel; **`clihub exec`** (ephemeral run-with-injected-context); **per-machine overlay** (`clihub.local.yaml` + `{{hostname}}`/`${VAR}` + extends/merge + team 3-way); usage = **tokens-only best-effort (never a $ figure)**; **provider pinned in `clihub.lock` + CI drift gate — the 1.60 headline.** CC Switch CONFIG PARITY declared | **YES** | M |
 | **P2 GATE** | decision | start the gateway **only** if P1 shows real adoption AND there is budget for a 3–4-month key-holding-daemon project incl. human-in-loop live-key testing. Else STOP — P1 is a complete, differentiated product | — | — |
-| **P2** | v1.61–1.66 | **gateway MVP**, separate `@clihub/gateway`, OFF by default, **pass-through only**: loopback bind + DNS-rebind/Host guard + 256-bit bearer on **every** endpoint + **mandatory keychain floor** (hard-refuse `file` backend) + **per-request key zeroize** + default-no-body-logging + **signed-host-pinset re-verified at start** + API-key-only pool + circuit-breaker. **Blocking external security review = the exit criterion** (never self-approved) | **partly** (live-key tests need humans) | **L (≈ a quarter)** |
+| **P2** ❌ not started (behind P2 GATE) | TBD | **gateway MVP**, separate `@clihub/gateway`, OFF by default, **pass-through only**: loopback bind + DNS-rebind/Host guard + 256-bit bearer on **every** endpoint + **mandatory keychain floor** (hard-refuse `file` backend) + **per-request key zeroize** + default-no-body-logging + **signed-host-pinset re-verified at start** + API-key-only pool + circuit-breaker. **Blocking external security review = the exit criterion** (never self-approved) | **partly** (live-key tests need humans) | **L (≈ a quarter)** |
 | **P2b** | post-review | account-pool selection, active health probes → doctor matrix, **`gateway:` block lockfile-pinned + CI-drift-gated** (the moat differentiator), rate-limit/drain, OS-service install. **No format conversion.** | partly | M |
-| **P3** | v2.0 | **native Tauri 2 desktop GUI** (owner decision) — thin shell over `@clihub/core` via a `@clihub/daemon` sidecar; lead panels = **drift / lockfile / gateway dashboard** (never a provider dropdown first); golden parity tests (GUI == CLI == kernel). Code-signing / notarization (Apple Developer ID + Windows EV) is a funded effort. **CLI/TUI stay co-equal, never the only entry point** | shell needs human QA | M (new toolchain) |
+| **P3** 🚧 shipping early v1.69–1.74 (ahead of P2) | v2.0 → pulled forward | **native Tauri 2 desktop GUI** (owner decision) — thin shell over `@clihub/core` via a `@clihub/daemon` sidecar; lead panels = **drift / lockfile / gateway dashboard** (never a provider dropdown first); golden parity tests (GUI == CLI == kernel). Code-signing / notarization (Apple Developer ID + Windows EV) is a funded effort. **CLI/TUI stay co-equal, never the only entry point** | shell needs human QA | M (new toolchain) |
 
 Ongoing alongside: grow catalog skills / MCP entries; newcomer-experience polish.
+
+### Planned — CN model breadth + ACP editor wiring 📋
+
+Full design + verified install/config details in [`27-CN-CLI-ACP-SUPPORT.md`](27-CN-CLI-ACP-SUPPORT.md).
+Extends the two existing seams (endpoint catalog + ToolProvider) to the domestic
+Chinese ecosystem, and adds a third surface — registering installed CLIs into
+editors (Zed / JetBrains) over **ACP (Agent Client Protocol)**.
+
+| Phase | Scope | Headless? | Effort |
+|---|---|---|---|
+| **CN-P1** | 4 endpoint rows in [`endpoints.json`](../packages/catalog/endpoints.json) — `glm` (z.ai), `moonshot` (Kimi), `minimax` + `minimax-cn` (anthropic+openai dialects) + auth-env wiring; refresh DeepSeek models. **Zero new code** — reuses the binding machinery so all 6 endpoint-capable CLIs can run CN models | **YES** | S |
+| **CN-P2** | **Kimi Code CLI** ToolProvider (`@moonshot-ai/kimi-code`, binary `kimi`, `~/.kimi-code/config.toml` TOML) + a TOML BindingAdapter so it is both a managed tool and an endpoint target | **YES** | M |
+| **CN-P3** | **ACP wiring** — per-provider `acp?: {command,args}` metadata + `clihub acp wire <tool> --editor zed` writes the editor `agent_servers` block. clihub's 8 providers are all in the 43-agent ACP registry; this covers GUI users without per-tool GUI providers | shell QA | M |
+| **CN-P4** | **Qoder CLI** ToolProvider (binary `qoder`, ACP `qoder acp`, `~/.qoder-cn/settings.json`, proprietary backend → model-only binding). Install command TBD | partly | M |
+| **CN-P5** (opt) | GLM Agent ACP entry / ZCode GUI provider | — | low pri |
+
+> **Scope note.** DeepSeek + MiniMax have no official CLI → endpoint-only. GLM has
+> no standalone CLI (ZCode is a GUI ADE) → endpoint-first. Only **Kimi** and **Qoder**
+> ship an official CLI binary worth a ToolProvider. ACP is the lever that turns
+> "install + switch" into "install + switch + one-click editor integration".
+> Verify-before-build checklist lives in doc 27 §6.
 
 ## Enterprise line (future spin-off)
 
