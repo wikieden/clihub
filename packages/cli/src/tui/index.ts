@@ -565,6 +565,7 @@ async function crossMenu(): Promise<void> {
         { value: 'usage', label: 'Token usage rollup across CLIs' },
         { value: 'quota', label: `Live rate-limit rollup  ${kleur.dim('(session/weekly, plan, reset credits)')}` },
         { value: 'quota.alerts', label: `Quota alerts  ${kleur.dim('(opt-in, off by default, fires at 0% left)')}` },
+        { value: 'auth.status', label: `Credential status  ${kleur.dim('(which CLIs are logged in, token expiry)')}` },
         { value: 'sepE', label: kleur.dim('───────── Endpoints (per-CLI binding)'), hint: '' },
         { value: 'use.bind', label: `Bind endpoint → CLI(s)  ${kleur.dim('(clihub use)')}` },
         { value: 'use.current', label: 'Show current bindings' },
@@ -697,6 +698,27 @@ async function handleCrossAction(action: string): Promise<void> {
         else enabled.add(choice as string);
         await setConfigKey('quotaAlerts', [...enabled].sort());
       }
+    }
+    case 'auth.status': {
+      const { inspectCredentials } = await import('@clihub/core');
+      const rows = await inspectCredentials();
+      const lines: string[] = [];
+      for (const r of rows) {
+        if (!r.found) {
+          lines.push(`${kleur.dim('·')} ${r.label} ${kleur.dim('— no credential file found')}`);
+          continue;
+        }
+        const mark = r.expired ? kleur.red('✗') : kleur.green('✓');
+        const exp = r.expiresAt
+          ? r.expired
+            ? kleur.red(`expired ${r.expiresAt}`)
+            : kleur.dim(`expires ${r.expiresAt}`)
+          : kleur.dim(`logged in (since ${r.modified})`);
+        lines.push(`${mark} ${r.label}  ${exp}`);
+      }
+      lines.push(kleur.dim('best-effort read of each CLI\'s credential file; "no file" ≠ logged out.'));
+      note(lines.join('\n'), 'Credential status');
+      return;
     }
   }
 }

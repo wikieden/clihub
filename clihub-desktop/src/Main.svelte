@@ -7,14 +7,15 @@
   import Profiles from './panels/Profiles.svelte';
   import Proxy from './panels/Proxy.svelte';
   import ProxyApps from './panels/ProxyApps.svelte';
+  import Auth from './panels/Auth.svelte';
   import Versions from './panels/Versions.svelte';
   import Yaml from './panels/Yaml.svelte';
   import SyncTeam from './panels/SyncTeam.svelte';
   import Launcher from './Launcher.svelte';
 
-  type Panel = 'dashboard' | 'drift' | 'endpoints' | 'mcp' | 'skills' | 'profiles' | 'proxy' | 'proxy-apps' | 'versions' | 'yaml' | 'sync';
+  type Panel = 'dashboard' | 'drift' | 'endpoints' | 'mcp' | 'skills' | 'profiles' | 'proxy' | 'proxy-apps' | 'auth' | 'versions' | 'yaml' | 'sync';
 
-  const PANELS: Panel[] = ['dashboard', 'drift', 'endpoints', 'mcp', 'skills', 'profiles', 'proxy', 'proxy-apps', 'versions', 'yaml', 'sync'];
+  const PANELS: Panel[] = ['dashboard', 'drift', 'endpoints', 'mcp', 'skills', 'profiles', 'proxy', 'proxy-apps', 'auth', 'versions', 'yaml', 'sync'];
 
   /** Deep-linkable panel via location.hash (#/mcp) — also lets Tauri deep links land on a panel. */
   function panelFromHash(): Panel {
@@ -81,6 +82,7 @@
         { id: 'profiles', label: 'Profiles' },
         { id: 'proxy', label: 'Proxy' },
         { id: 'proxy-apps', label: 'Desktop Apps' },
+        { id: 'auth', label: 'Auth' },
       ],
     },
     {
@@ -164,6 +166,8 @@
           <Proxy />
         {:else if panel === 'proxy-apps'}
           <ProxyApps />
+        {:else if panel === 'auth'}
+          <Auth />
         {:else if panel === 'versions'}
           <Versions />
         {:else if panel === 'yaml'}

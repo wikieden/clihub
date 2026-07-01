@@ -212,3 +212,15 @@ export interface GuiResponse {
   supported: boolean;
   apps: GuiAppRow[];
 }
+
+/** GET /v1/auth — cross-CLI credential/expiry visibility (read-only, never
+ * the token itself). "not found" ≠ logged out — paths are best-effort. */
+export interface CredentialRow {
+  tool: string;
+  label: string;
+  found: boolean;
+  path?: string;
+  modified?: string;
+  expiresAt?: string;
+  expired?: boolean;
+}

@@ -43,6 +43,7 @@ import {
   collectUsage,
   collectQuota,
   checkQuotaAlerts,
+  inspectCredentials,
   formatErrorMessage,
   readBindings,
   useBinding,
@@ -254,6 +255,11 @@ export const ROUTES: Record<string, RouteHandler> = {
   // Token rollup across CLIs (read-only, tokens only — never a $ figure) for the
   // menubar panel's Usage section. Mirrors `clihub usage`.
   'GET /v1/usage': async () => collectUsage(),
+
+  // Cross-CLI credential/expiry visibility (read-only, never prints token
+  // contents). "not found" ≠ logged out — vendor paths are best-effort.
+  // Mirrors `clihub auth status`.
+  'GET /v1/auth': async () => ({ rows: await inspectCredentials() }),
 
   // Live rate-limit / quota rollup (Codex session+weekly+spark windows, Claude
   // session+weekly, plan, reset credits). Reuses each CLI's own credentials;
