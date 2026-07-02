@@ -1,7 +1,15 @@
 <script lang="ts">
   import { DaemonClient } from './lib/daemon';
   import { Window } from '@tauri-apps/api/window';
-  import type { DoctorResponse, HealthRow, ProxyResponse, ProxyToolRow, SystemProxyRow } from './lib/types';
+  import type {
+    DoctorResponse,
+    HealthRow,
+    ProxyResponse,
+    ProxyToolRow,
+    SystemProxyRow,
+    QuotaSnapshot,
+    QuotaWindow,
+  } from './lib/types';
 
   const client = new DaemonClient();
 
@@ -78,26 +86,8 @@
     partialCost?: boolean;
     note?: string;
   };
-  type QuotaWindow = {
-    id: string;
-    label: string;
-    usedPercent: number;
-    remainingPercent: number;
-    resetsAt?: string;
-    resetsInSeconds?: number;
-    resetLabel?: string;
-  };
-  type QuotaSnapshot = {
-    tool: string;
-    label: string;
-    supported: boolean;
-    account?: string;
-    plan?: string;
-    windows: QuotaWindow[];
-    credits?: { available: number; nextExpiresInSeconds?: number };
-    updatedAt: string;
-    error?: string;
-  };
+  // QuotaWindow/QuotaSnapshot now live in ./lib/types (shared with the
+  // main-window Quota panel) — imported above.
   type GuiInfo = { id: string; installed: boolean; osSupported: boolean; mechanism: string; note?: string };
   type CliInfo = { toolId: string; installed: boolean; binPath?: string };
   type Target = { id: string; name: string; gui: GuiInfo | null; cli: CliInfo | null };

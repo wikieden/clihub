@@ -254,3 +254,31 @@ export interface NetworkProbeRow {
   latencyMs?: number;
   error?: string;
 }
+
+/** GET /v1/quota — live rate-limit rollup (mirrors `clihub quota`). Shared
+ * between Popover (quick-glance) and the main-window Quota panel. */
+export interface QuotaWindow {
+  id: string;
+  label: string;
+  usedPercent: number;
+  remainingPercent: number;
+  resetsAt?: string;
+  resetsInSeconds?: number;
+  resetLabel?: string;
+}
+
+export interface QuotaSnapshot {
+  tool: string;
+  label: string;
+  supported: boolean;
+  account?: string;
+  plan?: string;
+  windows: QuotaWindow[];
+  credits?: { available: number; nextExpiresInSeconds?: number };
+  updatedAt: string;
+  error?: string;
+}
+
+export interface QuotaResponse {
+  snapshots: QuotaSnapshot[];
+}

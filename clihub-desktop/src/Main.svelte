@@ -10,14 +10,15 @@
   import Auth from './panels/Auth.svelte';
   import Memory from './panels/Memory.svelte';
   import Prompt from './panels/Prompt.svelte';
+  import Quota from './panels/Quota.svelte';
   import Versions from './panels/Versions.svelte';
   import Yaml from './panels/Yaml.svelte';
   import SyncTeam from './panels/SyncTeam.svelte';
   import Launcher from './Launcher.svelte';
 
-  type Panel = 'dashboard' | 'drift' | 'endpoints' | 'mcp' | 'skills' | 'profiles' | 'proxy' | 'proxy-apps' | 'auth' | 'memory' | 'prompt' | 'versions' | 'yaml' | 'sync';
+  type Panel = 'dashboard' | 'drift' | 'endpoints' | 'mcp' | 'skills' | 'profiles' | 'proxy' | 'proxy-apps' | 'auth' | 'memory' | 'prompt' | 'quota' | 'versions' | 'yaml' | 'sync';
 
-  const PANELS: Panel[] = ['dashboard', 'drift', 'endpoints', 'mcp', 'skills', 'profiles', 'proxy', 'proxy-apps', 'auth', 'memory', 'prompt', 'versions', 'yaml', 'sync'];
+  const PANELS: Panel[] = ['dashboard', 'drift', 'endpoints', 'mcp', 'skills', 'profiles', 'proxy', 'proxy-apps', 'auth', 'memory', 'prompt', 'quota', 'versions', 'yaml', 'sync'];
 
   /** Deep-linkable panel via location.hash (#/mcp) — also lets Tauri deep links land on a panel. */
   function panelFromHash(): Panel {
@@ -87,6 +88,7 @@
         { id: 'auth', label: 'Auth' },
         { id: 'memory', label: 'Memory' },
         { id: 'prompt', label: 'Prompt' },
+        { id: 'quota', label: 'Quota' },
       ],
     },
     {
@@ -176,6 +178,8 @@
           <Memory />
         {:else if panel === 'prompt'}
           <Prompt />
+        {:else if panel === 'quota'}
+          <Quota />
         {:else if panel === 'versions'}
           <Versions />
         {:else if panel === 'yaml'}
