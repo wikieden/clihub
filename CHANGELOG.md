@@ -4,6 +4,69 @@ All notable changes to `@wikieden/clihub`. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions are published to
 npm on each `vX.Y.Z` tag.
 
+## [1.75.0] — Antigravity swap · quota/limits monitoring · GUI panel parity
+
+The monitoring batch: Google Antigravity replaces Gemini CLI as the managed
+Google entry, a full live rate-limit/quota subsystem lands (CodexBar-inspired,
+CLI + TUI + GUI), and the desktop main window closes its parity gaps with the
+tray popover and the TUI (Quota / Usage / Auth / Memory / Prompt panels).
+
+### Added
+- **Live quota / rate-limit rollup** (`clihub quota`, TUI `quota` action,
+  daemon `GET /v1/quota`, GUI Quota panel + popover Limits): Codex
+  session/weekly/spark windows, Claude session/weekly via the OAuth usage
+  endpoint, Antigravity, and Cursor (browser-cookie subsystem reuses your
+  existing sign-in; Chrome/Edge/Brave cookies, no credential prompt).
+  Per-window remaining %, reset countdown, plan + account, reset credits.
+- **Opt-in quota-exhaustion alerts** (`clihub quota-alerts`, GUI toggle,
+  `POST /v1/quota/alerts`): Symbioose-conservative policy — off by default,
+  per-tool opt-in, fires only at 0 % left, OS notification only, never an
+  automatic credential swap. When Codex exhausts, the alert names a specific
+  backup profile that still has headroom (scans `~/.clihub/profiles/*`).
+- **Per-surface usage split** (`clihub usage`, GUI Usage panel): CLI vs
+  Desktop token counts per tool, combined rollup, and a cost estimate from
+  list prices (marked partial when pricing data is incomplete).
+- **Auth status parity** (`clihub auth status`, TUI action, `GET /v1/auth`,
+  GUI Auth panel): cross-CLI credential-file/expiry visibility incl. the
+  real Antigravity path (`~/.gemini/oauth_creds.json`). Read-only, never
+  prints token contents.
+- **Memory / Prompt sync in GUI + daemon** (`GET/POST /v1/memory`,
+  `/v1/prompt`, Memory + Prompt panels, TUI `memory.sync`/`prompt.sync`):
+  plan table → confirm → generate, mirroring `clihub memory|prompt generate`.
+- **Vendor API reachability probe** (`GET /v1/doctor/network`, GUI + TUI):
+  on-demand status/latency per installed CLI's vendor host through the
+  resolved proxy (CodexBar parity). Never runs automatically.
+- **Per-app independent desktop proxy** (Desktop Apps panel,
+  `POST /v1/launch-proxy` `{id,url}`): each GUI app remembers its own launch
+  proxy; the tray quick-launch keeps its separate shared value
+  (`POST /v1/quick-launch-proxy`). Per-CLI proxy table stays in the Proxy
+  panel with system-proxy detect + apply-to-all.
+
+### Changed
+- **Google Antigravity replaces Gemini CLI** as the managed Google CLI
+  (`agy`, 8 CLIs total): install/detect/version, skills, MCP
+  (`~/.gemini/antigravity-cli/mcp_config.json`), memory (GEMINI.md), launch,
+  doctor. All user-facing "Gemini" strings swept (man page, pack manifests,
+  MCP list footer); historical references (Qwen is a Gemini-CLI fork) kept.
+- Codex quota `reset_at` handled as epoch seconds and
+  `reset_after_seconds` preferred — fixes the "resets in NaNm" display.
+
+### Security
+- Gemini/Antigravity OAuth client credentials are no longer hardcoded —
+  loaded from env (`GEMINI_OAUTH_CLIENT_ID`/`_SECRET`), and the old literals
+  were redacted from the entire git history before this release was pushed.
+
+### Backfill (1.66 – 1.74, previously unlogged)
+- **1.74.0** — two-window GUI (main + popover) + global `clihub.yaml` + auto-update
+- **1.73.0** — Chrome/Edge/Brave launcher + Codex env+flag + remembered launch proxy
+- **1.72.0** — Codex proxy fix + CodexBar-style launcher + tray
+- **1.71.0** — Windows + Linux desktop-app proxy launch
+- **1.70.0** — desktop-app proxy launch (Claude/Codex/Kiro/Cursor)
+- **1.69.0** — npm CLI catches up to the desktop line
+- **1.68.0** — bun-less compiled daemon sidecar (externalBin)
+- **1.67.0** — Tauri release pipeline (tauri-action + latest.json)
+- **1.66.0** — OpenCode parity (catalog MCP + usage + tests)
+
 ## [1.65.0] — per-CLI provider binding · GUI control plane · OpenCode (8th CLI)
 
 The Phase-1c batch: the endpoint model was redesigned around per-CLI bindings,
