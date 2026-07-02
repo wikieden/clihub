@@ -282,3 +282,36 @@ export interface QuotaSnapshot {
 export interface QuotaResponse {
   snapshots: QuotaSnapshot[];
 }
+
+/** GET /v1/usage — token rollup (mirrors `clihub usage`, tokens-only, no live
+ * network call). Shared between Popover (quick-glance) and the main-window
+ * Usage panel. */
+export interface SurfaceUsage {
+  surface: 'cli' | 'desktop';
+  inputTokens: number;
+  outputTokens: number;
+  cacheTokens: number;
+  totalTokens: number;
+  sessions: number;
+  estCostUsd: number;
+}
+
+export interface UsageRow {
+  tool: string;
+  label: string;
+  supported: boolean;
+  inputTokens?: number;
+  outputTokens?: number;
+  cacheTokens?: number;
+  totalTokens?: number;
+  sessions?: number;
+  estCostUsd?: number;
+  surfaces?: SurfaceUsage[];
+  plan?: string;
+  partialCost?: boolean;
+  note?: string;
+}
+
+export interface UsageResponse {
+  rows: UsageRow[];
+}

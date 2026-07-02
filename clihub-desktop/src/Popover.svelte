@@ -9,6 +9,7 @@
     SystemProxyRow,
     QuotaSnapshot,
     QuotaWindow,
+    UsageRow,
   } from './lib/types';
 
   const client = new DaemonClient();
@@ -62,32 +63,8 @@
   ];
 
   // ── data shapes ─────────────────────────────────────────────────────────
-  type SurfaceUsage = {
-    surface: 'cli' | 'desktop';
-    inputTokens: number;
-    outputTokens: number;
-    cacheTokens: number;
-    totalTokens: number;
-    sessions: number;
-    estCostUsd: number;
-  };
-  type UsageRow = {
-    tool: string;
-    label: string;
-    supported: boolean;
-    inputTokens?: number;
-    outputTokens?: number;
-    cacheTokens?: number;
-    totalTokens?: number;
-    sessions?: number;
-    estCostUsd?: number;
-    surfaces?: SurfaceUsage[];
-    plan?: string;
-    partialCost?: boolean;
-    note?: string;
-  };
-  // QuotaWindow/QuotaSnapshot now live in ./lib/types (shared with the
-  // main-window Quota panel) — imported above.
+  // UsageRow/SurfaceUsage/QuotaWindow/QuotaSnapshot now live in ./lib/types
+  // (shared with the main-window Usage/Quota panels) — imported above.
   type GuiInfo = { id: string; installed: boolean; osSupported: boolean; mechanism: string; note?: string };
   type CliInfo = { toolId: string; installed: boolean; binPath?: string };
   type Target = { id: string; name: string; gui: GuiInfo | null; cli: CliInfo | null };
